@@ -209,7 +209,7 @@ jobs:
           5. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
           echo "Executing OMP..."
-          omp --prompt "$TASK_PROMPT"
+          omp "$TASK_PROMPT"
 
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
         env:
