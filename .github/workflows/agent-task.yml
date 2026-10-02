@@ -152,18 +152,37 @@ jobs:
           cd workspace
           BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
 
+          # Kiểm tra xem Issue có phải là Handoff từ local hay không
+          HANDOFF_BRANCH=$(echo "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          if [ -n "$HANDOFF_BRANCH" ]; then
+            echo "Phát hiện Handoff Branch: $HANDOFF_BRANCH"
+            # Thử fetch branch đó nếu có
+            if [ -d "backend" ]; then
+              cd backend
+              git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" || true
+              cd ..
+            fi
+            if [ -d "app" ]; then
+              cd app
+              git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" || true
+              cd ..
+            fi
+            BRANCH_NAME="$HANDOFF_BRANCH"
+          fi
+
           TASK_PROMPT="Nhiệm vụ: $ISSUE_TITLE
-          Chi tiết yêu cầu: $ISSUE_BODY
+          Chi tiết bàn giao / yêu cầu:
+          $ISSUE_BODY
 
           Ngữ cảnh không gian làm việc:
           - Thư mục 'backend/': Dự án NestJS TypeScript (sử dụng pnpm, test bằng 'pnpm test').
           - Thư mục 'app/': Dự án Flutter Dart (kiểm tra bằng 'flutter test').
 
           Quy trình bắt buộc:
-          1. Đọc và phân tích codebase liên quan đến yêu cầu.
-          2. Thực hiện sửa đổi / bổ sung code cần thiết.
+          1. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên.
+          2. Thực hiện sửa đổi / bổ sung code để hoàn thành toàn bộ các mục pending đó.
           3. Chạy test trong từng thư mục dự án tương ứng. Đảm bảo test pass 100%.
-          4. Nếu có sửa đổi ở thư mục nào, hãy 'git checkout -b $BRANCH_NAME' và commit các thay đổi trong thư mục repo đó."
+          4. Commit các thay đổi vào branch '$BRANCH_NAME'."
 
           echo "Executing OMP..."
           omp --prompt "$TASK_PROMPT"
