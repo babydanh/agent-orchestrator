@@ -1,0 +1,159 @@
+name: OMP Multi-Repo Orchestrator
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  run-agent:
+    # Chạy khi issue được mở bởi chính chủ hoặc được gắn nhãn 'agent'
+    if: github.event.issue.user.login == github.repository_owner || contains(github.event.issue.labels.*.name, 'agent')
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
+
+    steps:
+      - name: 1. Checkout Orchestrator Repo
+        uses: actions/checkout@v4
+
+      - name: 2. Cài đặt Node.js 22 LTS & PNPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 2.1 Cài đặt Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: 2.2 Cài đặt PNPM toàn cục
+        run: npm install -g pnpm
+
+      - name: 3. Cài đặt OMP (@oh-my-pi/pi-coding-agent)
+        run: |
+          npm install -g @oh-my-pi/pi-coding-agent
+          omp --version
+
+      - name: 4. Clone các Repositories của dự án
+        env:
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          mkdir -p workspace
+          cd workspace
+          git config --global user.name "OMP Orchestrator Agent"
+          git config --global user.email "agent@oh-my-pi.local"
+
+          echo "Cloning Backend repo..."
+          git clone https://$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git backend
+
+          echo "Cloning Frontend App repo..."
+          git clone https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app
+
+          ls -la
+
+      - name: 5. Khởi tạo cấu hình OMP
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          mkdir -p ~/.omp/agent
+          cat << 'EOF' > ~/.omp/agent/config.yml
+          default_provider: openrouter
+          providers:
+            openrouter:
+              api_key: env:OPENROUTER_API_KEY
+          models:
+            default: openrouter/google/gemini-2.5-flash
+          judge: openrouter/~typesafe/jev-latest:auto
+          astGrep:
+            enabled: true
+          astEdit:
+            enabled: true
+          memory:
+            backend: mnemopi
+          EOF
+
+      - name: 6. Thực thi nhiệm vụ với OMP Agent
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          cd workspace
+          BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
+
+          TASK_PROMPT="Nhiệm vụ: $ISSUE_TITLE
+          Chi tiết yêu cầu: $ISSUE_BODY
+
+          Ngữ cảnh không gian làm việc:
+          - Thư mục 'backend/': Dự án NestJS TypeScript (sử dụng pnpm, test bằng 'pnpm test').
+          - Thư mục 'app/': Dự án Flutter Dart (kiểm tra bằng 'flutter test').
+
+          Quy trình bắt buộc:
+          1. Đọc và phân tích codebase liên quan đến yêu cầu.
+          2. Thực hiện sửa đổi / bổ sung code cần thiết.
+          3. Chạy test trong từng thư mục dự án tương ứng. Đảm bảo test pass 100%.
+          4. Nếu có sửa đổi ở thư mục nào, hãy 'git checkout -b $BRANCH_NAME' và commit các thay đổi trong thư mục repo đó."
+
+          echo "Executing OMP..."
+          omp --prompt "$TASK_PROMPT"
+
+      - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
+        env:
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          cd workspace
+          BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
+          PR_LINKS=""
+
+          # Kiểm tra và đẩy Backend
+          if [ -d "backend" ]; then
+            cd backend
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for backend..."
+              git push -u https://$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/HethongBackendApi_QuanlyGiaiDau" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- Backend PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          # Kiểm tra và đẩy Frontend App
+          if [ -d "app" ]; then
+            cd app
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for app..."
+              git push -u https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndApp_QLgiaidau" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- Frontend App PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          echo "PR_LINKS=$PR_LINKS" >> $GITHUB_ENV
+
+      - name: 8. Phản hồi và tổng kết vào Issue gốc
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment $ISSUE_NUMBER --repo "${{ github.repository }}" \
+            --body "🎉 **OMP Orchestrator đã hoàn thành nhiệm vụ!**
+
+          Các Pull Request đã được tạo tự động trên các repo tương ứng:
+          ${{ env.PR_LINKS }}
+
+          Vui lòng kiểm tra và duyệt merge!"
