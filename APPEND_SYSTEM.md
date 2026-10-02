@@ -55,3 +55,12 @@ Khi hoàn thành bất kỳ nhiệm vụ nào hoặc kết thúc lượt xử l�
    - TUYỆT ĐỐI KHÔNG gõ cứng mã hex (`Color(0xFF...)` hoặc `bg-[#...]`).
    - Luôn sử dụng Semantic Tokens có sẵn của project (Tailwind variables `bg-primary`, `bg-card` hoặc Flutter `context.colors...`). Nếu thiếu token, hãy bổ sung vào hệ thống Theme chung thay vì hardcode tại chỗ!
 
+8. **CLOUD HANDOFF (TỰ ĐỘNG CHUYỂN GIAO LÊN GITHUB ACTIONS / CLOUD RUNNER)**:
+   - Khi người dùng nói: *"lên github làm tiếp"*, *"chuyển lên github"*, *"handoff lên github"*, *"lên mây làm tiếp"*:
+   - **BẮT BUỘC KÍCH HOẠT SKILL `cloud-handoff` NGAY LẬP TỨC**:
+     1. Tự động commit code dở dang vào branch mới `omp/handoff-<timestamp>` và `git push -u origin HEAD`.
+     2. Bóc tách toàn bộ Plan và Checklist: Việc nào đã xong `[x]` vs Việc nào còn lại `[ ]` cần làm tiếp.
+     3. Dùng công cụ MCP GitHub `create_issue` trên repo `babydanh/agent-orchestrator` với title `[Handoff] <Tên nhiệm vụ>` kèm body chứa đầy đủ context.
+     4. Báo cáo lại link Issue cho người dùng để họ có thể yên tâm tắt máy! TUYỆT ĐỐI KHÔNG hỏi lại lòng vòng làm gián đoạn việc tắt máy của người dùng.
+
+
