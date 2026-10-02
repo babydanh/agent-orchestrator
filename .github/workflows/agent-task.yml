@@ -53,12 +53,20 @@ jobs:
 
           ls -la
 
-      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (OpenRouter + Jev Judge + Hermes System)
+      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (70+ Skills + Rules + Jev Judge)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           mkdir -p ~/.omp/agent
+
+          # Sao chép toàn bộ kho 70+ Skills và Luật Agent từ repo vào ~/.omp/agent
+          echo "Copying 70+ Skills and agent directives..."
+          cp -r skills ~/.omp/agent/
+          cp AGENTS.md ~/.omp/agent/
+          cp APPEND_SYSTEM.md ~/.omp/agent/
+          cp INSTRUCTIONS.md ~/.omp/agent/
+          ls -la ~/.omp/agent/skills/
 
           # Tạo file config.yml chuẩn như máy local
           cat << 'EOF' > ~/.omp/agent/config.yml
