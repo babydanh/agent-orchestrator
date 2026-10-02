@@ -6,8 +6,8 @@ on:
 
 jobs:
   run-agent:
-    # Chạy khi issue được mở bởi chính chủ hoặc được gắn nhãn 'agent'
-    if: github.event.issue.user.login == github.repository_owner || contains(github.event.issue.labels.*.name, 'agent')
+    # CHỈ CHÍNH CHỦ (babydanh) MỚI ĐƯỢC PHÉP CHẠY. Người ngoài mở issue sẽ bị bỏ qua 100%.
+    if: github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
 
