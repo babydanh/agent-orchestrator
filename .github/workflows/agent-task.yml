@@ -111,8 +111,17 @@ jobs:
             enabled: true
           astEdit:
             enabled: true
-          memory:
-            backend: mnemopi
+          retry:
+            fallbackChains:
+              default:
+                - openrouter/google/gemini-2.5-pro
+                - openrouter/google/gemini-2.5-flash
+              plan:
+                - openrouter/google/gemini-2.5-pro
+              smol:
+                - openrouter/google/gemini-2.5-flash
+              task:
+                - openrouter/google/gemini-2.5-flash
           providers:
             openrouterVariant: nitro
           EOF
