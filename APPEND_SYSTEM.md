@@ -57,10 +57,15 @@ Khi hoàn thành bất kỳ nhiệm vụ nào hoặc kết thúc lượt xử l�
 
 8. **CLOUD HANDOFF (TỰ ĐỘNG CHUYỂN GIAO LÊN GITHUB ACTIONS / CLOUD RUNNER)**:
    - Khi người dùng nói: *"lên github làm tiếp"*, *"chuyển lên github"*, *"handoff lên github"*, *"lên mây làm tiếp"*:
+   - **LƯU Ý QUAN TRỌNG**: Orchestra Runner trên `babydanh/agent-orchestrator` **ĐÃ HỖ TRỢ ĐẦY ĐỦ CẢ 3 REPOSITORIES**:
+     + `backend`: `HethongBackendApi_QuanlyGiaiDau`
+     + `app`: `HethongFrontEndApp_QLgiaidau`
+     + `web`: `HethongFrontEndWeb_QLgiaidau`
    - **BẮT BUỘC KÍCH HOẠT SKILL `cloud-handoff` NGAY LẬP TỨC**:
-     1. Tự động commit code dở dang vào branch mới `omp/handoff-<timestamp>` và `git push -u origin HEAD`.
+     1. Tự động commit code dở dang vào branch mới `omp/handoff-<timestamp>` và `git push -u origin HEAD` (nếu đang ở worktree/repo nào thì push repo đó).
      2. Bóc tách toàn bộ Plan và Checklist: Việc nào đã xong `[x]` vs Việc nào còn lại `[ ]` cần làm tiếp.
      3. Dùng công cụ MCP GitHub `create_issue` trên repo `babydanh/agent-orchestrator` với title `[Handoff] <Tên nhiệm vụ>` kèm body chứa đầy đủ context.
-     4. Báo cáo lại link Issue cho người dùng để họ có thể yên tâm tắt máy! TUYỆT ĐỐI KHÔNG hỏi lại lòng vòng làm gián đoạn việc tắt máy của người dùng.
+     4. Báo cáo lại link Issue cho người dùng để họ có thể yên tâm tắt máy! TUYỆT ĐỐI KHÔNG từ chối hoặc hỏi lại lòng vòng.
+
 
 
