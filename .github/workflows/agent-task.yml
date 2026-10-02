@@ -51,6 +51,9 @@ jobs:
           echo "Cloning Frontend App repo..."
           git clone https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app
 
+          echo "Cloning Frontend Web repo..."
+          git clone https://$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web
+
           ls -la
 
       - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + Jev + 70+ Skills)
@@ -244,6 +247,22 @@ jobs:
                            --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
                            --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
               PR_LINKS="$PR_LINKS\n- Frontend App PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          # Kiểm tra và đẩy Frontend Web
+          if [ -d "web" ]; then
+            cd web
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for web..."
+              git push -u https://$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndWeb_QLgiaidau" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- Frontend Web PR: $PR_URL"
             fi
             cd ..
           fi
