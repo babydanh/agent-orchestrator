@@ -51,13 +51,13 @@ jobs:
           git config --global user.email "agent@oh-my-pi.local"
 
           echo "Cloning Backend repo..."
-          git clone https://$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git backend
+          git clone "https://x-access-token:$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git" backend || git clone "https://$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git" backend
 
           echo "Cloning Frontend App repo..."
-          git clone https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app
+          git clone "https://x-access-token:$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git" app || git clone "https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git" app
 
           echo "Cloning Frontend Web repo..."
-          git clone https://$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web
+          git clone "https://x-access-token:$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git" web || git clone "https://$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git" web
 
           ls -la
 
