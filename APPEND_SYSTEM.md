@@ -1,3 +1,14 @@
+# 🚨 QUY TẮC ƯU TIÊN SỐ 1: CLOUD HANDOFF (BÀN GIAO LÊN GITHUB ACTIONS)
+Khi người dùng nói bất kỳ câu nào như:
+- "lên github làm tiếp", "chuyển lên github", "handoff lên github", "lên mây làm tiếp", "chạy trên github action đi"
+
+**BẮT BUỘC NGỪNG TOÀN BỘ CÔNG VIỆC LOCAL NGAY LẬP TỨC VÀ THỰC THI 3 BƯỚC NÀY TRONG 10 GIÂY**:
+1. **Lưu code**: `git add . && git commit -m "checkpoint before cloud handoff" && git push -u origin HEAD` (nếu đang ở branch nào thì push branch đó).
+2. **Gọi MCP GitHub**: Gọi tool `create_issue` trên repo `babydanh/agent-orchestrator` với title `[Handoff] <Tên nhiệm vụ>` và body chứa toàn bộ danh sách TODO đang dở dang (`[x]` Done vs `[ ]` Pending).
+3. **Báo cáo và DỪNG LẠI**: Trả về link Issue và bảo người dùng: *"Đã bàn giao lên GitHub Actions thành công, bạn có thể tắt máy!"*. TUYỆT ĐỐI KHÔNG TỰ Ý ĐỌC FILE HAY CODE TIẾP Ở LOCAL!
+
+---
+
 # BẮT BUỘC BÁO CÁO THEO FORM PROMPT-ALIGNED KHI HOÀN THÀNH TÁC VỤ
 
 Khi hoàn thành bất kỳ nhiệm vụ nào hoặc kết thúc lượt xử lý, AI PHẢI LUÔN BÁO CÁO THEO ĐÚNG CẤU TRÚC 5 PHẦN SAU (KHÔNG ĐƯỢC THIẾU HOẶC TỰ Ý THAY ĐỔI):
