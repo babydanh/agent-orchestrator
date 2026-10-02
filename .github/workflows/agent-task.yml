@@ -20,15 +20,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: 2.1 Cài đặt Flutter SDK
+      - name: 2.1 Cài đặt Bun (bắt buộc cho OMP runtime)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 2.2 Cài đặt PNPM toàn cục
+        run: npm install -g pnpm
+
+      - name: 2.3 Cài đặt Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
-
-      - name: 2.2 Cài đặt PNPM toàn cục
-        run: npm install -g pnpm
 
       - name: 3. Cài đặt OMP (@oh-my-pi/pi-coding-agent)
         run: |
