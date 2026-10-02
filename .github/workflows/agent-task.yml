@@ -91,16 +91,18 @@ jobs:
             default: openai-codex/gpt-6-luna:xhigh
             plan: openai-codex/gpt-6.1-sol
             judge: openrouter/~typesafe/jev-latest:auto
-            smol: openrouter/google/gemini-2.5-flash
-            task: openrouter/google/gemini-2.5-flash
-            vision: openrouter/google/gemini-2.5-flash
-            commit: openrouter/google/gemini-2.5-flash
-            advisor: openrouter/google/gemini-2.5-flash
+            smol: openrouter/stealth/space-bunny-alpha:max
+            task: openrouter/stealth/space-bunny-alpha:max
+            vision: openrouter/stealth/space-bunny-alpha:max
+            commit: openrouter/stealth/space-bunny-alpha:auto
+            advisor: openrouter/stealth/space-bunny-alpha:max
+            slow: openrouter/stealth/space-bunny-alpha
           compaction:
             methodOrder:
               - shake
               - soft
-            thresholdPercent: 75
+            thresholdPercent: 80
+            keepRecentTokens: 30000
             idleEnabled: true
             supersedeReads: true
             dropUseless: true
@@ -112,6 +114,11 @@ jobs:
           promptCaching:
             enabled: true
             strategy: static-head
+          tools:
+            artifactSpillThreshold: 30
+            speculativeExecution:
+              enabled: true
+              maxInFlight: 2
           astGrep:
             enabled: true
           astEdit:
@@ -130,6 +137,8 @@ jobs:
                 - 9router/cmc/stealth/space-bunny-alpha
           providers:
             openrouterVariant: nitro
+            cacheWarming: idle
+            cacheRetention: long
           EOF
 
           # Tạo file mcp.json cho OMP
