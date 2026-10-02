@@ -132,17 +132,20 @@ jobs:
           astEdit:
             enabled: true
           retry:
+            modelFallback: true
             fallbackChains:
-              smol:
-                - 9router/cmc/stealth/space-bunny-alpha
-              vision:
-                - 9router/cmc/stealth/space-bunny-alpha
-              task:
-                - 9router/cmc/stealth/space-bunny-alpha
-              advisor:
-                - 9router/cmc/stealth/space-bunny-alpha
+              "openai-codex/*":
+                - openrouter/stealth/space-bunny-alpha:max
               default:
-                - 9router/cmc/stealth/space-bunny-alpha
+                - openrouter/stealth/space-bunny-alpha:max
+              smol:
+                - openrouter/stealth/space-bunny-alpha:max
+              vision:
+                - openrouter/stealth/space-bunny-alpha:max
+              task:
+                - openrouter/stealth/space-bunny-alpha:max
+              advisor:
+                - openrouter/stealth/space-bunny-alpha:max
           providers:
             openrouterVariant: nitro
             cacheWarming: idle
