@@ -196,15 +196,17 @@ jobs:
           Chi tiết bàn giao / yêu cầu:
           $ISSUE_BODY
 
-          Ngữ cảnh không gian làm việc:
+          Ngữ cảnh không gian làm việc (workspace):
           - Thư mục 'backend/': Dự án NestJS TypeScript (sử dụng pnpm, test bằng 'pnpm test').
           - Thư mục 'app/': Dự án Flutter Dart (kiểm tra bằng 'flutter test').
+          - Thư mục 'web/': Dự án Next.js React TypeScript (sử dụng pnpm, test bằng 'pnpm test:e2e' hoặc 'pnpm build').
 
           Quy trình bắt buộc:
-          1. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên.
-          2. Thực hiện sửa đổi / bổ sung code để hoàn thành toàn bộ các mục pending đó.
-          3. Chạy test trong từng thư mục dự án tương ứng. Đảm bảo test pass 100%.
-          4. Commit các thay đổi vào branch '$BRANCH_NAME'."
+          1. Di chuyển vào đúng thư mục dự án liên quan (backend, app hoặc web).
+          2. Tạo hoặc chuyển sang branch '$BRANCH_NAME' bằng lệnh: git checkout -B $BRANCH_NAME
+          3. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên và hoàn thành toàn bộ.
+          4. Chạy test / build trong thư mục dự án tương ứng để đảm bảo code hoạt động 100%.
+          5. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
           echo "Executing OMP..."
           omp --prompt "$TASK_PROMPT"
