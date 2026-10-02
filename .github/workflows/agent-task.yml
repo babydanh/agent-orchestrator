@@ -100,13 +100,18 @@ jobs:
             methodOrder:
               - shake
               - soft
-            thresholdPercent: 45
+            thresholdPercent: 75
             idleEnabled: true
             supersedeReads: true
             dropUseless: true
             pruneToolOutputs: true
           advisor:
             enabled: true
+          prewalk:
+            enabled: false
+          promptCaching:
+            enabled: true
+            strategy: static-head
           astGrep:
             enabled: true
           astEdit:
