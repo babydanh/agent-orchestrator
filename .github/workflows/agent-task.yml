@@ -53,10 +53,11 @@ jobs:
 
           ls -la
 
-      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (70+ Skills + Rules + Jev Judge)
+      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + Jev + 70+ Skills)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
+          OMP_CODEX_AUTH: ${{ secrets.OMP_CODEX_AUTH }}
         run: |
           mkdir -p ~/.omp/agent
 
@@ -66,15 +67,29 @@ jobs:
           cp AGENTS.md ~/.omp/agent/
           cp APPEND_SYSTEM.md ~/.omp/agent/
           cp INSTRUCTIONS.md ~/.omp/agent/
-          ls -la ~/.omp/agent/skills/
 
-          # Tạo file config.yml chuẩn như máy local
+          # Tiêm Codex OAuth vào agent.db nếu có secret OMP_CODEX_AUTH
+          if [ -n "$OMP_CODEX_AUTH" ]; then
+            echo "Injecting OpenAI Codex OAuth credentials..."
+            python3 -c "
+          import sqlite3, base64, os
+          db_path = os.path.expanduser('~/.omp/agent/agent.db')
+          con = sqlite3.connect(db_path)
+          con.execute('CREATE TABLE IF NOT EXISTS auth_credentials (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT UNIQUE, credential_type TEXT, data TEXT, disabled_cause TEXT, identity_key TEXT, created_at INTEGER, updated_at INTEGER);')
+          raw_data = base64.b64decode(os.environ['OMP_CODEX_AUTH']).decode('utf-8')
+          con.execute('INSERT OR REPLACE INTO auth_credentials (id, provider, credential_type, data, created_at, updated_at) VALUES (1, \'openai-codex\', \'oauth\', ?, 1790154256461, 1790154256461);', (raw_data,))
+          con.commit()
+          print('Codex OAuth injected successfully into agent.db!')
+          "
+          fi
+
+          # Tạo file config.yml chuẩn khớp 100% với máy local của bạn
           cat << 'EOF' > ~/.omp/agent/config.yml
           setupVersion: 2
           symbolPreset: nerd
           modelRoles:
-            default: openrouter/google/gemini-2.5-flash
-            plan: openrouter/google/gemini-2.5-pro
+            default: openai-codex/gpt-6-luna:xhigh
+            plan: openai-codex/gpt-6.1-sol
             judge: openrouter/~typesafe/jev-latest:auto
             smol: openrouter/google/gemini-2.5-flash
             task: openrouter/google/gemini-2.5-flash
