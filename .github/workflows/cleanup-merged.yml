@@ -1,0 +1,47 @@
+name: Auto Cleanup Merged PR & Sessions
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    # Chỉ chạy khi PR đã được MERGE thành công vào main
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Dọn dẹp Branch và Session tương ứng
+        env:
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "PR đã được merge thành công. Đang tiến hành dọn dẹp..."
+
+          # Xóa branch tạm trên repo nếu thuộc format omp/
+          if [[ "$HEAD_BRANCH" =~ ^omp/ ]]; then
+            echo "Đang xóa remote branch: $HEAD_BRANCH..."
+            git push "https://${GH_PAT}@github.com/${{ github.repository }}.git" --delete "$HEAD_BRANCH" || true
+          fi
+
+          # Dọn dẹp session folder trên branch omp-sync/sessions nếu có liên quan
+          echo "Kiểm tra và dọn dẹp session tương ứng trên branch omp-sync/sessions..."
+          rm -rf /tmp/session_clean
+          git clone --branch omp-sync/sessions "https://${GH_PAT}@github.com/${{ github.repository }}.git" /tmp/session_clean || true
+          if [ -d "/tmp/session_clean" ]; then
+            cd /tmp/session_clean
+            # Trích xuất số issue nếu branch dạng omp/issue-123
+            ISSUE_NUM=$(echo "$HEAD_BRANCH" | grep -oP 'issue-\K[0-9]+' || true)
+            if [ -n "$ISSUE_NUM" ] && [ -d "issue-$ISSUE_NUM" ]; then
+              echo "Xóa thư mục session issue-$ISSUE_NUM..."
+              rm -rf "issue-$ISSUE_NUM"
+              git config --global user.name "github-actions[bot]"
+              git config --global user.email "github-actions[bot]@users.noreply.github.com"
+              git add .
+              if ! git diff --cached --quiet; then
+                git commit -m "chore(cleanup): remove session for merged issue #$ISSUE_NUM"
+                git push origin omp-sync/sessions
+                echo "Đã dọn dẹp sạch session thành công!"
+              fi
+            fi
+          fi
