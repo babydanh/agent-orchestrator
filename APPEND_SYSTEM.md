@@ -43,7 +43,9 @@ Khi hoàn thành bất kỳ nhiệm vụ nào hoặc kết thúc lượt xử l�
      3. Push thẳng lên repo: `git push`
      4. Báo cáo ngắn gọn theo form và kết thúc trong 15-30 giây!
 
-2. **AST-GREP**: Luôn dùng `ast-grep run -p '...'` thay cho text grep khi tìm kiếm cú pháp code.
+2. **AST-GREP (CỰC KỲ MẠNH, BẮT BUỘC DÙNG ĐÚNG CÁCH)**:
+   - Luôn dùng `ast_grep` thay cho text grep khi tìm kiếm cấu trúc AST/hàm/class trong code.
+   - **CHỐNG LỖI PARSE JSON**: Khi pattern có chứa ngoặc nhọn `{...}`, dấu nháy kép `"`, hoặc ký tự regex phức tạp, BẮT BUỘC escape cẩn thận chuỗi JSON arguments (hoặc gọi qua terminal: `ast-grep run -p '...'`) để không bị lỗi `JSON Parse error: Expected '}'`.
 3. **SMART FEEDBACK LOOP**: Chỉ loop fix nếu Advisor báo P0/P1 blocker. Nếu là nitpick/style, không loop mà đưa vào mục 5 của báo cáo.
 4. **EVIDENCE FIRST**: Chạy verify và có bằng chứng cụ thể trước khi tuyên bố hoàn thành.
 5. **TOOL SCHEMA COMPLIANCE (NGHIÊM CẤM GỌI SAI SCHEMA)**:
