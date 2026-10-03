@@ -3,14 +3,15 @@ name: cloud-handoff
 description: Use when the user requests to continue the current work on GitHub / Cloud Actions ('lên github làm tiếp', 'chuyển lên github', 'handoff to cloud', 'bàn giao lên cloud')
 ---
 
-# Cloud Handoff Skill
+# Cloud Handoff Skill (2-Way Session & Todo Synchronization)
 
-Bàn giao phiên làm việc đang dở dang từ máy local lên GitHub Actions Cloud Runner (`babydanh/agent-orchestrator`) để tiếp tục chạy tự động 24/7.
+Bàn giao phiên làm việc đang dở dang từ máy local lên GitHub Actions Cloud Runner (`babydanh/agent-orchestrator`) để tiếp tục chạy tự động 24/7, **bảo toàn 100% Session & Danh sách TODO/Checklist**.
 
 ## Nguyên lý cốt lõi:
-1. **Lưu giữ toàn bộ trạng thái code (Code State)**: Commit và push mọi thay đổi dở dang lên remote branch.
-2. **Bảo tồn ngữ cảnh kế hoạch (Context Preservation)**: Tổng hợp chính xác những việc đã hoàn thành (`[x]`) và những việc còn lại (`[ ]`).
-3. **Kích hoạt Cloud Runner**: Gọi tool MCP GitHub để mở Issue trên `babydanh/agent-orchestrator`.
+1. **Bảo tồn Code State**: Commit và push mọi thay đổi dở dang lên remote branch của dự án.
+2. **Bảo tồn Session & TODO State**: Đẩy bản ghi session `.jsonl` mới nhất lên branch `omp-sync/sessions` để Cloud Agent nạp tiếp tục.
+3. **Kích hoạt Cloud Runner**: Gọi tool MCP GitHub tạo Issue chứa cả `Branch dở dang` và `Session-ID`.
+4. **Tự động Dọn Dẹp (Auto-Clean)**: Khi Pull Request được Merge, hệ thống tự động xóa branch dở dang và dọn sạch session trên cloud.
 
 ---
 
@@ -30,25 +31,19 @@ Tạo tên branch handoff rõ ràng:
   ```
 
 ### Bước 2: Commit và Push code dở dang lên GitHub
-Nếu có thay đổi chưa commit:
 ```bash
 git add .
 git commit -m "chore(omp): checkpoint before cloud handoff"
 git push -u origin HEAD
 ```
-*Lưu ý: Nếu gặp lỗi chưa có remote upstream, dùng cờ `-u origin <branch>` để đẩy lên.*
 
-### Bước 3: Tổng hợp Bản tin Bàn giao (Handover Brief)
-Trích xuất từ kế hoạch hiện tại (từ `08-tasks.md`, `PlanArtifacts.md`, hoặc TODO trong chat):
-1. **Mục tiêu**: Việc gì đang làm?
-2. **Repo liên quan**: Backend (`HethongBackendApi_QuanlyGiaiDau`) hay App (`HethongFrontEndApp_QLgiaidau`) hay Web (`HethongFrontEndWeb_QLgiaidau`)?
-3. **Branch dở dang**: Tên branch vừa push ở Bước 2.
-4. **Việc đã xong (Done)**:
-   - [x] Task 1...
-   - [x] Task 2...
-5. **Việc cần làm tiếp (Pending)**:
-   - [ ] Task 3: Chi tiết cần code ở file nào...
-   - [ ] Task 4: Chạy test...
+### Bước 3: Đồng bộ Session JSONL lên branch `omp-sync/sessions`
+Tìm file session `.jsonl` gần nhất trong `~/.omp/agent/sessions/` tương ứng với thư mục hiện tại:
+1. Xác định Session ID từ file `.jsonl` mới nhất.
+2. Sao chép và push file session vào branch `omp-sync/sessions` trên `babydanh/agent-orchestrator`:
+```bash
+# Script hỗ trợ: powershell C:\Users\GIGABYTE\.omp\scripts\push-session.ps1 -SessionId <SESSION_ID>
+```
 
 ### Bước 4: Gọi MCP GitHub tạo Issue trên Orchestrator
 Sử dụng công cụ MCP GitHub `create_issue`:
@@ -62,6 +57,7 @@ Sử dụng công cụ MCP GitHub `create_issue`:
 ### 📌 Thông tin ngữ cảnh:
 - **Repo mục tiêu**: `<tên-repo-mục-tiêu>`
 - **Branch dở dang**: `<tên-branch-vừa-push>`
+- **Session-ID**: `<SESSION_ID>`
 - **Thời điểm bàn giao**: `<timestamp>`
 
 ---
@@ -76,21 +72,21 @@ Sử dụng công cụ MCP GitHub `create_issue`:
 
 ---
 
-### ⏳ Các việc CẦN LÀM TIẾP (Pending Checklist):
+### ⏳ Các việc CẦN LÀM TIẾP (Pending Checklist / TODO):
 - [ ] ...
 
 ---
 
 ### 🧪 Yêu cầu kiểm chứng & bàn giao:
 1. Đọc code trên branch `<tên-branch-vừa-push>`.
-2. Tiếp tục hoàn thiện các mục trong danh sách **Pending Checklist** ở trên.
-3. Chạy toàn bộ test suites đảm bảo không gãy code.
+2. Khôi phục session `<SESSION_ID>` để tiếp nối chính xác mạch TODO.
+3. Chạy test / build tương ứng đảm bảo không gãy code.
 4. Mở Pull Request vào branch chính (`main`).
 ```
 
 ### Bước 5: Báo cáo lại cho Người dùng
 Sau khi tạo Issue thành công, in ra link Issue trên GitHub và thông báo:
-> "🎉 **Đã bàn giao phiên làm việc lên GitHub Actions thành công!**  
+> "🎉 **Đã bàn giao phiên làm việc & toàn bộ TODO lên GitHub Actions thành công!**  
 > 🔗 **Issue theo dõi**: `https://github.com/babydanh/agent-orchestrator/issues/<number>`  
 >  
-> Toàn bộ code dở dang và kế hoạch todo đã được chuyển lên mây. Máy ảo GitHub Actions đang khởi động để tiếp tục làm tiếp. Bạn có thể yên tâm tắt máy tính!"
+> Toàn bộ code dở dang, lịch sử chat và checklist TODO đã được chuyển lên mây. Máy ảo GitHub Actions đang khởi động để tiếp tục làm tiếp. Bạn có thể yên tâm tắt máy tính!"
