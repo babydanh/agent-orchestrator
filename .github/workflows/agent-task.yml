@@ -211,8 +211,25 @@ jobs:
           4. Chạy test / build trong thư mục dự án tương ứng để đảm bảo code hoạt động 100%.
           5. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
+          # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
+          SESSION_ID=$(echo "$ISSUE_BODY" | grep -oP 'Session-ID\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          if [ -n "$SESSION_ID" ]; then
+            echo "Phát hiện Handoff Session ID: $SESSION_ID. Đang tải từ branch omp-sync/sessions..."
+            mkdir -p /tmp/sync_sessions
+            git clone --branch omp-sync/sessions --single-branch "https://${GH_PAT:-$GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
+            if [ -d "/tmp/sync_sessions/$SESSION_ID" ]; then
+              echo "Khôi phục phiên làm việc $SESSION_ID vào ~/.omp/agent/sessions/..."
+              mkdir -p ~/.omp/agent/sessions
+              cp -r /tmp/sync_sessions/$SESSION_ID/* ~/.omp/agent/sessions/ 2>/dev/null || true
+            fi
+          fi
+
           echo "Executing OMP..."
-          omp "$TASK_PROMPT"
+          if [ -n "$SESSION_ID" ]; then
+            omp --continue "$TASK_PROMPT" || omp "$TASK_PROMPT"
+          else
+            omp "$TASK_PROMPT"
+          fi
 
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
         env:
@@ -290,7 +307,40 @@ jobs:
           Các Pull Request đã được tạo tự động trên các repo tương ứng:
           ${{ env.PR_LINKS }}
 
+          Phiên làm việc (Session) đã được đồng bộ lên branch \`omp-sync/sessions\` để kéo về local bất cứ lúc nào!
           Vui lòng kiểm tra và duyệt merge!"
+
+      - name: 8.5 Lưu và đồng bộ phiên làm việc (Session Sync) lên branch omp-sync/sessions
+        if: always()
+        env:
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          echo "Đang lưu phiên làm việc OMP lên branch omp-sync/sessions..."
+          if [ -d "$HOME/.omp/agent/sessions" ] && [ "$(ls -A $HOME/.omp/agent/sessions 2>/dev/null)" ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+            rm -rf /tmp/session_repo
+            git clone --branch omp-sync/sessions "https://${GH_PAT}@github.com/${{ github.repository }}.git" /tmp/session_repo || {
+              mkdir -p /tmp/session_repo && cd /tmp/session_repo
+              git init && git checkout -b omp-sync/sessions
+              git remote add origin "https://${GH_PAT}@github.com/${{ github.repository }}.git"
+            }
+
+            cd /tmp/session_repo
+            mkdir -p "issue-$ISSUE_NUMBER"
+            cp -r $HOME/.omp/agent/sessions/* "issue-$ISSUE_NUMBER/" 2>/dev/null || true
+
+            git add .
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(session): update session state for issue #$ISSUE_NUMBER"
+              git push origin omp-sync/sessions
+              echo "Đã lưu session thành công lên branch omp-sync/sessions!"
+            else
+              echo "Không có thay đổi trong session, bỏ qua push."
+            fi
+          fi
 
       - name: 9. Tự động đồng bộ & lưu mới Token Codex OAuth vào GitHub Secrets (Auto-Persist)
         if: always()
