@@ -97,20 +97,74 @@ jobs:
           cp APPEND_SYSTEM.md ~/.omp/agent/
           cp INSTRUCTIONS.md ~/.omp/agent/
 
-          # Tiêm Codex OAuth vào agent.db nếu có secret OMP_CODEX_AUTH
-          if [ -n "$OMP_CODEX_AUTH" ]; then
-            echo "Injecting OpenAI Codex OAuth credentials..."
-            python3 -c "
-          import sqlite3, base64, os
-          db_path = os.path.expanduser('~/.omp/agent/agent.db')
+          # Khởi tạo cơ sở dữ liệu agent.db đầy đủ schema và tiêm Codex OAuth + OpenRouter API key
+          echo "Initializing agent.db with schema and credentials..."
+          python3 -c "
+          import sqlite3, base64, os, json, time
+
+          db_dir = os.path.expanduser('~/.omp/agent')
+          os.makedirs(db_dir, exist_ok=True)
+          db_path = os.path.join(db_dir, 'agent.db')
           con = sqlite3.connect(db_path)
-          con.execute('CREATE TABLE IF NOT EXISTS auth_credentials (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT UNIQUE, credential_type TEXT, data TEXT, disabled_cause TEXT, identity_key TEXT, created_at INTEGER, updated_at INTEGER);')
-          raw_data = base64.b64decode(os.environ['OMP_CODEX_AUTH']).decode('utf-8')
-          con.execute('INSERT OR REPLACE INTO auth_credentials (id, provider, credential_type, data, created_at, updated_at) VALUES (1, \'openai-codex\', \'oauth\', ?, 1790154256461, 1790154256461);', (raw_data,))
+          cur = con.cursor()
+
+          # Tạo đầy đủ bảng schema OMP yêu cầu
+          cur.execute('''CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)''')
+          cur.execute('''INSERT OR IGNORE INTO schema_version VALUES (6)''')
+
+          cur.execute('''CREATE TABLE IF NOT EXISTS auth_schema_version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER NOT NULL)''')
+          cur.execute('''INSERT OR IGNORE INTO auth_schema_version VALUES (1, 8)''')
+
+          cur.execute('''CREATE TABLE IF NOT EXISTS auth_change_revision (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL)''')
+          cur.execute('''INSERT OR IGNORE INTO auth_change_revision VALUES (1, 55824)''')
+
+          cur.execute('''CREATE TABLE IF NOT EXISTS auth_credential_block_mirror_guard (credential_id INTEGER PRIMARY KEY) WITHOUT ROWID''')
+
+          cur.execute('''CREATE TABLE IF NOT EXISTS auth_credential_blocks (
+              credential_id INTEGER NOT NULL,
+              provider_key TEXT NOT NULL,
+              block_scope TEXT NOT NULL DEFAULT '',
+              blocked_until_ms INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (credential_id, provider_key, block_scope)
+          )''')
+
+          cur.execute('''CREATE TABLE IF NOT EXISTS auth_credentials (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              provider TEXT NOT NULL,
+              credential_type TEXT NOT NULL,
+              data TEXT NOT NULL,
+              disabled_cause TEXT DEFAULT NULL,
+              identity_key TEXT DEFAULT NULL,
+              created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)),
+              updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER))
+          )''')
+
+          now_ts = int(time.time())
+
+          # 1. Tiêm OpenRouter API key nếu có
+          openrouter_key = os.environ.get('OPENROUTER_API_KEY')
+          if openrouter_key:
+              data_json = json.dumps({'key': openrouter_key, 'source': 'login'})
+              cur.execute('''INSERT OR REPLACE INTO auth_credentials (provider, credential_type, data, created_at, updated_at) VALUES ('openrouter', 'api_key', ?, ?, ?)''', (data_json, now_ts, now_ts))
+              print('OpenRouter API key successfully injected into agent.db!')
+
+          # 2. Tiêm Codex OAuth nếu có
+          codex_auth = os.environ.get('OMP_CODEX_AUTH')
+          if codex_auth:
+              try:
+                  raw_data = base64.b64decode(codex_auth).decode('utf-8')
+                  parsed = json.loads(raw_data)
+                  identity_key = f\"email:{parsed.get('email', '')}|org:{parsed.get('orgId', '')}\"
+                  cur.execute('''INSERT OR REPLACE INTO auth_credentials (provider, credential_type, data, identity_key, created_at, updated_at) VALUES ('openai-codex', 'oauth', ?, ?, ?, ?)''', (raw_data, identity_key, now_ts, now_ts))
+                  print('Codex OAuth credentials successfully injected into agent.db!')
+              except Exception as e:
+                  print('Warning: Failed to decode/inject Codex OAuth:', e)
+
           con.commit()
-          print('Codex OAuth injected successfully into agent.db!')
+          con.close()
+          print('agent.db initialized successfully!')
           "
-          fi
 
           # Tạo file config.yml chuẩn khớp 100% với model roles & fallback mới nhất
           cat << 'EOF' > ~/.omp/agent/config.yml
@@ -264,9 +318,9 @@ jobs:
           echo "Executing OMP in Headless Mode..."
           # Sử dụng pipe và cờ -p để chạy không tương tác (non-interactive), chống treo runner
           if [ -n "$SESSION_ID" ]; then
-            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p
+            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
           else
-            printf "%s\n" "$TASK_PROMPT" | omp -p
+            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
           fi
 
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
