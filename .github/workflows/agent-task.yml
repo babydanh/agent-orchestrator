@@ -426,11 +426,17 @@ jobs:
             mkdir -p "issue-$ISSUE_NUMBER"
             cp -r $HOME/.omp/agent/sessions/* "issue-$ISSUE_NUMBER/" 2>/dev/null || true
 
+            # Khử toàn bộ token / secret nhạy cảm trước khi commit để không bị GitHub Secret Scanning chặn push
+            if [ -n "$GH_PAT" ]; then
+              grep -rl "$GH_PAT" "issue-$ISSUE_NUMBER" 2>/dev/null | xargs sed -i "s/$GH_PAT/***/g" 2>/dev/null || true
+            fi
+            find "issue-$ISSUE_NUMBER" -type f \( -name "*.json" -o -name "*.jsonl" -o -name "*.txt" -o -name "*.log" \) -exec sed -i -E 's/ghp_[a-zA-Z0-9]{36}/***/g; s/github_pat_[a-zA-Z0-9_]{82}/***/g; s/sk-or-v1-[a-f0-9]{64}/***/g' {} + 2>/dev/null || true
+
             git add .
             if ! git diff --cached --quiet; then
               git commit -m "chore(session): update session state for issue #$ISSUE_NUMBER"
-              git push origin omp-sync/sessions
-              echo "Đã lưu session thành công lên branch omp-sync/sessions!"
+              git push origin omp-sync/sessions || echo "Warning: Push to omp-sync/sessions skipped or blocked by repository rules."
+              echo "Đã xử lý lưu session lên branch omp-sync/sessions!"
             else
               echo "Không có thay đổi trong session, bỏ qua push."
             fi
