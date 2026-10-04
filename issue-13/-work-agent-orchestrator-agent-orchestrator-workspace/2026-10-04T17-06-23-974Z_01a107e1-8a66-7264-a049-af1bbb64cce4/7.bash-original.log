@@ -1,0 +1,802 @@
+$ jest --config ./test/jest-e2e.json
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:27 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:28 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:29 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:29 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:29 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:29 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:30 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:30 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:30 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:30 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+[Nest] 3596  - 10/04/2026, 5:14:31 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:31 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Worker.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:161:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/worker.js:129:59)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+  console.error
+    Error: connect ECONNREFUSED 127.0.0.1:1
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 1
+    }
+
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:99:25)
+      at Queue.emit (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue.js:56:22)
+      at RedisConnection.<anonymous> (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/queue-base.js:43:53)
+      at EventEmitter.RedisConnection.handleClientError (../node_modules/.pnpm/bullmq@5.79.1_supports-color@8.1.1/node_modules/bullmq/dist/cjs/classes/redis-connection.js:78:18)
+      at EventEmitter.silentEmit (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/Redis.js:529:30)
+      at Socket.<anonymous> (../node_modules/.pnpm/ioredis@5.10.1_supports-color@8.1.1/node_modules/ioredis/built/redis/event_handler.js:221:14)
+
+[Nest] 3596  - 10/04/2026, 5:14:31 PM   ERROR [RedisService] Redis connection error:
+[Nest] 3596  - 10/04/2026, 5:14:31 PM   ERROR [RedisService] Error: connect ECONNREFUSED 127.0.0.1:1
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 1
+}
+FAIL test/app.e2e-spec.ts (6.669 s)
+  ● AppController (e2e) › / (GET)
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+       8 |   let app: INestApplication<App>;
+       9 |
+    > 10 |   beforeEach(async () => {
+         |   ^
+      11 |     const moduleFixture: TestingModule = await Test.createTestingModule({
+      12 |       imports: [AppModule],
+      13 |     }).compile();
+
+      at app.e2e-spec.ts:10:3
+      at Object.<anonymous> (app.e2e-spec.ts:7:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        6.875 s, estimated 7 s
+Ran all test suites.
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+[ELIFECYCLE] Command failed with exit code 1.
+
+
+Wall time: 9.17 seconds
+
+Command exited with code 1
