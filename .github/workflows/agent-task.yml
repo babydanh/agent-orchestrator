@@ -3,11 +3,27 @@ name: OMP Multi-Repo Orchestrator
 on:
   issues:
     types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      task_title:
+        description: 'Tiêu đề nhiệm vụ (Task Title)'
+        required: true
+        default: 'Review & Verify Codebase across repos'
+      task_body:
+        description: 'Chi tiết yêu cầu / Checklist bàn giao'
+        required: true
+        default: 'Kiểm tra trạng thái build, test và chất lượng mã nguồn backend, app, web.'
+      target_branch:
+        description: 'Tên branch thực thi (Tùy chọn)'
+        required: false
+        default: ''
 
 jobs:
   run-agent:
-    # CHỈ CHÍNH CHỦ (babydanh) MỚI ĐƯỢC PHÉP CHẠY. Người ngoài mở issue sẽ bị bỏ qua 100%.
-    if: github.event.issue.user.login == github.repository_owner
+    # CHỈ CHÍNH CHỦ (babydanh) MỚI ĐƯỢC PHÉP CHẠY.
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.issue.user.login == github.repository_owner)
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
 
@@ -25,10 +41,15 @@ jobs:
         with:
           bun-version: latest
 
-      - name: 2.2 Cài đặt PNPM toàn cục
+      - name: 2.2 Cài đặt Python 3.12 (bắt buộc cho AST-grep & OMP Python tools)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 2.3 Cài đặt PNPM toàn cục
         run: npm install -g pnpm
 
-      - name: 2.3 Cài đặt Flutter SDK
+      - name: 2.4 Cài đặt Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.x'
@@ -51,13 +72,13 @@ jobs:
           git config --global user.email "agent@oh-my-pi.local"
 
           echo "Cloning Backend repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git backend
+          git clone https://${GH_PAT}@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git backend || echo "Backend repo not accessible or already cloned"
 
           echo "Cloning Frontend App repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app
+          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app || echo "App repo not accessible or already cloned"
 
           echo "Cloning Frontend Web repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web
+          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web || echo "Web repo not accessible or already cloned"
 
           ls -la
 
@@ -91,26 +112,28 @@ jobs:
           "
           fi
 
-          # Tạo file config.yml chuẩn khớp 100% với máy local của bạn
+          # Tạo file config.yml chuẩn khớp 100% với model roles & fallback mới nhất
           cat << 'EOF' > ~/.omp/agent/config.yml
           setupVersion: 2
           symbolPreset: nerd
           modelRoles:
             default: openai-codex/gpt-6-luna:xhigh
-            plan: openai-codex/gpt-6.1-sol
+            plan: openai-codex/gpt-6.1-sol:max
             judge: openrouter/~typesafe/jev-latest:auto
             smol: openrouter/stealth/space-bunny-alpha:max
             task: openrouter/stealth/space-bunny-alpha:max
             vision: openrouter/stealth/space-bunny-alpha:max
             commit: openrouter/stealth/space-bunny-alpha:auto
             advisor: openrouter/stealth/space-bunny-alpha:max
-            slow: openrouter/stealth/space-bunny-alpha
+            slow: openrouter/stealth/space-bunny-alpha:max
+            tiny: openrouter/stealth/space-bunny-alpha:max
+            memory: openrouter/stealth/space-bunny-alpha:max
           compaction:
             methodOrder:
               - shake
               - soft
-            thresholdPercent: 80
-            keepRecentTokens: 30000
+            thresholdPercent: 70
+            keepRecentTokens: 15000
             idleEnabled: true
             supersedeReads: true
             dropUseless: true
@@ -138,13 +161,23 @@ jobs:
                 - openrouter/stealth/space-bunny-alpha:max
               default:
                 - openrouter/stealth/space-bunny-alpha:max
-              smol:
+              plan:
                 - openrouter/stealth/space-bunny-alpha:max
-              vision:
+              smol:
                 - openrouter/stealth/space-bunny-alpha:max
               task:
                 - openrouter/stealth/space-bunny-alpha:max
+              vision:
+                - openrouter/stealth/space-bunny-alpha:max
+              commit:
+                - openrouter/stealth/space-bunny-alpha:max
               advisor:
+                - openrouter/stealth/space-bunny-alpha:max
+              slow:
+                - openrouter/stealth/space-bunny-alpha:max
+              tiny:
+                - openrouter/stealth/space-bunny-alpha:max
+              memory:
                 - openrouter/stealth/space-bunny-alpha:max
           providers:
             openrouterVariant: nitro
@@ -167,21 +200,25 @@ jobs:
           }
           EOF
 
-      - name: 6. Thực thi nhiệm vụ với OMP Agent
+      - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
+          ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
+          MANUAL_BRANCH: ${{ github.event.inputs.target_branch }}
         run: |
           cd workspace
           BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
+          if [ -n "$MANUAL_BRANCH" ]; then
+            BRANCH_NAME="$MANUAL_BRANCH"
+          fi
 
           # Kiểm tra xem Issue có phải là Handoff từ local hay không
           HANDOFF_BRANCH=$(echo "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
           if [ -n "$HANDOFF_BRANCH" ]; then
             echo "Phát hiện Handoff Branch: $HANDOFF_BRANCH"
-            # Thử fetch branch đó nếu có
             if [ -d "backend" ]; then
               cd backend
               git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" || true
@@ -224,18 +261,20 @@ jobs:
             fi
           fi
 
-          echo "Executing OMP..."
+          echo "Executing OMP in Headless Mode..."
+          # Sử dụng pipe và cờ -p để chạy không tương tác (non-interactive), chống treo runner
           if [ -n "$SESSION_ID" ]; then
-            omp --continue "$TASK_PROMPT" || omp "$TASK_PROMPT"
+            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p
           else
-            omp "$TASK_PROMPT"
+            printf "%s\n" "$TASK_PROMPT" | omp -p
           fi
 
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
+          ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
+          ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
           OWNER: ${{ github.repository_owner }}
         run: |
           cd workspace
@@ -255,8 +294,8 @@ jobs:
               PR_URL=$(gh pr create --repo "$OWNER/HethongBackendApi_QuanlyGiaiDau" \
                            --head "$BRANCH_NAME" \
                            --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
               PR_LINKS="$PR_LINKS\n- Backend PR: $PR_URL"
             fi
             cd ..
@@ -271,8 +310,8 @@ jobs:
               PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndApp_QLgiaidau" \
                            --head "$BRANCH_NAME" \
                            --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
               PR_LINKS="$PR_LINKS\n- Frontend App PR: $PR_URL"
             fi
             cd ..
@@ -287,8 +326,8 @@ jobs:
               PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndWeb_QLgiaidau" \
                            --head "$BRANCH_NAME" \
                            --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Issue #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue #$ISSUE_NUMBER." || true)
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
               PR_LINKS="$PR_LINKS\n- Frontend Web PR: $PR_URL"
             fi
             cd ..
@@ -296,7 +335,8 @@ jobs:
 
           echo "PR_LINKS=$PR_LINKS" >> $GITHUB_ENV
 
-      - name: 8. Phản hồi và tổng kết vào Issue gốc
+      - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
+        if: github.event_name == 'issues'
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -314,7 +354,7 @@ jobs:
         if: always()
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
         run: |
           echo "Đang lưu phiên làm việc OMP lên branch omp-sync/sessions..."
           if [ -d "$HOME/.omp/agent/sessions" ] && [ "$(ls -A $HOME/.omp/agent/sessions 2>/dev/null)" ]; then
