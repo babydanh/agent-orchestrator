@@ -62,17 +62,12 @@ jobs:
           omp --version
 
       - name: 3.1 Cài đặt Ripwire MCP (Code Intelligence)
+        continue-on-error: true
         run: |
           echo "Installing Ripwire for Linux x64..."
-          RIPWIRE_REPO=redhat-et/ripwire bash -c "$(curl -fsSL https://raw.githubusercontent.com/redhat-et/ripwire/main/scripts/install.sh)" || {
-            echo "Fallback direct download..."
-            mkdir -p ~/.local/bin
-            LATEST_TAG=$(curl -s https://api.github.com/repos/redhat-et/ripwire/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
-            curl -fsSL "https://github.com/redhat-et/ripwire/releases/download/${LATEST_TAG}/ripwire-linux-x64.tar.gz" | tar -xz -C ~/.local/bin || true
-            chmod +x ~/.local/bin/ripwire || true
-          }
+          RIPWIRE_REPO=redhat-et/ripwire RIPWIRE_INSTALL_YES=1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/redhat-et/ripwire/main/scripts/install.sh)" || true
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          ~/.local/bin/ripwire --version || ripwire --version || echo "Ripwire ready"
+          ~/.local/bin/ripwire --version || ripwire --version || echo "Ripwire ready or skipped"
 
       - name: 4. Clone các Repositories của dự án
         env:
