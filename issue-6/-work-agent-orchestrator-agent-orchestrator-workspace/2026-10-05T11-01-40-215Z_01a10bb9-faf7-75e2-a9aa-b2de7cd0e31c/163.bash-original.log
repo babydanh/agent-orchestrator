@@ -1,0 +1,210 @@
+Analyzing app...                                                
+
+   info • Don't invoke 'print' in production code. Try using a logging framework • generate_16_teams.dart:34:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • generate_16_teams.dart:63:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • generate_sample.dart:53:5 • avoid_print
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:164:30 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:170:43 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:180:30 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:186:57 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:195:30 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:292:59 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/core/widgets/app_share_modal.dart:295:31 • unnecessary_non_null_assertion
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:78:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:79:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:80:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:81:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:96:9 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:97:9 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:120:38 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/data/repositories/api/api_tournament_management_repository.dart:298:14 • use_null_aware_elements
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/change_requests_screen.dart:61:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/change_requests_screen.dart:66:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/change_requests_screen.dart:71:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/change_requests_screen.dart:297:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/change_requests_screen.dart:306:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/disputes_screen.dart:58:20 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/disputes_screen.dart:59:24 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/disputes_screen.dart:226:34 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/disputes_screen.dart:282:19 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/disputes_screen.dart:292:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:48:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:57:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:85:23 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:95:35 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:200:23 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:225:47 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/admin/screens/pending_clubs_screen.dart:233:25 • curly_braces_in_flow_control_structures
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:235:47 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:257:31 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:290:31 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:343:19 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:353:31 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:367:29 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:386:41 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/admin/screens/pending_clubs_screen.dart:394:19 • curly_braces_in_flow_control_structures
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:396:41 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/pending_clubs_screen.dart:404:19 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/transactions_screen.dart:63:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/transactions_screen.dart:68:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/transactions_screen.dart:71:22 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/transactions_screen.dart:317:19 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:61:20 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:62:20 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:65:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:116:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:121:13 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:126:13 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/admin/screens/verification_screen.dart:183:13 • curly_braces_in_flow_control_structures
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:281:16 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:283:16 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:284:16 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:412:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:421:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:521:27 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:531:29 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/admin/screens/verification_screen.dart:537:19 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/chat/screens/chat_detail_screen.dart:615:11 • curly_braces_in_flow_control_structures
+   info • Unnecessary braces in a string interpolation. Try removing the braces • lib/features/chat/screens/chat_detail_screen.dart:709:14 • unnecessary_brace_in_string_interps
+   info • Unnecessary braces in a string interpolation. Try removing the braces • lib/features/chat/screens/chat_detail_screen.dart:710:51 • unnecessary_brace_in_string_interps
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1005:35 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1010:50 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1022:30 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1023:30 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1037:25 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1277:26 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1282:26 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1334:37 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1359:46 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1360:46 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1381:34 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1406:35 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1414:35 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1528:49 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1542:57 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1554:64 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1644:21 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1674:31 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1683:38 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1786:38 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1796:38 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1806:38 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1827:45 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1858:40 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/screens/chat_detail_screen.dart:1869:40 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/chat/screens/chat_detail_screen.dart:2403:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/chat/screens/chat_detail_screen.dart:2422:7 • curly_braces_in_flow_control_structures
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/features/chat/screens/chat_detail_screen.dart:2467:37 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/features/chat/screens/chat_detail_screen.dart:2467:41 • unnecessary_underscores
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/widgets/chat_poll_dialog.dart:153:33 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • lib/features/chat/widgets/chat_poll_dialog.dart:171:21 • unnecessary_non_null_assertion
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/community/social/widgets/community_comment_sheet.dart:345:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/community/social/widgets/community_comment_sheet.dart:347:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/community/social/widgets/community_comment_sheet.dart:349:7 • curly_braces_in_flow_control_structures
+warning • Unused import: 'package:app_quanly_giaidau/core/utils/match_visibility.dart'. Try removing the import directive • lib/features/community/widgets/club_activity_tab.dart:16:8 • unused_import
+warning • The value of the field '_activitySessionPageSize' isn't used. Try removing the field, or using it • lib/features/community/widgets/club_activity_tab.dart:51:16 • unused_field
+warning • The value of the field '_sessionListCursor' isn't used. Try removing the field, or using it • lib/features/community/widgets/club_activity_tab.dart:75:11 • unused_field
+warning • The declaration '_buildTournamentFilters' isn't referenced. Try removing the declaration of '_buildTournamentFilters' • lib/features/community/widgets/club_detail_tournament_overview.dart:34:10 • unused_element
+warning • The declaration '_buildTournamentsTab' isn't referenced. Try removing the declaration of '_buildTournamentsTab' • lib/features/community/widgets/club_detail_tournament_overview.dart:99:10 • unused_element
+warning • Unused import: 'package:app_quanly_giaidau/core/di/di.dart'. Try removing the import directive • lib/features/community/widgets/club_statistics_tab.dart:5:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/core/utils/match_visibility.dart'. Try removing the import directive • lib/features/community/widgets/club_statistics_tab.dart:9:8 • unused_import
+warning • The value of the local variable 'teamRowBg' isn't used. Try removing the variable or using it • lib/features/explore/widgets/live_tournament_with_matches_card.dart:1148:11 • unused_local_variable
+warning • The declaration '_showCreateSocialSession' isn't referenced. Try removing the declaration of '_showCreateSocialSession' • lib/features/home/screens/home_screen.dart:1173:16 • unused_element
+warning • The declaration '_buildCreateClubButton' isn't referenced. Try removing the declaration of '_buildCreateClubButton' • lib/features/home/screens/home_screen.dart:1190:10 • unused_element
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/lite/screens/lite_management_screen.dart:1387:19 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/lite/screens/lite_management_screen.dart:1430:29 • curly_braces_in_flow_control_structures
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/lite/screens/lite_management_screen.dart:1454:19 • deprecated_member_use
+warning • The receiver can't be 'null' because of short-circuiting, so the null-aware operator '?.' can't be used. Try replacing the operator '?.' with '.' • lib/features/register/screens/doubles_registration_screen.dart:541:9 • invalid_null_aware_operator
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/register/screens/football_team_register_screen.dart:93:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/register/screens/football_team_register_screen.dart:122:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/register/screens/football_team_register_screen.dart:156:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/register/screens/football_team_register_screen.dart:215:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/register/screens/football_team_register_screen.dart:290:9 • curly_braces_in_flow_control_structures
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/features/social/widgets/detail_tab/social_details_tab.dart:2:8 • unnecessary_import
+warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.' • lib/features/social/widgets/social_region_picker.dart:411:18 • invalid_null_aware_operator
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/features/tournament/screens/quick_tournament_format_mapping.dart:24:5 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • lib/features/tournament/screens/quick_tournament_format_mapping.dart:36:5 • use_null_aware_elements
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_brands_section.dart:127:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_brands_section.dart:133:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_brands_section.dart:202:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:57:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:59:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:715:23 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:764:19 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:771:19 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_divisions_section.dart:779:19 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:64:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:66:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:300:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:307:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:313:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:379:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:386:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_people_section.dart:393:21 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_venues_section.dart:51:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/tournament/screens/tournament_management_venues_section.dart:53:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/providers/notification_provider.dart:99:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/providers/ranking_provider.dart:95:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/providers/ranking_provider.dart:98:11 • curly_braces_in_flow_control_structures
+warning • The declaration '_keepAnalyzerQuiet' isn't referenced. Try removing the declaration of '_keepAnalyzerQuiet' • test/features/community_moderation_parity_test.dart:33:6 • unused_element
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • test/features/register/tournament_register_capacity_gate_test.dart:72:5 • use_null_aware_elements
+   info • Dangling library doc comment. Add a 'library' directive after the library comment • test/helpers/mock_data.dart:1:1 • dangling_library_doc_comments
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/user.dart'. Try removing the import directive • test/helpers/mock_data.dart:9:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/token.dart'. Try removing the import directive • test/helpers/mock_data.dart:10:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/match.dart'. Try removing the import directive • test/helpers/mock_data.dart:11:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/community.dart'. Try removing the import directive • test/helpers/mock_data.dart:13:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/data/models/payment_model.dart'. Try removing the import directive • test/helpers/mock_data.dart:14:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/data/models/community_tournament_model.dart'. Try removing the import directive • test/helpers/mock_data.dart:15:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/data/models/community_member_model.dart'. Try removing the import directive • test/helpers/mock_data.dart:16:8 • unused_import
+   info • 'pipelineOwner' is deprecated and shouldn't be used. Interact with the pipelineOwner tree rooted at RendererBinding.rootPipelineOwner instead. Or instead of accessing the SemanticsOwner of any PipelineOwner interact with the SemanticsBinding directly. This feature was deprecated after v3.10.0-12.0.pre. Try replacing the use of the deprecated member with the replacement • test/match/match_discussion_message_test.dart:77:31 • deprecated_member_use
+   info • 'hasFlag' is deprecated and shouldn't be used. Use flagsCollection instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/match/match_discussion_message_test.dart:152:27 • deprecated_member_use
+   info • 'hasFlag' is deprecated and shouldn't be used. Use flagsCollection instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/match/match_discussion_message_test.dart:184:39 • deprecated_member_use
+warning • Unused import: 'package:shared_preferences/shared_preferences.dart'. Try removing the import directive • test/networking_test.dart:3:8 • unused_import
+   info • The imported package 'test' isn't a dependency of the importing package. Try adding a dependency for 'test' in the 'pubspec.yaml' file • test/organizer_ops/organizer_ops_models_test.dart:2:8 • depend_on_referenced_packages
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/auth_session.dart'. Try removing the import directive • test/providers/auth_state_test.dart:6:8 • unused_import
+warning • Unused import: 'package:app_quanly_giaidau/domain/entities/team.dart'. Try removing the import directive • test/providers/standings_provider_test.dart:6:8 • unused_import
+   info • Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' • test/registration/lite_pairing_candidate_test.dart:13:3 • use_null_aware_elements
+warning • Unused import: 'models/app_notification_test.dart'. Try removing the import directive • test/run_all_tests.dart:9:8 • unused_import
+warning • Unused import: 'models/player_ranking_test.dart'. Try removing the import directive • test/run_all_tests.dart:10:8 • unused_import
+warning • Unused import: 'models/standing_test.dart'. Try removing the import directive • test/run_all_tests.dart:11:8 • unused_import
+warning • Unused import: 'models/tournament_test.dart'. Try removing the import directive • test/run_all_tests.dart:12:8 • unused_import
+warning • Unused import: 'models/team_test.dart'. Try removing the import directive • test/run_all_tests.dart:13:8 • unused_import
+warning • Unused import: 'models/match_test.dart'. Try removing the import directive • test/run_all_tests.dart:14:8 • unused_import
+warning • Unused import: 'models/payment_test.dart'. Try removing the import directive • test/run_all_tests.dart:15:8 • unused_import
+warning • Unused import: 'models/community_test.dart'. Try removing the import directive • test/run_all_tests.dart:16:8 • unused_import
+warning • Unused import: 'models/tournament_workspace_test.dart'. Try removing the import directive • test/run_all_tests.dart:17:8 • unused_import
+warning • Unused import: 'models/elo_tier_test.dart'. Try removing the import directive • test/run_all_tests.dart:18:8 • unused_import
+warning • Unused import: 'providers/auth_state_test.dart'. Try removing the import directive • test/run_all_tests.dart:21:8 • unused_import
+warning • Unused import: 'providers/standings_provider_test.dart'. Try removing the import directive • test/run_all_tests.dart:22:8 • unused_import
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/test_api_bracket.dart:16:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/test_api_bracket.dart:21:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/test_api_bracket.dart:25:9 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/test_api_bracket.dart:64:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/test_api_bracket.dart:66:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_bracket.dart:18:3 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_bracket.dart:20:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_bracket.dart:23:3 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_bracket.dart:25:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:6:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:8:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:9:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:13:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:16:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:17:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:18:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:19:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:31:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:32:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:33:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:34:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:35:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:36:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:39:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test_parse.dart:40:5 • avoid_print
+
+201 issues found. (ran in 30.9s)
+=== FLUTTER_ANALYZE_EXIT=1 ===
+
+
+Wall time: 32.09 seconds
+Ignored ready: service-only, and no service name was given.

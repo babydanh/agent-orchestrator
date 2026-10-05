@@ -1,0 +1,974 @@
+# web/src/app/organizer/
+## layout.tsx
+ 73|
+*74|  // Nếu user chưa có role ORGANIZER hoặc ADMIN: Chặn truy cập và thông báo cần quyền Ban tổ chức
+ 75|  if (!hasOrganizerRole) {
+ 76|    return (
+ 77|      <section className="min-h-[calc(100vh-9rem)] bg-slate-50 py-16 px-4">
+...
+ 99|
+*100|  // Nếu user đã có role ORGANIZER nhưng chưa xác thực email
+ 101|  if (!user.isEmailVerified) {
+ 102|    return (
+ 103|      <section className="min-h-[calc(100vh-9rem)] bg-slate-50 py-16 px-4">
+
+## tournaments/[id]/manage/components/
+### BasicInfoTab.tsx
+ 354|                        <div className="text-xs font-bold text-slate-800">{translate('logoPreview')}</div>
+*355|                        <p className="text-xs text-slate-400 font-medium">Hiển thị chuẩn tròn trên toàn hệ thống</p>
+ 356|                        {/* Recrop button */}
+ 357|                        <button
+ 358|                          type="button"
+...
+ 365|                          <Crop className="w-3.5 h-3.5 text-blue-600" />
+*366|                          <span>Căn chỉnh lại vị trí</span>
+ 367|                        </button>
+ 368|                      </div>
+ 369|                    </div>
+...
+ 436|
+*437|                  {/* Ẩn chữ phủ trên banner công khai */}
+ 438|                  <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 transition-colors hover:bg-blue-50">
+ 439|                    <input
+ 440|                      type="checkbox"
+...
+ 446|                      <span className="block text-xs font-bold text-slate-900">
+*447|                        {translate('hideBannerText') || 'Ẩn chữ phủ trên banner công khai'}
+ 448|                      </span>
+ 449|                      <span className="block text-xs font-normal leading-relaxed text-slate-500">
+*450|                        {translate('hideBannerTextDescription') || 'Bật tùy chọn này khi banner đã có tên/logo/text thiết kế sẵn. Trang chủ và banner trang chi tiết sẽ không phủ tên giải, badge, ngày giờ hoặc địa điểm lên ảnh.'}
+ 451|                      </span>
+ 452|                    </span>
+ 453|                  </label>
+...
+ 681|        <div className="text-xs text-slate-400 font-medium flex items-center gap-1">
+*682|          <span>✨ Các thay đổi thông tin giải đấu được tự động lưu</span>
+ 683|        </div>
+ 684|      </div>
+ 685|    </div>
+### BracketSetupModal.tsx
+ 127|        // Fallback placeholder item if not in eligible list
+*128|        groupTeams.push({ id, teamName: `Đội #${id.slice(0, 4)}` });
+ 129|      }
+ 130|    });
+ 131|
+...
+ 228|    if (name1) return name1;
+*229|    return `Đội #${p.id.slice(0, 4)}`;
+ 230|  };
+ 231|
+ 232|  // Quick pool count selection
+...
+ 425|
+*426|          {/* PHẦN 2: XẾP BẢNG ĐẤU & PHÂN BỔ ĐỘI */}
+ 427|          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+*428|            {/* Toolbar trên khu vực phân bảng */}
+ 429|            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+ 430|              <div>
+ 431|                <div className="flex items-center gap-2">
+...
+ 493|
+*494|            {/* Layout 2 cột: Cột trái (Đội chưa phân bảng) + Cột phải (Lưới bảng đấu) */}
+ 495|            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+*496|              {/* CỘT TRÁI (4 cols): Đội chưa phân bảng */}
+ 497|              <div
+ 498|                onDragOver={handleDragOver}
+ 499|                onDrop={handleDropOnUnassigned}
+...
+ 515|
+*516|                {/* Danh sách thẻ đội chưa phân bảng */}
+ 517|                <div className="space-y-2 flex-1 overflow-y-auto max-h-[520px] pr-1">
+ 518|                  {unassignedTeams.length > 0 ? (
+ 519|                    unassignedTeams.map((team) => (
+...
+ 546|                      <UserCheck className="w-8 h-8 text-emerald-500 mb-2" />
+*547|                      <p className="text-xs font-semibold text-emerald-700">Tất cả đội đã được phân vào bảng!</p>
+ 548|                    </div>
+ 549|                  )}
+ 550|                </div>
+...
+ 552|
+*553|              {/* CỘT PHẢI (8 cols): Lưới các bảng đấu (Bảng A, B, C, D...) */}
+ 554|              <div className={`lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 ${numGroups > 4 ? 'max-h-[600px] overflow-y-auto pr-1' : ''}`}>
+ 555|                {Array.from({ length: numGroups }).map((_, gIdx) => {
+ 556|                  const groupName = String.fromCharCode(65 + gIdx); // A, B, C, D...
+...
+ 644|          >
+*645|            Đóng
+ 646|          </Button>
+ 647|
+ 648|          <Button
+### BracketTab.tsx
+ 68|
+*69|  // Cấu hình mặc định props
+ 70|  isLimitEnabled: boolean;
+ 71|  setIsLimitEnabled: (val: boolean) => void;
+ 72|  maxParticipants: number;
+...
+ 250|    // Flattening every group and deriving the label from the largest round was
+*251|    // producing phantom Vòng 128/duplicate Vòng 64 rows for a 32-team bracket.
+ 252|    // Use the canonical winners bracket (and grand final) as the source of the
+ 253|    // configurable rounds; its match count gives the real bracket size.
+ 254|    const configuredBracketSize = isLimitEnabled && maxParticipants >= 2
+...
+ 262|            const name = group.name.toLowerCase();
+*263|            return name.includes('winner') || name.includes('thắng') || name.includes('grand') || name.includes('chung');
+ 264|          })
+ 265|        : groups;
+ 266|      const effectiveGroups = sourceGroups.length > 0 ? sourceGroups : groups;
+...
+ 624|    if (!selectedDivisionId || !selectedDivision) {
+*625|      throw new Error('Vui lòng chọn nội dung thi đấu');
+ 626|    }
+ 627|
+ 628|    const currentRoundConfig = isRecord(selectedDivision.roundConfig)
+...
+ 767|    if (!gskRoundsToPlay || gskRoundsToPlay < 1) return [];
+*768|    // Show per-LEG config (Lượt 1, Lượt 2...), not per-round.
+ 769|    // Use 'leg_N' keys to avoid colliding with knockout round keys '1','2'...
+ 770|    return Array.from({ length: gskRoundsToPlay }, (_, idx) => {
+ 771|      const legNumber = idx + 1;
+...
+ 832|      {/* Once a bracket exists these actions sit on the round navigation row beside
+*833|          Vòng trước / Vòng tiếp. Before one exists there is no such row, so they
+ 834|          stay here, or nobody could create a bracket at all. */}
+ 835|      {selectedDivisionId && !bracket?.stages?.length && bracketActions}
+ 836|
+...
+ 839|        <div id="manage-bracket-tree-section" className="space-y-4">
+*840|          {/* The "Sơ đồ" heading and its "already active" line are gone: the
+ 841|              bracket canvas is the only thing this section renders. */}
+ 842|
+ 843|          {/* Group Stage Knockout: show tabs */}
+### CourtCameraBoard.tsx
+ 495|  /**
+*496|   * Trùng lịch = cùng sân và giờ khởi đánh cách nhau không quá 30 phút.
+*497|   * Chỉ cảnh báo rồi mới hỏi, không chặn: hai trận có thể thực sự diễn tuần tự.
+ 498|   */
+ 499|  const findConflict = (matchId: string, courtId: string) => {
+ 500|    const moving = matches.find((item) => item.id === matchId);
+### CourtScheduleBoard.tsx
+ 248|  return ![
+*249|    'chưa xác định',
+*250|    'chờ xác định',
+ 251|    'tbd',
+ 252|    'bye',
+*253|    'đang chờ',
+ 254|  ].some((placeholder) => normalized.includes(placeholder));
+ 255|}
+ 256|
+...
+ 264|    const label = participant?.teamName || participant?.name || null;
+*265|    if (id) return [{ key: `id:${id}`, label: label || 'Đội' }];
+ 266|    if (label && isUsableScheduleParticipantName(label)) {
+ 267|      return [{ key: `name:${label.trim().toLocaleLowerCase()}`, label }];
+ 268|    }
+...
+ 401|  if (conflict.kind === 'participant') {
+*402|    return `${conflict.participantName || 'Một đội'} đã có trận khác lúc ${otherTime}.`;
+ 403|  }
+ 404|  const normalizedCourtName = targetCourtName?.trim();
+ 405|  const courtLabel = normalizedCourtName
+*406|    ? (/^sân(?:\s|$)/i.test(normalizedCourtName) ? normalizedCourtName : `Sân ${normalizedCourtName}`)
+*407|    : 'Sân';
+*408|  return `${courtLabel} đã có trận khác lúc ${otherTime}.`;
+ 409|}
+ 410|
+ 411|function normalizeScheduleValue(value?: string | null): string | number | null {
+...
+ 560|  if ((matchCount & (matchCount - 1)) !== 0) return null;
+*561|  if (matchCount === 1) return 'CHUNG KẾT';
+*562|  if (matchCount === 2) return 'BÁN KẾT';
+*563|  if (matchCount === 4) return 'TỨ KẾT';
+*564|  return `VÒNG 1/${matchCount}`;
+ 565|}
+ 566|
+ 567|function getAccurateRoundLabel(match: ScheduleBoardMatch, maxRound = 1, roundMatchCount?: number) {
+...
+ 572|
+*573|  // 1. Check if Grand Final (Chung kết tổng trong nhánh thắng - nhánh thua)
+*574|  if (lowerName.includes('grand final') || lowerName.includes('chung kết tổng') || lowerName.includes('ck tổng')) {
+*575|    if (lowerName.includes('reset') || lowerName.includes('trận 2') || m.isResetMatch) {
+*576|      return 'CHUNG KẾT TỔNG (TRẬN 2)';
+ 577|    }
+*578|    return 'CHUNG KẾT TỔNG';
+ 579|  }
+ 580|
+ 581|  // 2. Check if 3rd place match
+*582|  if (lowerName.includes('tranh hạng 3') || lowerName.includes('3rd') || lowerName.includes('third')) {
+*583|    return 'TRANH HẠNG 3';
+ 584|  }
+ 585|
+ 586|  // 3. Check if Group stage / Round Robin (e.g. A 1, B 2)
+*587|  const groupName = match.groupName || (lowerName.includes('bảng') ? rawRoundName : '');
+### CourtSetup.tsx
+ 47|  const [batchCount, setBatchCount] = useState<number>(4);
+*48|  const [batchPrefix, setBatchPrefix] = useState<string>('Sân');
+ 49|  const [isBatchAdding, setIsBatchAdding] = useState(false);
+ 50|  const [deletingCourtId, setDeletingCourtId] = useState<string | null>(null);
+ 51|
+...
+ 55|    try {
+*56|      await onBatchAdd(batchCount, batchPrefix.trim() || 'Sân');
+ 57|    } finally {
+ 58|      setIsBatchAdding(false);
+ 59|    }
+...
+ 78|            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-extrabold text-blue-700">
+*79|              {courts.length} sân
+ 80|            </span>
+ 81|          </div>
+ 82|          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{t('courtSetupHint')}</p>
+...
+ 97|              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+*98|                ⭐ Sân chính mặc định
+ 99|              </span>
+ 100|            </div>
+ 101|            <p className="mt-0.5 text-xs text-slate-500">{venue.locationAddress}</p>
+...
+ 108|              <p className="text-xs font-extrabold uppercase tracking-wider text-blue-900">
+*109|                Tạo nhanh danh sách sân tự động
+ 110|              </p>
+ 111|            </div>
+ 112|
+...
+ 114|              <div>
+*115|                <label className="block text-xs font-bold text-slate-700 mb-1">Số lượng sân</label>
+ 116|                <input
+ 117|                  type="number"
+ 118|                  min={1}
+...
+ 127|              <div>
+*128|                <label className="block text-xs font-bold text-slate-700 mb-1">Tiền tố tên sân</label>
+ 129|                <input
+ 130|                  type="text"
+ 131|                  value={batchPrefix}
+ 132|                  onChange={(e) => setBatchPrefix(e.target.value)}
+*133|                  placeholder="Ví dụ: Sân, Court, Bàn..."
+ 134|                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+ 135|                  disabled={isSaving || isBatchAdding}
+ 136|                />
+...
+ 145|                <Layers className="mr-1.5 h-4 w-4" />
+*146|                {isBatchAdding ? 'Đang tạo...' : `Tạo nhanh ${batchCount} sân`}
+ 147|              </Button>
+ 148|            </div>
+ 149|            <p className="mt-2 text-xs text-slate-500">
+*150|              * Hệ thống sẽ tự sinh các sân: {batchPrefix} 1, {batchPrefix} 2, {batchPrefix} 3...
+ 151|            </p>
+ 152|          </div>
+ 153|
+...
+ 157|              <Input
+*158|                label="Hoặc thêm từng sân tùy chỉnh"
+ 159|                value={newCourtName}
+ 160|                maxLength={100}
+ 161|                onChange={(event) => setNewCourtName(event.target.value)}
+*162|                placeholder="Ví dụ: Sân VIP 1, Sân Trung Tâm..."
+ 163|                disabled={isSaving || isBatchAdding}
+ 164|              />
+ 165|            </div>
+...
+ 172|              <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+*173|              {isSaving ? t('matchSchedule.saving') : 'Thêm sân'}
+ 174|            </Button>
+ 175|          </div>
+ 176|
+...
+ 179|            <div className="mt-5 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 bg-slate-50/50">
+*180|              Chưa có sân nào trong địa điểm này. Nhập số lượng sân ở trên và bấm <strong>"Tạo nhanh sân"</strong> để bắt đầu.
+ 181|            </div>
+ 182|          ) : (
+ 183|            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-label={t('matchSchedule.court')}>
+...
+ 201|                      <span className="block text-xs font-semibold text-emerald-600 uppercase">
+*202|                        Sẵn sàng thi đấu
+ 203|                      </span>
+ 204|                    </div>
+ 205|                  </button>
+...
+ 212|                      className="ml-2 rounded-lg p-1.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600 transition-all"
+*213|                      title="Xóa sân này"
+ 214|                    >
+ 215|                      <Trash2 className="h-4 w-4" />
+ 216|                    </button>
+### CourtWorkspace.tsx
+ 144|                  stageId: stage.id || stage.name || 'stage',
+*145|                  stageName: stage.name || 'Giai đoạn',
+ 146|                  stageType: stage.type ?? undefined,
+ 147|                  roundsToPlay: stage.roundConfig?.roundsToPlay ?? stage.roundConfig?.rounds_to_play ?? 1,
+ 148|                },
+...
+ 211|  const roundLabel = (round: number) => {
+*212|    if (usesLegFilter) return `Lượt ${round}`;
+ 213|
+ 214|    // Check if group stage match exists for this round
+ 215|    const roundMatch = stageMatches.find((m) => (m.roundNumber === round || m.leg === round));
+...
+ 218|      const lower = rawName.toLowerCase();
+*219|      if (lower.includes('tranh hạng 3') || lower.includes('3rd')) return 'Tranh hạng 3';
+*220|      if (roundMatch.groupName || lower.includes('bảng')) {
+*221|        const cleanGroup = (roundMatch.groupName || rawName).replace(/giai\s*đoạn\s*\d*/gi, '').replace(/stage\s*\d*/gi, '').trim();
+*222|        return `${cleanGroup} • Lượt ${roundMatch.leg || roundMatch.roundNumber || round}`;
+ 223|      }
+ 224|    }
+ 225|
+...
+ 228|      const diff = maxRound - round;
+*229|      if (diff === 0) return 'Chung kết';
+*230|      if (diff === 1) return 'Bán kết';
+*231|      if (diff === 2) return 'Tứ kết';
+*232|      if (diff === 3) return 'Vòng 1/8';
+*233|      if (diff === 4) return 'Vòng 1/16';
+*234|      if (diff === 5) return 'Vòng 1/32';
+*235|      if (diff === 6) return 'Vòng 1/64';
+ 236|    }
+ 237|
+*238|    return `Vòng ${round}`;
+ 239|  };
+ 240|
+ 241|  const scopedMatches = useMemo(
+...
+ 277|            <p className="text-xs text-slate-500 leading-tight">
+*278|              Đã xếp <strong className="text-blue-700 font-bold">{scheduledMatchesCount}/{scopedMatches.length}</strong> trận
+ 279|            </p>
+ 280|          </div>
+ 281|        </div>
+...
+ 356|              <Minimize2 className="h-3.5 w-3.5" />
+*357|              Thu nhỏ / Đóng
+ 358|            </Button>
+ 359|          ) : (
+ 360|            <Button
+...
+ 365|              <Maximize2 className="h-3.5 w-3.5" />
+*366|              Toàn màn hình
+ 367|            </Button>
+ 368|          ))}
+ 369|        </div>
+### CreateVenueModal.tsx
+ 54|  const [initialCourtCount, setInitialCourtCount] = useState(4);
+*55|  const [courtPrefix, setCourtPrefix] = useState('Sân');
+ 56|  const [isSubmitting, setIsSubmitting] = useState(false);
+ 57|  const availableVenues = useMemo(() => {
+ 58|    const attachedVenueIds = new Set(attachedVenues.map(({ id }) => id));
+...
+ 99|      if (nextWards.length === 0) {
+*100|        setWardLoadError('Chưa có dữ liệu phường/xã cho tỉnh này. Bạn vẫn có thể nhập địa chỉ chi tiết.');
+ 101|      }
+ 102|    } catch {
+ 103|      if (requestId !== wardRequestIdRef.current) return;
+*104|      setWardLoadError('Không tải được danh sách phường/xã. Bạn có thể thử lại.');
+ 105|    } finally {
+ 106|      if (requestId === wardRequestIdRef.current) setIsLoadingWards(false);
+ 107|    }
+...
+ 136|        initialCourtCount: initialCourtCount > 0 ? initialCourtCount : undefined,
+*137|        courtPrefix: courtPrefix.trim() || 'Sân',
+ 138|      });
+ 139|      setName('');
+ 140|      setAddress('');
+...
+ 161|            <div>
+*162|              <h3 className="text-base font-bold text-slate-900">Thêm địa điểm thi đấu</h3>
+*163|              <p className="text-xs text-slate-500">Tạo thêm cụm sân hoặc địa điểm tổ chức thi đấu</p>
+ 164|            </div>
+ 165|          </div>
+ 166|          <button
+...
+ 190|                  <option key={venue.id} value={venue.id}>
+*191|                    {venue.name} — {venue.locationAddress || 'Chưa có địa chỉ'}
+ 192|                  </option>
+ 193|                ))}
+ 194|              </select>
+...
+ 208|          <div className="border-t border-slate-100 pt-1">
+*209|            <p className="text-xs font-bold text-slate-800">Tạo địa điểm mới</p>
+ 210|          </div>
+ 211|
+ 212|          {/* Venue Name */}
+...
+ 214|            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+*215|              Tên địa điểm / Tên CLB <span className="text-rose-500">*</span>
+ 216|            </label>
+ 217|            <Input
+ 218|              value={name}
+ 219|              onChange={(e) => setName(e.target.value)}
+*220|              placeholder="VD: CLB Cầu Lông Kỳ Hòa, Sân Pickleball Hồ Bơi..."
+ 221|              className="h-10 text-xs rounded-lg border-slate-300"
+ 222|              required
+ 223|            />
+...
+ 228|            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+*229|              Địa chỉ chi tiết <span className="text-rose-500">*</span>
+ 230|            </label>
+ 231|            <Input
+ 232|              value={address}
+ 233|              onChange={(e) => setAddress(e.target.value)}
+*234|              placeholder="VD: 123 Lê Lợi, Phường Bến Nghé, Quận 1..."
+ 235|              className="h-10 text-xs rounded-lg border-slate-300"
+ 236|              required
+ 237|            />
+...
+ 240|                <Sparkles className="h-3 w-3" />
+*241|                Tự động nhận diện: {[autoDetectedAddress.ward?.name, autoDetectedAddress.province?.name].filter(Boolean).join(', ')}
+ 242|              </p>
+ 243|            )}
+ 244|          </div>
+...
+ 248|            <div>
+*249|              <label className="block text-xs font-semibold text-slate-600 mb-1">Tỉnh / Thành phố</label>
+ 250|              <select
+ 251|                value={provinceCode}
+ 252|                onChange={(e) => handleProvinceChange(e.target.value)}
+...
+ 254|              >
+*255|                <option value="">-- Chọn Tỉnh / Thành phố --</option>
+ 256|                {provinces.map((p) => (
+ 257|                  <option key={p.code} value={p.code}>
+ 258|                    {p.name}
+...
+ 264|            <div>
+*265|              <label className="block text-xs font-semibold text-slate-600 mb-1">Phường / Xã</label>
+ 266|              <select
+ 267|                value={wardCode}
+ 268|                onChange={(e) => setWardCode(e.target.value)}
+...
+ 273|                  {!provinceCode
+*274|                    ? '-- Chọn Tỉnh / Thành phố trước --'
+ 275|                    : isLoadingWards
+*276|                      ? 'Đang tải phường / xã...'
+*277|                      : '-- Chọn Phường / Xã --'}
+ 278|                </option>
+ 279|                {availableWards.map((w) => (
+ 280|                  <option key={w.code} value={w.code}>
+...
+ 292|                  >
+*293|                    Thử lại
+ 294|                  </button>
+ 295|                </div>
+ 296|              )}
+### EditVenueModal.tsx
+ 65|    } catch {
+*66|      setWardLoadError('Không tải được danh sách phường/xã. Bạn có thể thử lại.');
+ 67|    } finally {
+ 68|      setIsLoadingWards(false);
+ 69|    }
+...
+ 76|    if (!name.trim()) {
+*77|      setErrorMessage('Vui lòng nhập tên địa điểm thi đấu');
+ 78|      return;
+ 79|    }
+ 80|    if (!streetAddress.trim()) {
+*81|      setErrorMessage('Vui lòng nhập địa chỉ chi tiết');
+ 82|      return;
+ 83|    }
+ 84|
+...
+ 103|    } catch (err: unknown) {
+*104|      const msg = err instanceof Error ? err.message : 'Không thể cập nhật địa điểm';
+ 105|      setErrorMessage(msg);
+ 106|    } finally {
+ 107|      setIsSubmitting(false);
+...
+ 120|            <div>
+*121|              <h3 className="text-base font-bold text-slate-900">Chỉnh sửa địa điểm</h3>
+*122|              <p className="text-xs text-slate-500">Cập nhật tên và địa chỉ của địa điểm thi đấu</p>
+ 123|            </div>
+ 124|          </div>
+ 125|          <button
+...
+ 141|            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+*142|              Tên địa điểm thi đấu <span className="text-rose-500">*</span>
+ 143|            </label>
+ 144|            <Input
+ 145|              value={name}
+ 146|              onChange={(e) => setName(e.target.value)}
+*147|              placeholder="VD: Sân Cầu Lông Kỳ Hòa, Cụm Sân Pickleball..."
+ 148|              className="h-10 text-xs rounded-lg border-slate-300"
+ 149|              required
+ 150|            />
+...
+ 154|            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+*155|              Địa chỉ chi tiết <span className="text-rose-500">*</span>
+ 156|            </label>
+ 157|            <Input
+ 158|              value={streetAddress}
+ 159|              onChange={(e) => setStreetAddress(e.target.value)}
+*160|              placeholder="VD: Số 123 Đường Sư Vạn Hạnh, Phường 12..."
+ 161|              className="h-10 text-xs rounded-lg border-slate-300"
+ 162|              required
+ 163|            />
+...
+ 166|                <Sparkles className="h-3 w-3 shrink-0 text-emerald-600" />
+*167|                Tự động nhận diện: {[autoDetectedAddress.ward?.name, autoDetectedAddress.province?.name].filter(Boolean).join(', ')}
+ 168|              </p>
+ 169|            )}
+ 170|          </div>
+...
+ 174|              <div>
+*175|                <label className="block text-xs font-semibold text-slate-600 mb-1">Tỉnh / Thành phố</label>
+ 176|                <select
+ 177|                  value={selectedProvinceCode}
+ 178|                  onChange={(e) => handleProvinceChange(e.target.value)}
+...
+ 180|                >
+*181|                  <option value="">-- Chọn Tỉnh / Thành phố --</option>
+ 182|                  {provinces.map((prov) => (
+ 183|                    <option key={prov.code} value={prov.code}>
+ 184|                      {prov.name}
+...
+ 190|              <div>
+*191|                <label className="block text-xs font-semibold text-slate-600 mb-1">Phường / Xã</label>
+ 192|                <select
+ 193|                  value={selectedWardCode}
+ 194|                  onChange={(e) => setSelectedWardCode(e.target.value)}
+...
+ 199|                    {!selectedProvinceCode
+*200|                      ? '-- Chọn Tỉnh / Thành phố trước --'
+ 201|                      : isLoadingWards
+*202|                        ? 'Đang tải phường / xã...'
+*203|                        : '-- Chọn Phường / Xã --'}
+ 204|                  </option>
+ 205|                  {availableWards.map((ward) => (
+ 206|                    <option key={ward.code} value={ward.code}>
+...
+ 218|                    >
+*219|                      Thử lại
+ 220|                    </button>
+ 221|                  </div>
+ 222|                )}
+...
+ 234|            >
+*235|              Hủy
+ 236|            </Button>
+ 237|            <Button
+ 238|              type="submit"
+...
+ 241|            >
+*242|              {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+ 243|            </Button>
+ 244|          </div>
+ 245|        </form>
+### FinanceTab.tsx
+ 226|              <Badge className="py-2.5 bg-slate-50 border-slate-200 text-slate-700 justify-center font-bold text-sm">
+*227|                {platformFee.feePerPlayer.toLocaleString(numberLocale)} VNĐ / {translate('playerUnit')}
+ 228|              </Badge>
+ 229|              <p className="text-xs text-slate-500 font-medium">
+ 230|                {platformFeeRuleDescription}
+...
+ 256|                <p className="text-2xl font-bold text-slate-800 mt-2">
+*257|                  {totalExpectedFee.toLocaleString(numberLocale)} VNĐ
+ 258|                </p>
+ 259|                <p className="text-xs text-slate-500 font-semibold mt-1">{translate('registeredTeams', { count: participants.length })}</p>
+ 260|              </div>
+...
+ 264|                <p className="text-2xl font-bold text-rose-500 mt-2">
+*265|                  {totalPlatformFee.toLocaleString(numberLocale)} VNĐ
+ 266|                </p>
+ 267|                <p className="text-xs text-slate-500 font-semibold mt-1">
+ 268|                  {platformFeeRuleDescription} ({translate('athleteCount', { count: totalPlayers })})
+...
+ 274|                <p className="text-2xl font-bold text-blue-600 mt-2">
+*275|                  {netOrganizerEarnings.toLocaleString(numberLocale)} VNĐ
+ 276|                </p>
+ 277|                <p className="text-xs text-slate-500 font-semibold mt-1">{translate('platformFeeDeducted')}</p>
+ 278|              </div>
+### LivestreamTab.tsx
+ 272|      } else {
+*273|        // PULL: luồng đến từ URL sân đã dán, không có link publish nào để copy.
+ 274|        toast.success(livestreamTranslate("streamStartedFromExistingUrl"));
+ 275|      }
+ 276|      await loadLivestreamData();
+### MockDataModal.tsx
+ 72|            <p className="leading-relaxed">
+*73|              Tính năng này <strong>chỉ phục vụ thử nghiệm</strong> tạo nhánh, xếp lịch và bốc thăm. VĐV ảo có thể được dọn dẹp bất kỳ lúc nào mà không ảnh hưởng tới người đăng ký thật.
+ 74|            </p>
+ 75|          </div>
+ 76|
+...
+ 198|            >
+*199|              {commonTranslate('cancel') || 'Đóng'}
+ 200|            </Button>
+ 201|            <Button
+ 202|              onClick={async () => {
+### PairingParticipantsModal.tsx
+ 76|  const [failedAvatarUrls, setFailedAvatarUrls] = useState<string[]>([]);
+*77|  const normalizedQuery = query.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/đ/g, 'd');
+ 78|  const selectedDivisionId = selectedIds.length > 0
+ 79|    ? participants.find((participant) => participant.id === selectedIds[0])?.tournamentDivisionId ?? null
+ 80|    : undefined;
+...
+ 102|        .toLocaleLowerCase()
+*103|        .replace(/đ/g, 'd');
+ 104|      return normalizedName.includes(normalizedQuery);
+ 105|    }),
+ 106|    [normalizedQuery, selectableParticipants],
+### RegistrationFormBuilder.tsx
+ 92|
+*93|  // Kiểm tra xem giải có nội dung đánh đôi hay đồng đội không để hiển thị preview thông tin mặc định phù hợp
+ 94|  const hasDoublesOrTeam = useMemo(() => {
+ 95|    const categorySlug = tournament.category?.slug?.toLowerCase() || '';
+ 96|    const isTeam = categorySlug.includes('football') || categorySlug.includes('bong-da');
+...
+ 378|
+*379|                          {/* Chi tiết chỉnh sửa dạng Google Forms */}
+ 380|                          {isEditing && (
+ 381|                            <div className="mt-4 space-y-3.5 border-t border-slate-100 pt-4">
+ 382|                              <label className="block text-xs font-semibold text-slate-700">
+...
+ 438|
+*439|                              {/* Thiết lập danh sách lựa chọn trực quan */}
+ 440|                              {(field.type === 'SELECT' || field.type === 'MULTI_SELECT') && (
+ 441|                                <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+ 442|                                  <div className="flex items-start justify-between gap-3">
+...
+ 511|
+*512|                              {/* Thiết lập File upload */}
+ 513|                              {field.type === 'FILE' && (
+ 514|                                <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs">
+ 515|                                  <p className="font-bold text-slate-700 flex items-center gap-1.5">
+...
+ 560|
+*561|                              {/* Thiết lập Number limit */}
+ 562|                              {field.type === 'NUMBER' && (
+ 563|                                <div className="grid grid-cols-2 gap-3">
+ 564|                                  <label className="block text-xs font-semibold text-slate-700">
+...
+ 634|
+*635|                {/* Thông tin mặc định từ hệ thống */}
+ 636|                <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-2.5 space-y-1.5 text-xs text-slate-500">
+ 637|                  <p className="font-bold text-slate-700 text-xs">{registrationFormTranslate('systemDefaultInfo')}</p>
+ 638|                  <div className="flex justify-between py-0.5 border-b border-slate-200/60">
+...
+ 653|
+*654|                {/* Các câu hỏi tùy chỉnh do BTC thêm với giao diện thực tế */}
+ 655|                {config.fields.length > 0 && (
+ 656|                  <div className="mt-4 space-y-3.5 border-t border-slate-100 pt-3">
+ 657|                    <p className="font-bold text-slate-700 text-xs flex items-center justify-between">
+...
+ 669|
+*670|                        {/* Switch case render tương ứng 100% với giao diện VĐV */}
+ 671|                        {field.type === 'TEXTAREA' ? (
+ 672|                          <textarea
+ 673|                            disabled
+### RegistrationTab.tsx
+ 570|      <div id="manage-participants-section" className="w-full space-y-4 min-w-0 max-w-full overflow-hidden transition-all">
+*571|          {/* Control Bar: Bên trái là Filter & Search, Bên phải là nút cài đặt (3-dots) */}
+ 572|          <div className="flex items-center justify-between gap-3 pb-1">
+*573|            {/* Bên trái: Filter lọc và Search */}
+ 574|            <div className="flex items-center gap-2">
+*575|              {/* Filter Dropdown (borderless, không khung) */}
+ 576|              {(() => {
+ 577|                const filterOptions = [
+ 578|                  { value: 'ALL', label: registrationTranslate('filterAll'), count: participantSummary.total },
+...
+ 631|
+*632|              {/* Search Input: bo tròn & height thấp */}
+ 633|              <div className="w-full sm:w-60 md:w-64">
+ 634|                <Input
+ 635|                  value={search}
+...
+ 676|
+*677|            {/* Bên phải: 3-dots Dropdown Menu (Cài đặt / Thao tác - borderless, không khung) */}
+ 678|            <DropdownMenu>
+ 679|              <DropdownMenuTrigger asChild>
+ 680|                <button
+ 681|                  type="button"
+*682|                  title="Tùy chọn thao tác"
+ 683|                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+ 684|                >
+ 685|                  <MoreVertical className="w-4 h-4" />
+...
+ 751|                        onClick={() => setIsMockDataModalOpen(true)}
+*752|                        title="Thử nghiệm VĐV ảo (chỉ dùng để test)"
+ 753|                        className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors border border-blue-200/80 cursor-pointer shadow-2xs"
+ 754|                      >
+ 755|                        <Plus className="w-3.5 h-3.5" />
+...
+ 1076|              <div className="space-y-5 p-5">
+*1077|                {/* Thông tin hồ sơ & VĐV (Tối ưu tránh lặp tên) */}
+ 1078|                <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+ 1079|                  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200/80 pb-3">
+ 1080|                    <div>
+...
+ 1094|
+*1095|                  {/* Danh sách thành viên (Hiển thị rõ ràng Leader / Người đăng ký & Partner) */}
+ 1096|                  <div className="mt-3 space-y-2">
+ 1097|                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+ 1098|                      {selectedIsPair ? registrationTranslate('pairMembersHeading') : registrationTranslate('membersHeading')}
+...
+ 1372|                        <option key={d.id} value={d.id}>
+*1373|                          {d.name} ({d._count?.participants ?? 0} VĐV)
+ 1374|                        </option>
+ 1375|                      ))}
+ 1376|                    </select>
+### ScheduleGridView.tsx
+ 143|    for (const stage of bracket.stages) {
+*144|      const sName = stage.name || (stage.type === 'ROUND_ROBIN' ? 'Vòng bảng' : 'Vòng loại trực tiếp');
+ 145|      for (const group of stage.groups ?? []) {
+ 146|        const gName = group.name;
+ 147|        for (const match of group.matches ?? []) {
+...
+ 271|
+*272|    toast.success(`Đã xếp trận vào ${formatTimeSlot(slotIsoString)}`);
+ 273|  };
+ 274|
+ 275|  const handleCellDragOver = (e: React.DragEvent) => {
+...
+ 289|    }));
+*290|    toast.success('Đã gỡ trận khỏi lịch thi đấu');
+ 291|  };
+ 292|
+ 293|  // ── 11. Save All Draft Changes ──
+...
+ 296|    if (draftKeys.length === 0) {
+*297|      toast('Không có thay đổi nào cần lưu.', { icon: 'ℹ️' });
+ 298|      return;
+ 299|    }
+ 300|
+...
+ 313|      setDraftMatches({});
+*314|      toast.success(`Đã lưu lịch thi đấu cho ${successCount} trận thành công!`);
+ 315|      if (onRefetchData) {
+ 316|        await onRefetchData();
+ 317|      }
+ 318|    } catch (err: any) {
+*319|      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu lịch thi đấu.');
+ 320|    } finally {
+ 321|      setIsSavingSchedule(false);
+ 322|    }
+...
+ 328|    if (selectedMatchIds.length === 0) {
+*329|      toast.error('Vui lòng chọn ít nhất 1 trận để xếp.');
+ 330|      return;
+ 331|    }
+ 332|
+...
+ 336|
+*337|    const sortedCourtList = courts.length > 0 ? courts : [{ id: courtId, courtName: 'Sân 1' }];
+ 338|    const currentCourtIndex = Math.max(0, sortedCourtList.findIndex((c) => c.id === courtId));
+ 339|
+ 340|    selectedMatchIds.forEach((matchId, index) => {
+...
+ 363|    setDraftMatches(newDrafts);
+*364|    toast.success(`Đã xếp ${selectedMatchIds.length} trận đấu!`);
+ 365|    setActiveCellModal(null);
+ 366|    setSelectedMatchIds([]);
+ 367|  };
+...
+ 409|              className="rounded p-1 hover:bg-slate-200 text-slate-600 transition-colors"
+*410|              title="Ngày trước"
+ 411|            >
+ 412|              <ChevronLeft className="h-4 w-4" />
+ 413|            </button>
+...
+ 430|              className="rounded p-1 hover:bg-slate-200 text-slate-600 transition-colors"
+*431|              title="Ngày tiếp theo"
+ 432|            >
+ 433|              <ChevronRight className="h-4 w-4" />
+ 434|            </button>
+...
+ 447|                  <option key={v.id} value={v.id}>
+*448|                    {v.name} {i === 0 ? '⭐ (Mặc định)' : ''}
+ 449|                  </option>
+ 450|                ))}
+ 451|              </select>
+...
+ 455|              <MapPin className="h-3.5 w-3.5 text-blue-600" />
+*456|              <span>{venues[0]?.name || tournament.city || 'Sân thi đấu chính'}</span>
+ 457|            </div>
+ 458|          )}
+ 459|        </div>
+...
+ 464|          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+*465|            <span className="text-xs font-bold text-slate-500 mr-1">Thu/Phóng:</span>
+ 466|            <button
+ 467|              type="button"
+ 468|              onClick={() => setCellHeightPer30Min((prev) => Math.max(30, prev - 10))}
+ 469|              className="rounded p-1 hover:bg-slate-200 text-slate-600"
+*470|              title="Thu nhỏ ô"
+ 471|            >
+ 472|              <ZoomOut className="h-3.5 w-3.5" />
+ 473|            </button>
+...
+ 480|              className="rounded p-1 hover:bg-slate-200 text-slate-600"
+*481|              title="Phóng to ô"
+ 482|            >
+ 483|              <ZoomIn className="h-3.5 w-3.5" />
+ 484|            </button>
+...
+ 495|            <Layers className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+*496|            Chưa xếp lịch
+ 497|            <span className="ml-1.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-extrabold text-blue-700">
+ 498|              {unscheduledMatches.length}
+ 499|            </span>
+...
+ 510|              <CheckCircle2 className="mr-1.5 h-4 w-4" />
+*511|              {isSavingSchedule ? 'Đang lưu...' : `Lưu (${Object.keys(draftMatches).length}) thay đổi`}
+ 512|            </Button>
+ 513|          )}
+ 514|        </div>
+...
+ 521|          <span>
+*522|            Phát hiện <strong>{conflictMatchIds.size} trận</strong> bị trùng giờ hoặc trùng sân thi đấu! Vui lòng kéo thả lại để giải phóng sân.
+ 523|          </span>
+ 524|        </div>
+ 525|      )}
+...
+ 542|              <Clock className="mr-1 h-3.5 w-3.5 text-slate-500" />
+*543|              Giờ
+ 544|            </div>
+ 545|
+ 546|            {/* Sticky Court Column Headers */}
+### ScheduleTab.tsx
+ 108|              name: customVenueName,
+*109|              locationAddress: customVenueAddress || 'Chưa có địa chỉ chi tiết',
+ 110|              isDefault: true,
+ 111|              courts: [],
+ 112|            },
+...
+ 124|
+*125|  // URL phát của sân. Nạp khi mở modal vì venue.courts không mang field này.
+ 126|  const [courtPlaybackUrls, setCourtPlaybackUrls] = useState<Record<string, string>>({});
+ 127|
+ 128|  useEffect(() => {
+...
+ 143|      .catch(() => {
+*144|        // Không nạp được thì để trống; BTC vẫn khai được URL mới.
+ 145|      });
+ 146|    return () => {
+ 147|      cancelled = true;
+...
+ 161|            <h2 id="schedule-timing-title" className="text-base font-bold text-slate-900">
+*162|              Thời gian tổ chức giải
+ 163|            </h2>
+*164|            <p className="mt-0.5 text-xs text-slate-500">Thiết lập ngày khai mạc và bế mạc của toàn bộ giải đấu</p>
+ 165|          </div>
+ 166|        </div>
+ 167|
+...
+ 184|                <h2 id="venues-title" className="text-base font-bold text-slate-900">
+*185|                  Địa điểm &amp; Cụm sân thi đấu
+ 186|                </h2>
+ 187|                <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+*188|                  {displayVenues.length} địa điểm
+ 189|                </span>
+ 190|              </div>
+ 191|              <p className="mt-0.5 text-xs text-slate-500">
+*192|                Một giải đấu có thể có nhiều địa điểm thi đấu. Bấm vào địa điểm để cài đặt số lượng sân.
+ 193|              </p>
+ 194|            </div>
+ 195|          </div>
+...
+ 202|            <Plus className="mr-1.5 h-4 w-4" />
+*203|            Thêm địa điểm mới
+ 204|          </Button>
+ 205|        </div>
+ 206|
+...
+ 211|              <MapPin className="mx-auto h-7 w-7 text-slate-400 mb-2" />
+*212|              <p className="text-xs font-bold text-slate-700">Chưa có địa điểm thi đấu nào</p>
+ 213|              <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
+*214|                Hãy bấm &quot;Thêm địa điểm mới&quot; để thiết lập địa điểm và danh sách sân cho giải.
+ 215|              </p>
+ 216|              <Button
+ 217|                type="button"
+...
+ 221|                <Plus className="mr-1 h-3.5 w-3.5" />
+*222|                Thêm địa điểm ngay
+ 223|              </Button>
+ 224|            </div>
+ 225|          ) : (
+...
+ 242|                              <span className="rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-bold text-blue-700 shrink-0">
+*243|                                ⭐ Mặc định
+ 244|                              </span>
+ 245|                            )}
+ 246|                          </div>
+ 247|                          <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+*248|                            {venue.locationAddress || 'Chưa có địa chỉ chi tiết'}
+ 249|                          </p>
+ 250|                        </div>
+ 251|
+...
+ 256|                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors shrink-0"
+*257|                          title="Chỉnh sửa tên và địa chỉ"
+ 258|                        >
+ 259|                          <Pencil className="h-3.5 w-3.5" />
+ 260|                        </button>
+...
+ 266|                            <>
+*267|                              <span className="font-extrabold tabular-nums">{courtCount}</span> sân thi đấu
+ 268|                            </>
+*269|                          ) : 'Chưa có sân'}
+ 270|                        </span>
+ 271|                      </div>
+ 272|                    </div>
+...
+ 280|                          className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+*281|                          title="Đặt địa điểm này làm địa điểm mặc định của giải"
+ 282|                        >
+ 283|                          <Star className="h-3 w-3 text-amber-500" />
+*284|                          Đặt mặc định
+ 285|                        </button>
+ 286|                      ) : (
+*287|                        <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">⭐ Sân chính của giải</span>
+ 288|                      )}
+ 289|
+ 290|                      <div className="flex items-center gap-1.5 ml-auto">
+### SponsorSettingsPanel.tsx
+ 223|        <div className="mt-3 flex items-center justify-between border-t border-slate-200/70 pt-2 text-xs font-semibold">
+*224|          <span className="text-slate-500">Trạng thái:</span>
+ 225|          <span className={cn('inline-flex items-center gap-1.5', isPubliclyReady ? 'text-emerald-600' : 'text-slate-400')}>
+ 226|            <span className={cn('h-1.5 w-1.5 rounded-full', isPubliclyReady ? 'bg-emerald-500' : 'bg-slate-300')} />
+ 227|            {isPubliclyReady ? translate('sponsors.previewAlwaysVisible') : translate('sponsors.previewNotPublic')}
+...
+ 286|              <p className="text-xs font-medium text-slate-600">
+*287|                {draft.logoUrl ? 'Bấm vào ảnh để thay đổi logo mới' : 'Tải lên logo nhà tài trợ (PNG, JPG, SVG)'}
+ 288|              </p>
+ 289|              <p className="mt-0.5 text-xs text-slate-400">
+*290|                Kích thước khuyến nghị: tỷ lệ 16:9 hoặc hình vuông, nền trong suốt.
+ 291|              </p>
+ 292|              {draft.logoUrl && (
+ 293|                <button
+...
+ 297|                >
+*298|                  Xóa ảnh
+ 299|                </button>
+ 300|              )}
+ 301|            </div>
+...
+ 339|            <span>{translate('sponsors.websiteUrl')}</span>
+*340|            <span className="text-xs font-normal text-slate-400">(không bắt buộc)</span>
+ 341|          </span>
+ 342|          <input
+ 343|            type="text"
+...
+ 346|            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+*347|            placeholder="https://yonex.com hoặc link Facebook"
+ 348|          />
+ 349|        </label>
+ 350|
+...
+ 353|          <div>
+*354|            <span className="block text-xs font-bold text-slate-800">Hiển thị công khai</span>
+ 355|            <span className="block text-xs font-normal text-slate-500">
+*356|              Cho phép hiển thị logo nhà tài trợ này trên trang giải đấu cho mọi người thấy.
+ 357|            </span>
+ 358|          </div>
+ 359|          <button
+...
+ 449|                      <span className={cn('h-1.5 w-1.5 rounded-full', isPublic ? 'bg-emerald-500' : 'bg-slate-400')} />
+*450|                      {isPublic ? 'Công khai' : 'Bản nháp'}
+ 451|                    </span>
+ 452|                  </div>
+ 453|                </div>
+### TournamentManageOverview.tsx
+ 36|  if (participant?.teamName) return participant.teamName;
+*37|  return side === 1 ? 'Đội A' : 'Đội B';
+ 38|}
+ 39|
+ 40|function getLatestSetScore(match: Match) {
+
+Showing files 1-20 of 30+. Use skip=20 for the next page, or narrow paths/pattern.

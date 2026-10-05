@@ -1,0 +1,894 @@
+ 114|  const gender = (div.genderRestriction || '').toUpperCase();
+*115|  const isDoubles = (div.matchType || '').toUpperCase().includes('DOUBLE') || nameLower.includes('đôi');
+ 116|
+*117|  if (nameLower.includes('nam nữ') || nameLower.includes('hỗn hợp') || gender === 'MIXED') {
+ 118|    return {
+ 119|      badgeText: getDivisionMatchLabel(div.matchType, div.genderRestriction, labels),
+ 120|      badgeClass: 'bg-purple-50 text-purple-700 border-purple-200/80',
+...
+ 124|  }
+*125|  if (nameLower.includes('nữ') || gender === 'FEMALE') {
+ 126|    return {
+ 127|      badgeText: getDivisionMatchLabel(div.matchType, div.genderRestriction, labels),
+ 128|      badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/80',
+...
+ 208|  const getDisplayDivisionName = (division: { name: string; matchType?: string | null; genderRestriction?: string | null }) => {
+*209|    const generatedNames = new Set(['Đơn Nam', 'Đơn Nữ', 'Đôi Nam', 'Đôi Nữ', 'Đôi Nam Nữ']);
+ 210|    return generatedNames.has(division.name.trim())
+ 211|      ? getDisplayFormatLabel(division.matchType, division.genderRestriction)
+ 212|      : division.name;
+...
+ 240|      setIsUploadingBanner(true);
+*241|      toast.loading('Đang tải ảnh bìa lên...', { id: 'direct-banner-upload' });
+ 242|      const res = await uploadApi.uploadImage(file);
+ 243|      if (res && res.url) {
+ 244|        s.setBannerUrl(res.url);
+...
+ 248|        }
+*249|        toast.success('Đã cập nhật ảnh bìa giải đấu!', { id: 'direct-banner-upload' });
+ 250|        await s.fetchTournamentData();
+ 251|      }
+ 252|    } catch (err) {
+...
+ 272|        nextVal
+*273|          ? 'Đã bật chế độ ẩn chữ trên banner công khai'
+*274|          : 'Đã hiển thị lại chữ trên banner công khai'
+ 275|      );
+ 276|      await s.fetchTournamentData();
+ 277|    } catch (err) {
+...
+ 298|    try {
+*299|      toast.loading('Đang cập nhật logo...', { id: 'direct-logo-upload' });
+ 300|      const file = new File([croppedBlob], 'tournament_logo.png', { type: 'image/png' });
+ 301|      const res = await uploadApi.uploadImage(file);
+ 302|      if (res && res.url) {
+...
+ 307|        }
+*308|        toast.success('Đã cập nhật logo giải đấu thành công!', { id: 'direct-logo-upload' });
+ 309|        await s.fetchTournamentData();
+ 310|      }
+ 311|    } catch (err) {
+...
+ 318|      setIsSavingDescInline(true);
+*319|      toast.loading('Đang lưu nội dung giới thiệu...', { id: 'inline-desc-save' });
+ 320|      await tournamentsApi.updateTournament(id, {
+ 321|        description: s.description,
+ 322|      });
+*323|      toast.success('Lưu nội dung giới thiệu thành công!', { id: 'inline-desc-save' });
+ 324|      setIsEditingDescription(false);
+ 325|      await s.fetchTournamentData();
+ 326|    } catch (err) {
+...
+ 366|  const [selectedVenueForCourts, setSelectedVenueForCourts] = useState<TournamentVenueWithCourts | null>(null);
+*367|  // URL phát của sân, khóa theo courtId. Nạp khi mở modal vì venue.courts không mang field này.
+ 368|  const [courtPlaybackUrls, setCourtPlaybackUrls] = useState<Record<string, string>>({});
+ 369|
+ 370|  useEffect(() => {
+...
+ 385|      .catch(() => {
+*386|        // Không nạp được thì để trống; BTC vẫn khai được URL mới.
+ 387|      });
+ 388|    return () => {
+ 389|      cancelled = true;
+...
+ 398|    if (!trimmed) {
+*399|      toast.error('Tên giải đấu không được để trống!');
+ 400|      return;
+ 401|    }
+ 402|    setIsSavingName(true);
+...
+ 405|      await tournamentsApi.updateTournament(id, { name: trimmed });
+*406|      toast.success('Đã cập nhật tên giải đấu!');
+ 407|      setIsEditingName(false);
+ 408|      await s.fetchTournamentData();
+ 409|    } catch (err) {
+...
+ 417|    if (tempRegistrationStartDate && tempRegistrationEndDate && new Date(tempRegistrationEndDate) <= new Date(tempRegistrationStartDate)) {
+*418|      toast.error('Hạn chót đăng ký phải sau ngày mở đăng ký!');
+ 419|      return;
+ 420|    }
+ 421|    if (tempStartDate && tempRegistrationEndDate && new Date(tempStartDate) < new Date(tempRegistrationEndDate)) {
+*422|      toast.error('Ngày khai mạc phải sau hạn chót đăng ký!');
+ 423|      return;
+ 424|    }
+ 425|    if (tempStartDate && tempEndDate && new Date(tempEndDate) < new Date(tempStartDate)) {
+*426|      toast.error('Ngày bế mạc phải sau ngày khai mạc!');
+ 427|      return;
+ 428|    }
+ 429|    setIsSavingDates(true);
+...
+ 440|      });
+*441|      toast.success('Đã cập nhật thời gian giải đấu thành công!');
+ 442|      setIsDatesModalOpen(false);
+ 443|      await s.fetchTournamentData();
+ 444|    } catch (err) {
+...
+ 464|      await tournamentsApi.updateTournament(id, { contactInfo: nextContact });
+*465|      toast.success(trimmed ? `Đã lưu ${key}!` : `Đã xóa ${key}!`);
+ 466|      setEditingContactKey(null);
+ 467|      await s.fetchTournamentData();
+ 468|    } catch (err) {
+...
+ 481|      await tournamentsApi.updateTournament(id, { contactInfo: nextContact });
+*482|      toast.success('Đã xóa thông tin liên hệ!');
+ 483|      if (editingContactKey === key) setEditingContactKey(null);
+ 484|      await s.fetchTournamentData();
+ 485|    } catch (err) {
+...
+ 495|    if (!finalKey) {
+*496|      toast.error('Vui lòng nhập tên loại liên hệ!');
+ 497|      return;
+ 498|    }
+ 499|    if (!finalVal) {
+*500|      toast.error('Vui lòng nhập số điện thoại hoặc link liên hệ!');
+ 501|      return;
+ 502|    }
+ 503|    setIsSavingContactItem(true);
+...
+ 510|      await tournamentsApi.updateTournament(id, { contactInfo: nextContact });
+*511|      toast.success(`Đã thêm ${finalKey} thành công!`);
+ 512|      setIsAddingChannel(false);
+ 513|      setNewChannelValue('');
+ 514|      setNewChannelCustomLabel('');
+...
+ 531|
+*532|      toast.success('Đã cập nhật lệ phí tham gia giải đấu!');
+ 533|      setIsFeeModalOpen(false);
+ 534|      await s.fetchTournamentData();
+ 535|    } catch (err) {
+...
+ 834|        </div>
+*835|        <h1 className="mt-4 text-xl font-bold text-slate-900">Không có quyền quản lý giải này</h1>
+*836|        <p className="mt-2 text-sm leading-6 text-slate-600">Giải đấu không thuộc phạm vi quản lý của tài khoản hiện tại.</p>
+*837|        <Button className="mt-6" onClick={() => router.push('/organizer/tournaments')}>Quay lại giải đấu của tôi</Button>
+ 838|      </div>
+ 839|    </section>
+ 840|  );
+...
+ 906|    const orgAvatar = tournament.organizer?.avatarUrl || '/sporto_v1_with_text.svg';
+*907|    const orgName = tournament.organizer?.fullName || 'Ban Tổ Chức';
+ 908|    return (
+ 909|      <div className="flex items-center gap-3">
+ 910|        <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+...
+ 913|        <div className="min-w-0 flex-1">
+*914|          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Người sáng lập giải đấu</p>
+ 915|          <p className="text-sm font-bold text-slate-900 truncate">{orgName}</p>
+ 916|        </div>
+ 917|      </div>
+...
+ 944|              onClick={() => logoFileInputRef.current?.click()}
+*945|              title="Nhấn để đổi logo giải đấu"
+ 946|              className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border-2 border-white shadow-md p-0.5 flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-slate-200/80 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+ 947|            >
+ 948|              <EntityBrandAvatar
+...
+ 957|                <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow" />
+*958|                <span className="text-label-sm font-extrabold text-white leading-none mt-0.5">Đổi logo</span>
+ 959|              </div>
+ 960|            </div>
+ 961|
+...
+ 965|              onClick={() => logoFileInputRef.current?.click()}
+*966|              title="Đổi logo giải đấu"
+ 967|              className="absolute -bottom-1 -right-1 p-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md border-2 border-white cursor-pointer transition-transform hover:scale-110"
+ 968|            >
+ 969|              <Camera className="w-3 h-3" />
+...
+ 990|              }`}>
+*991|                {tournament.isRanked ? '⭐ Có xếp hạng' : 'Giải phong trào'}
+ 992|              </span>
+ 993|            </div>
+ 994|
+...
+ 1007|                  autoFocus
+*1008|                  placeholder="Nhập tên giải đấu..."
+ 1009|                />
+ 1010|                <button
+ 1011|                  type="button"
+...
+ 1014|                  className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs cursor-pointer disabled:opacity-50"
+*1015|                  title="Lưu tên"
+ 1016|                >
+ 1017|                  {isSavingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+ 1018|                </button>
+...
+ 1022|                  className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg shadow-xs cursor-pointer"
+*1023|                  title="Hủy"
+ 1024|                >
+ 1025|                  <X className="w-4 h-4" />
+ 1026|                </button>
+...
+ 1034|                className="group/title flex items-start gap-1.5 cursor-pointer rounded-lg p-1 -m-1 hover:bg-slate-100/80 transition-colors"
+*1035|                title="Bấm để sửa tên giải đấu"
+ 1036|              >
+ 1037|                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-snug line-clamp-2 flex-1">
+ 1038|                  {tournament.name}
+...
+ 1057|            className="group/row flex items-start gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+*1058|            title="Bấm để thay đổi thời gian giải đấu"
+ 1059|          >
+ 1060|            <Calendar className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+ 1061|            <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
+...
+ 1068|                ) : (
+*1069|                  <span className="text-slate-500 font-normal">Chưa xếp ngày thi đấu</span>
+ 1070|                )}
+ 1071|              </p>
+ 1072|              <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0" />
+...
+ 1075|
+*1076|          {/* Location & Courts - Clean row matching detail page, hỗ trợ tóm tắt nhiều địa điểm */}
+ 1077|          {(() => {
+ 1078|            const venues = s.tournamentVenues || [];
+ 1079|            const defaultVenue = venues.find((v) => v.isDefault) || venues[0];
+...
+ 1082|
+*1083|            let displayLocation = locationLabel || 'Chưa thiết lập địa điểm';
+ 1084|            if (defaultVenue) {
+ 1085|              if (venueCount > 1) {
+*1086|                displayLocation = `${defaultVenue.name} (+${venueCount - 1} địa điểm khác)`;
+ 1087|              } else {
+*1088|                displayLocation = defaultVenue.name || locationLabel || 'Chưa thiết lập địa điểm';
+ 1089|              }
+ 1090|            }
+ 1091|
+...
+ 1103|                className="group/row flex items-start gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+*1104|                title="Bấm để quản lý địa điểm & sân thi đấu"
+ 1105|              >
+ 1106|                <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+ 1107|                <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+...
+ 1112|                    <p className="text-xs text-slate-500 font-normal mt-0.5">
+*1113|                      {venueCount > 1 ? `${venueCount} cụm địa điểm • ` : ''}
+*1114|                      {totalCourts > 0 ? `${totalCourts} sân thi đấu` : 'Chưa thiết lập sân'}
+ 1115|                    </p>
+ 1116|                  </div>
+ 1117|                  <Pencil className="w-3 h-3 text-slate-400 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0 mt-1" />
+...
+ 1126|            className="group/row flex items-center gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+*1127|            title="Bấm để xem và thêm nội dung thi đấu"
+ 1128|          >
+ 1129|            <Trophy className="w-4 h-4 text-slate-400 shrink-0" />
+ 1130|            <p className="text-slate-600 flex-1">
+*1131|              <span className="font-bold text-slate-800">{s.divisions.length}</span> <span>Nội dung thi đấu</span>
+ 1132|            </p>
+ 1133|            <span className="text-xs text-slate-400 opacity-0 group-hover/row:opacity-100 transition-opacity">
+ 1134|              &rarr;
+...
+ 1141|            className="group/row flex items-center gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+*1142|            title="Bấm để xem danh sách vận động viên"
+ 1143|          >
+ 1144|            <Users className="w-4 h-4 text-slate-400 shrink-0" />
+ 1145|            <p className="text-slate-600 flex-1">
+...
+ 1147|                ? Object.values(s.participantCountsByDivision).reduce((sum, count) => sum + count, 0)
+*1148|                : s.divisions.reduce((sum, division) => sum + (division._count?.participants ?? 0), 0) || s.participants.length}</span> <span>Vận động viên</span>
+ 1149|            </p>
+ 1150|            <span className="text-xs text-slate-400 opacity-0 group-hover/row:opacity-100 transition-opacity">
+ 1151|              &rarr;
+...
+ 1159|          const regStart = tournament.registrationStartDate ? new Date(tournament.registrationStartDate) : null;
+*1160|          // Hạn chót thật là hạn SỚM NHẤT trong các nội dung, đúng luật
+*1161|          // backend đã chốt (min(hạn nội dung, hạn giải)). Dùng hạn cả giải
+*1162|          // ở đây khiến BTC thấy "còn N ngày" trong khi tab đăng ký đã chặn.
+ 1163|          const regEndDeadlines = s.divisions
+ 1164|            .map((d) => d.effectiveRegistrationEndDate)
+ 1165|            .filter((v): v is string => Boolean(v))
+...
+ 1180|                  labels={{
+*1181|                    active: 'Mở đăng ký sau',
+*1182|                    expired: 'Đã mở đăng ký',
+*1183|                    dayLabel: commonTranslate('countdownDay') || 'ngày',
+ 1184|                  }}
+ 1185|                  variant="info"
+ 1186|                  size="sm"
+...
+ 1196|                  labels={{
+*1197|                    active: 'Đóng đăng ký sau',
+*1198|                    expired: 'Đã đóng đăng ký',
+*1199|                    dayLabel: commonTranslate('countdownDay') || 'ngày',
+ 1200|                  }}
+ 1201|                  variant="warning"
+ 1202|                  size="sm"
+...
+ 1212|                  labels={{
+*1213|                    active: 'Khởi tranh sau',
+*1214|                    expired: 'Đã khởi tranh',
+*1215|                    dayLabel: commonTranslate('countdownDay') || 'ngày',
+ 1216|                  }}
+ 1217|                  variant="danger"
+ 1218|                  size="sm"
+...
+ 1228|                  labels={{
+*1229|                    active: 'Kết thúc sau',
+*1230|                    expired: 'Đã kết thúc',
+*1231|                    dayLabel: commonTranslate('countdownDay') || 'ngày',
+ 1232|                  }}
+ 1233|                  variant="danger"
+ 1234|                  size="sm"
+...
+ 1249|                variant="button"
+*1250|                buttonLabel="Mẫu đăng ký"
+ 1251|                className="w-full justify-center py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs text-sm border-0 gap-2 transition-colors cursor-pointer"
+ 1252|                icon={<FileText className="w-4 h-4 text-white" />}
+ 1253|              />
+...
+ 1260|              onClick={() => window.open(`/tournaments/${tournament.id}`, '_blank')}
+*1261|              title="Xem trang công khai"
+*1262|              aria-label="Xem trang công khai"
+ 1263|              className="shrink-0 w-11 h-11 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:text-slate-900 shadow-xs rounded-lg transition-colors"
+ 1264|            >
+ 1265|              <ExternalLink className="w-4 h-4" />
+...
+ 1272|              onClick={handleShareClick}
+*1273|              title="Chia sẻ giải đấu"
+*1274|              aria-label="Chia sẻ giải đấu"
+ 1275|              className="shrink-0 w-11 h-11 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:text-slate-900 shadow-xs rounded-lg transition-colors"
+ 1276|            >
+ 1277|              <Share2 className="w-4 h-4" />
+...
+ 1293|                  <Lock className="w-3.5 h-3.5 mr-1" />
+*1294|                  Khóa đăng ký
+ 1295|                </Button>
+ 1296|              )}
+ 1297|
+...
+ 1322|                  {s.isOpening ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Play className="w-3.5 h-3.5 fill-current mr-1" />}
+*1323|                  Khai mạc giải
+ 1324|                </Button>
+ 1325|              )}
+ 1326|
+...
+ 1336|                  {s.isEnding ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Trophy className="w-3.5 h-3.5 mr-1" />}
+*1337|                  Hoàn tất giải
+ 1338|                </Button>
+ 1339|              )}
+ 1340|            </div>
+...
+ 1364|              className="pt-3 border-t border-slate-100 group/fee cursor-pointer hover:bg-blue-50/40 -mx-1 px-1 rounded-lg transition-colors"
+*1365|              title="Nhấp vào đây để điều chỉnh lệ phí tham gia và xem chi tiết biểu phí"
+ 1366|            >
+ 1367|              <div className="flex items-center justify-between text-slate-700 pt-0.5">
+ 1368|                <div className="flex items-center gap-1.5">
+...
+ 1377|                  <span className="font-bold text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+*1378|                    Miễn phí
+ 1379|                  </span>
+ 1380|                )}
+ 1381|              </div>
+...
+ 1387|                    <>
+*1388|                      Phí sàn: <span className="font-semibold text-slate-600">{formatCurrency(feePerPlayer)}</span>
+ 1389|                      {pf.ruleType === 'PERCENTAGE' && (
+ 1390|                        <span className="text-xs text-slate-400 ml-1">({pf.percentage}%)</span>
+ 1391|                      )}
+...
+ 1393|                  ) : (
+*1394|                    'Không tính phí sàn'
+ 1395|                  )}
+ 1396|                </span>
+ 1397|                {currentFee > 0 && (
+ 1398|                  <span className="text-emerald-700 font-semibold">
+*1399|                    Thực nhận: {formatCurrency(netPerPlayer)}/VĐV
+ 1400|                  </span>
+ 1401|                )}
+ 1402|              </div>
+...
+ 1443|              </span>
+*1444|              <span className="text-xs text-slate-400">Enter để lưu, Esc để hủy</span>
+ 1445|            </div>
+ 1446|            <div className="flex items-center gap-1.5">
+ 1447|              <input
+...
+ 1467|                className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold shrink-0 cursor-pointer"
+*1468|                title="Lưu"
+ 1469|              >
+ 1470|                {isSavingContactItem ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+ 1471|              </button>
+...
+ 1475|                className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded text-xs shrink-0 cursor-pointer"
+*1476|                title="Hủy"
+ 1477|              >
+ 1478|                <X className="w-3 h-3" />
+ 1479|              </button>
+...
+ 1494|          className="group/item flex items-center justify-between gap-2 p-1.5 -mx-1.5 rounded-lg hover:bg-slate-100/70 transition-colors cursor-pointer"
+*1495|          title="Nhấp đúp (Double-click) để chỉnh sửa trực tiếp"
+ 1496|        >
+ 1497|          <div className="flex items-center gap-2 min-w-0 flex-1">
+ 1498|            <IconComponent className={`w-4 h-4 shrink-0 ${iconColor}`} />
+...
+ 1522|              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-pointer"
+*1523|              title="Sửa"
+ 1524|            >
+ 1525|              <Pencil className="w-3 h-3" />
+ 1526|            </button>
+...
+ 1533|              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+*1534|              title="Xóa"
+ 1535|            >
+ 1536|              <Trash2 className="w-3 h-3" />
+ 1537|            </button>
+...
+ 1558|              <Plus className="w-3 h-3" />
+*1559|              <span>Thêm</span>
+ 1560|            </button>
+ 1561|          </div>
+ 1562|        </div>
+...
+ 1587|              }
+*1588|              return renderItemRow(key, key, val as string, IconComponent, iconColor, 'Nhập đường dẫn / giá trị...');
+ 1589|            })}
+ 1590|          </div>
+ 1591|        ) : (
+...
+ 1598|          >
+*1599|            <p className="text-xs font-bold text-slate-600">+ Bấm để thêm SĐT, Email, Zalo, Facebook...</p>
+*1600|            <p className="text-xs text-slate-400 mt-0.5">Nhấp đúp vào bất kỳ dòng nào để sửa trực tiếp</p>
+ 1601|          </div>
+ 1602|        )}
+ 1603|
+...
+ 1607|            <div className="flex items-center justify-between">
+*1608|              <span className="text-xs font-bold text-blue-800">+ Thêm liên hệ mới</span>
+ 1609|              <button
+ 1610|                type="button"
+ 1611|                onClick={() => setIsAddingChannel(false)}
+...
+ 1623|                >
+*1624|                  <option value="phone">Số điện thoại</option>
+ 1625|                  <option value="email">Email</option>
+ 1626|                  <option value="zalo">Zalo</option>
+ 1627|                  <option value="facebook">Facebook</option>
+...
+ 1630|                  <option value="website">Website</option>
+*1631|                  <option value="custom">Tùy chọn...</option>
+ 1632|                </select>
+ 1633|                {newChannelType === 'custom' && (
+ 1634|                  <input
+ 1635|                    type="text"
+*1636|                    placeholder="Tên kênh..."
+ 1637|                    value={newChannelCustomLabel}
+ 1638|                    onChange={(e) => setNewChannelCustomLabel(e.target.value)}
+ 1639|                    className="flex-1 text-xs border border-slate-300 rounded px-2 py-1 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
+...
+ 1647|                  newChannelType === 'phone'
+*1648|                    ? 'Nhập số điện thoại...'
+ 1649|                    : newChannelType === 'email'
+*1650|                    ? 'Nhập email liên hệ...'
+ 1651|                    : newChannelType === 'zalo'
+*1652|                    ? 'SĐT Zalo hoặc link nhóm...'
+ 1653|                    : 'https://...'
+ 1654|                }
+ 1655|                value={newChannelValue}
+...
+ 1673|              >
+*1674|                Hủy
+ 1675|              </button>
+ 1676|              <button
+ 1677|                type="button"
+...
+ 1681|              >
+*1682|                {isSavingContactItem ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Thêm'}
+ 1683|              </button>
+ 1684|            </div>
+ 1685|          </div>
+...
+ 1687|
+*1688|        {/* ALWAYS show Organizer Block (Người sáng lập giải đấu) at bottom under contact info just like Image 1 */}
+ 1689|        <div className="pt-3 border-t border-slate-100">
+ 1690|          {renderOrganizerBlock()}
+ 1691|        </div>
+...
+ 1932|              <MapPin className="mx-auto h-10 w-10 text-slate-300 mb-3" />
+*1933|              <h4 className="text-base font-bold text-slate-800">Chưa có sân thi đấu</h4>
+ 1934|              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+*1935|                Vui lòng qua tab &quot;Địa điểm &amp; Sân&quot; để thiết lập ít nhất 1 sân thi đấu trước khi xếp lịch.
+ 1936|              </p>
+ 1937|              <Button
+ 1938|                type="button"
+...
+ 1941|              >
+*1942|                Thiết lập sân bãi ngay
+ 1943|              </Button>
+ 1944|            </div>
+ 1945|          ) : (
+...
+ 1986|        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+*1987|          {translate('divisions.title') || 'Nội dung thi đấu'}
+ 1988|        </span>
+ 1989|        <Button
+ 1990|          size="sm"
+...
+ 1997|          <Plus className="h-4 w-4" aria-hidden="true" />
+*1998|          <span className="sr-only">Thêm nội dung</span>
+ 1999|        </Button>
+ 2000|      </div>
+ 2001|      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+...
+ 2068|                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30 lg:h-7 lg:w-7"
+*2069|                    title="Sửa nội dung"
+ 2070|                  >
+ 2071|                    <Pencil className="w-3.5 h-3.5" />
+ 2072|                  </button>
+...
+ 2076|                    className="flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 lg:h-7 lg:w-7"
+*2077|                    title="Xóa nội dung"
+ 2078|                  >
+ 2079|                    <X className="w-3.5 h-3.5" />
+ 2080|                  </button>
+...
+ 2108|        className={`mb-4 ${activeSection === 'court_schedule' ? 'h-full flex flex-col' : ''}`}
+*2109|        aria-label={translate('divisions.title') || 'Nội dung thi đấu'}
+ 2110|      >
+ 2111|        <div className="flex items-center justify-between gap-2 mb-2 px-1">
+ 2112|          <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+*2113|            {translate('divisions.title') || 'Nội dung thi đấu'}
+ 2114|          </span>
+ 2115|          <Button
+ 2116|            size="sm"
+...
+ 2123|            <Plus className="w-3 h-3 text-blue-600" />
+*2124|            <span>Thêm nội dung</span>
+ 2125|          </Button>
+ 2126|        </div>
+ 2127|
+...
+ 2134|              const divTotal = divMatches.length;
+*2135|              // Hạn chót thật của nội dung: ưu tiên hạn hiệu lực backend đã
+*2136|              // tính, thiếu thì lùi về hạn của chính nó rồi hạn cả giải.
+ 2137|              const divDeadline = div.effectiveRegistrationEndDate
+ 2138|                ?? div.registrationEndDate
+ 2139|                ?? s.tournament?.registrationEndDate;
+*2140|              // Đã quá hạn thì ẩn nút khoá: muốn mở lại phải dời hạn đăng ký.
+ 2141|              const divExpired = divDeadline
+ 2142|                ? new Date() > new Date(divDeadline)
+ 2143|                : false;
+*2144|              // Khoá cấp giải mạnh hơn khoá nội dung: giải đang khoá thì
+*2145|              // nút bấm được cũng vô nghĩa nên khoá luôn ở UI cho khỏi bấm.
+ 2146|              const divisionActionsDisabled =
+ 2147|                isTournamentRegistrationClosed(s.tournament?.status ?? '') ||
+ 2148|                s.tournament?.isRegistrationLocked === true ||
+...
+ 2170|                  <div className="flex items-center justify-between">
+*2171|                    {/* The visible label is a format shorthand ("Đơn"), so the real
+ 2172|                        division name and its capacity are announced instead of
+ 2173|                        being lost with the text alternative. */}
+ 2174|                    <button
+...
+ 2212|                        <span className="inline-flex shrink-0 items-center text-xs font-semibold text-slate-600 mr-1">
+*2213|                          {divCompleted}/{divTotal} trận
+ 2214|                        </span>
+ 2215|                      )}
+ 2216|
+...
+ 2247|                        className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+*2248|                        title="Sửa nội dung"
+ 2249|                      >
+ 2250|                        <Pencil className="w-3.5 h-3.5" />
+ 2251|                      </button>
+...
+ 2255|                        className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+*2256|                        title="Xóa nội dung"
+ 2257|                      >
+ 2258|                        <X className="w-3.5 h-3.5" />
+ 2259|                      </button>
+...
+ 2294|            <ChevronLeft className="w-4 h-4" />
+*2295|            <span>{translate('back') || 'Quay lại'}</span>
+ 2296|          </button>
+ 2297|
+ 2298|          <div className="flex items-center gap-2">
+...
+ 2300|              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+*2301|              Khu Vực Quản Lý Ban Tổ Chức
+ 2302|            </span>
+ 2303|          </div>
+ 2304|        </div>
+...
+ 2352|                    className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+*2353|                    title="Chuyển sang trang vận hành giải đấu"
+ 2354|                  >
+ 2355|                    <Zap className="w-3.5 w-3.5 text-amber-300 fill-amber-300" />
+*2356|                    <span>{translate('status.operations') || 'Vận hành'}</span>
+ 2357|                  </Button>
+ 2358|                </div>
+ 2359|              }
+...
+ 2394|              <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+*2395|                {/* Nút chỉ icon ẩn/hiện chữ banner - rê chuột vào hiện tooltip giải thích */}
+ 2396|                <button
+ 2397|                  type="button"
+ 2398|                  onClick={handleToggleHideBannerText}
+...
+ 2406|                    s.hideFeaturedCardText
+*2407|                      ? 'Đang ẩn chữ trên banner công khai (Nhấp để hiển thị lại)'
+*2408|                      : 'Ẩn chữ phủ trên banner công khai (Dành cho banner đã có thiết kế sẵn)'
+ 2409|                  }
+ 2410|                  aria-label={
+ 2411|                    s.hideFeaturedCardText
+*2412|                      ? 'Đang ẩn chữ trên banner công khai'
+*2413|                      : 'Ẩn chữ phủ trên banner công khai'
+ 2414|                  }
+ 2415|                >
+ 2416|                  {isTogglingBannerText ? (
+...
+ 2429|                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-black/60 hover:bg-black/80 active:scale-95 text-white text-xs font-bold shadow-lg backdrop-blur-md border border-white/20 transition-all cursor-pointer"
+*2430|                  title="Thay đổi ảnh bìa giải đấu"
+ 2431|                >
+ 2432|                  {isUploadingBanner ? (
+ 2433|                    <>
+ 2434|                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+*2435|                      <span>Đang tải...</span>
+ 2436|                    </>
+ 2437|                  ) : (
+ 2438|                    <>
+ 2439|                      <Camera className="w-3.5 h-3.5 text-blue-400" />
+*2440|                      <span>Đổi ảnh bìa</span>
+ 2441|                    </>
+ 2442|                  )}
+ 2443|                </button>
+...
+ 2452|                    <ImagePlus className="w-4 h-4 text-white drop-shadow" />
+*2453|                    <span className="drop-shadow">Nhấp vào bất kỳ đâu trên ảnh để đổi ảnh bìa giải đấu</span>
+ 2454|                  </div>
+ 2455|                  <span className="text-xs font-bold text-white bg-blue-600/90 px-2.5 py-1 rounded-lg border border-blue-400/50 shadow-xs">
+*2456|                    Chọn ảnh mới
+ 2457|                  </span>
+ 2458|                </div>
+ 2459|              </div>
+...
+ 2469|                {[
+*2470|                  { id: 'overview' as const, label: 'Giới thiệu', icon: LayoutDashboard },
+*2471|                  { id: 'registration' as const, label: 'Vận động viên', icon: Users, badge: Object.keys(s.participantCountsByDivision).length > 0
+ 2472|                    ? Object.values(s.participantCountsByDivision).reduce((sum, count) => sum + count, 0)
+ 2473|                    : s.divisions.reduce((sum, division) => sum + (division._count?.participants ?? 0), 0) || s.participants.length },
+*2474|                  { id: 'bracket' as const, label: 'Bảng đấu', icon: Trophy },
+*2475|                  { id: 'court_schedule' as const, label: 'Lịch thi đấu', icon: CalendarDays },
+*2476|                  { id: 'sponsors' as const, label: 'Tài trợ', icon: Handshake },
+*2477|                  { id: 'settings' as const, label: '', icon: Settings, iconOnly: true, title: 'Cài đặt giải đấu' },
+ 2478|                ].map((tab) => {
+ 2479|                  const isActive = activeSection === tab.id;
+ 2480|                  const TabIcon = tab.icon;
+...
+ 2531|                        <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+*2532|                          Chỉnh sửa giới thiệu giải đấu
+ 2533|                        </span>
+ 2534|                      </div>
+ 2535|                      <div className="flex items-center gap-2">
+...
+ 2545|                        >
+*2546|                          Hủy
+ 2547|                        </Button>
+ 2548|                        <Button
+ 2549|                          size="sm"
+...
+ 2556|                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+*2557|                              <span>Đang lưu...</span>
+ 2558|                            </>
+ 2559|                          ) : (
+ 2560|                            <>
+ 2561|                              <Save className="w-3.5 h-3.5" />
+*2562|                              <span>Lưu</span>
+ 2563|                            </>
+ 2564|                          )}
+ 2565|                        </Button>
+...
+ 2571|                      onChange={s.setDescription}
+*2572|                      placeholder="Nhập thông tin giới thiệu, thể lệ, quy định giải đấu..."
+ 2573|                    />
+ 2574|                  </div>
+ 2575|                ) : (
+...
+ 2578|                    className="group relative cursor-pointer rounded-xl p-2 -m-2 transition-all hover:bg-blue-50/40 hover:ring-1 hover:ring-blue-200"
+*2579|                    title="Nhấn vào đây để chỉnh sửa bài viết giới thiệu"
+ 2580|                  >
+ 2581|                    {/* Hover hint badge */}
+ 2582|                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 text-blue-600 border border-blue-200 text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs pointer-events-none">
+ 2583|                      <Edit3 className="w-3 h-3 text-blue-600" />
+*2584|                      <span>Nhấp để sửa</span>
+ 2585|                    </div>
+ 2586|
+ 2587|                    <section className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed editorjs-content-view max-h-[550px] overflow-y-auto pr-2 custom-scrollbar">
+...
+ 2592|                          <p className="text-xs sm:text-sm text-slate-400 font-medium">
+*2593|                            Chưa có nội dung giới thiệu giải đấu. Nhấn vào đây để thêm bài viết giới thiệu.
+ 2594|                          </p>
+ 2595|                          <span className="mt-2.5 inline-flex items-center gap-1 text-xs font-bold text-blue-600">
+ 2596|                            <Plus className="w-3.5 h-3.5" />
+*2597|                            <span>Thêm bài viết giới thiệu</span>
+ 2598|                          </span>
+ 2599|                        </div>
+ 2600|                      )}
+...
+ 3180|                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+*3181|                  {/* Cột 1: Thông tin sân & Thời gian & Thiết bị */}
+ 3182|                  <div className="space-y-4">
+ 3183|                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+ 3184|                      <p className="text-sm font-bold text-slate-900">{sportPresentation.sportLabel}: {s.isLiteMode ? translate('matchSchedule.liteRule') : translate('matchSchedule.standardRule')}</p>
+...
+ 3244|
+*3245|                  {/* Cột 2: Cấu hình luật & nâng cao */}
+ 3246|                  <div className="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
+ 3247|                    <div className="flex items-center justify-between">
+ 3248|                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer">
+...
+ 3260|                      <div className="p-4 rounded-lg bg-slate-100/70 border border-dashed border-slate-300 text-xs text-slate-500 text-center space-y-1">
+*3261|                        <p className="font-semibold text-slate-700">Đang áp dụng cấu hình mặc định của giải đấu</p>
+*3262|                        <p>Đánh dấu vào ô trên nếu muốn tùy chỉnh số set thắng, điểm/set hoặc luật tiebreak riêng cho trận này.</p>
+ 3263|                      </div>
+ 3264|                    ) : (
+ 3265|                      <>
+...
+ 3394|              <Calendar className="w-5 h-5 text-blue-600" />
+*3395|              Thời gian tổ chức giải đấu
+ 3396|            </ModalTitle>
+ 3397|          </ModalHeader>
+ 3398|          <div className="space-y-4 mt-4">
+*3399|            {/* Thời gian mở & đóng đăng ký */}
+ 3400|            <div className="space-y-3">
+ 3401|              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+ 3402|                <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+*3403|                <span>Thời gian đăng ký</span>
+ 3404|              </div>
+ 3405|              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ 3406|                <DateTimePicker
+*3407|                  label="Ngày mở đăng ký"
+ 3408|                  value={tempRegistrationStartDate}
+ 3409|                  onChange={setTempRegistrationStartDate}
+ 3410|                />
+ 3411|                <DateTimePicker
+*3412|                  label="Hạn chót đăng ký"
+ 3413|                  value={tempRegistrationEndDate}
+ 3414|                  onChange={setTempRegistrationEndDate}
+ 3415|                  min={tempRegistrationStartDate || undefined}
+...
+ 3419|
+*3420|            {/* Thời gian thi đấu giải */}
+ 3421|            <div className="space-y-3 pt-3 border-t border-slate-100">
+ 3422|              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+ 3423|                <CalendarDays className="w-3.5 h-3.5 text-indigo-600" />
+*3424|                <span>Thời gian thi đấu</span>
+ 3425|              </div>
+ 3426|              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ 3427|                <DateTimePicker
+*3428|                  label="Ngày khai mạc"
+ 3429|                  value={tempStartDate}
+ 3430|                  onChange={setTempStartDate}
+ 3431|                  min={tempRegistrationEndDate || undefined}
+...
+ 3433|                <DateTimePicker
+*3434|                  label="Ngày bế mạc"
+ 3435|                  value={tempEndDate}
+ 3436|                  onChange={setTempEndDate}
+ 3437|                  min={tempStartDate || undefined}
+...
+ 3447|              >
+*3448|                Hủy
+ 3449|              </Button>
+ 3450|              <Button
+ 3451|                type="button"
+...
+ 3455|              >
+*3456|                {isSavingDates ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu thời gian'}
+ 3457|              </Button>
+ 3458|            </div>
+ 3459|          </div>
+...
+ 3470|              <DollarSign className="w-5 h-5 text-emerald-600" />
+*3471|              Điều chỉnh lệ phí tham gia giải đấu
+ 3472|            </ModalTitle>
+ 3473|          </ModalHeader>
+ 3474|          <div className="space-y-4 mt-3">
+...
+ 3476|              <label className="text-xs font-semibold text-slate-700 block mb-1">
+*3477|                Lệ phí thu trên mỗi vận động viên (VNĐ)
+ 3478|              </label>
+ 3479|              <div className="relative">
+ 3480|                <input
+...
+ 3485|                  onChange={(e) => setTempEntryFee(Math.max(0, Number(e.target.value) || 0))}
+*3486|                  placeholder="0 (Miễn phí)"
+ 3487|                  className="w-full text-base font-bold text-emerald-700 border border-slate-200 rounded-lg py-2.5 pl-3 pr-10 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+ 3488|                />
+ 3489|                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+...
+ 3496|            <div>
+*3497|              <div className="text-xs font-medium text-slate-500 mb-1.5">Tăng/giảm nhanh:</div>
+ 3498|              <div className="flex flex-wrap gap-1.5">
+ 3499|                <button
+ 3500|                  type="button"
+...
+ 3507|                >
+*3508|                  Miễn phí (0đ)
+ 3509|                </button>
+ 3510|                <button
+ 3511|                  type="button"
+...
+ 3555|                  <div className="flex justify-between items-center text-slate-600">
+*3556|                    <span>Lệ phí thu / VĐV:</span>
+ 3557|                    <span className="font-semibold text-slate-900">
+*3558|                      {tempEntryFee > 0 ? `${tempEntryFee.toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
+ 3559|                    </span>
+ 3560|                  </div>
+ 3561|                  <div className="flex justify-between items-center text-slate-600">
+ 3562|                    <span className="flex items-center gap-1">
+*3563|                      Phí sàn / dịch vụ nền tảng:
+ 3564|                      {modalBreakdown.percentage > 0 && (
+ 3565|                        <span className="text-xs bg-slate-200 text-slate-600 px-1 py-0.2 rounded font-mono">
+ 3566|                          {modalBreakdown.percentage}%
+...
+ 3576|                  <div className="border-t border-slate-200 pt-1.5 flex justify-between items-center font-bold">
+*3577|                    <span className="text-emerald-800">BTC thực nhận / VĐV:</span>
+ 3578|                    <span className="text-sm text-emerald-600">
+ 3579|                      {netOrganizer.toLocaleString('vi-VN')} ₫
+ 3580|                    </span>
+...
+ 3586|            <div className="text-xs text-slate-500 italic bg-amber-50/70 border border-amber-200/60 rounded-md p-2">
+*3587|              Lưu ý: Mức phí này sẽ được cập nhật cho toàn bộ giải đấu và đồng bộ tới các nội dung thi đấu hiện có.
+ 3588|            </div>
+ 3589|
+ 3590|            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+...
+ 3596|              >
+*3597|                Hủy
+ 3598|              </Button>
+ 3599|              <Button
+ 3600|                type="button"
+...
+ 3604|              >
+*3605|                {isSavingFee ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu lệ phí'}
+ 3606|              </Button>
+ 3607|            </div>
+ 3608|          </div>
+...
+ 3652|
+*3653|      {/* Modal Cài đặt Sân của Địa điểm (Tạo sân đơn, tạo hàng loạt, đặt sân chính, hỗ trợ nhiều địa điểm) */}
+ 3654|      <VenueCourtsModal
+ 3655|        key={selectedVenueForCourts?.id ?? 'none'}
+ 3656|        isOpen={Boolean(selectedVenueForCourts)}
+...
+ 3679|            const res = await livestreamApi.setCourtPlaybackUrl(id, courtId, url);
+*3680|            // Lấy URL từ response chứ không từ input: backend kiểm tra và chuẩn hoá
+*3681|            // chuỗi, nên giá trị gửi đi có thể khác giá trị thật sự lưu.
+ 3682|            const saved = res.data?.playbackUrl ?? null;
+ 3683|            setCourtPlaybackUrls((prev) => {
+ 3684|              const next = { ...prev };
+...
+ 3688|            });
+*3689|            toast.success(saved ? 'Đã lưu URL phát của sân' : 'Đã xoá URL phát của sân');
+ 3690|          } catch (err) {
+ 3691|            toast.error(getErrorMessage(err));
+ 3692|          }
+...
+ 3698|
+*3699|      {/* Modal Tạo Địa điểm & Cụm sân mới */}
+ 3700|      <CreateVenueModal
+ 3701|        key={isCreateVenueOpen ? 'create-open' : 'create-closed'}
+ 3702|        isOpen={isCreateVenueOpen}
+...
+ 3714|
+*3715|      {/* Modal Chỉnh sửa Địa điểm */}
+ 3716|      <EditVenueModal
+ 3717|        key={selectedVenueForEdit?.id || 'edit-closed'}
+ 3718|        isOpen={Boolean(selectedVenueForEdit)}
+...
+ 3733|/**
+*3734| * Nút khoá đăng ký riêng cho một nội dung thi đấu.
+ 3735| *
+*3736| * Chỉ hiện khi nội dung CHƯA quá hạn. Đã quá hạn thì không hiện nút: muốn
+*3737| * mở lại phải dời hạn đăng ký trước, không phải bấm một cái là xong.
+ 3738| *
+*3739| * Trạng thái đọc từ  mà backend trả sẵn (đã bao gồm
+*3740| * cả khoá cấp giải) thay vì tự dựng lại phép OR ở client.
+ 3741| */
+ 3742|function LockDivisionButton({
+ 3743|  div,
+...
+ 3756|
+*3757|  // Đã quá hạn thì không cho mở khoá bằng nút; phải dời hạn trư�
+ 3758|
+ 3759|  if (!tournamentId) return null;
+ 3760|  const deadline = div.effectiveRegistrationEndDate ?? div.registrationEndDate;
