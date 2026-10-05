@@ -1,0 +1,220 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  schema-smoke:
+    name: Verify football schema on clean PostgreSQL
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: tournament_db
+      DB_SSL: 'false'
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tournament_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d tournament_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm install --frozen-lockfile
+
+      - name: Apply migrations to disposable database
+        run: node run-prod-migration.js
+
+      - name: Re-run migrations to verify idempotency
+        run: node run-prod-migration.js
+
+      - name: Verify football schema
+        run: pnpm verify:football-schema
+
+  # Job 1: Build Docker Image cho Backend trên GitHub và Push lên GHCR
+  build-and-push:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+    needs: schema-smoke
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies and run tests
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm install --frozen-lockfile
+          pnpm test --runInBand --passWithNoTests
+
+      - name: Build and Push Docker Image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build \
+            -t ghcr.io/babydanh/hethongbackendapi_quanlygiaidau:latest \
+            -t ghcr.io/babydanh/hethongbackendapi_quanlygiaidau:${{ github.sha }} \
+            .
+          docker push ghcr.io/babydanh/hethongbackendapi_quanlygiaidau:latest
+          docker push ghcr.io/babydanh/hethongbackendapi_quanlygiaidau:${{ github.sha }}
+
+  # Job 2: Chỉ kéo bản build Backend về chạy trên VPS và chạy migration
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS via native SSH
+        env:
+          VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 36789 203.167.15.81 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -p 36789 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@203.167.15.81 bash -c "'
+            set -euo pipefail
+            cd /usr/local/lsws/sporto.asia
+            sed -i \"s#giaidau\.vnvar\.com#sporto.asia#g\" .env
+
+            app_api_key=\"\$(sed -n \"s/^APP_API_KEY=//p\" .env | head -n 1)\"
+            if [ -z \"\${app_api_key}\" ]; then
+              echo \"APP_API_KEY is missing from the VPS .env\"
+              exit 1
+            fi
+            # Health check trước deploy: nếu backend đang tắt do lần deploy trước bị lỗi thì bỏ qua, không chặn deploy
+            curl --silent --show-error --max-time 15 \
+              -H \"x-app-key: \${app_api_key}\" \
+              \"https://sporto.asia/api/v1/categories\" > /dev/null || echo \"Notice: Backend is currently down, deploying fresh container to restore service...\"
+
+            echo \"$GITHUB_TOKEN\" | docker login ghcr.io -u $ACTOR --password-stdin
+            docker pull ghcr.io/babydanh/hethongbackendapi_quanlygiaidau:latest
+            docker compose run --rm migrate node run-prod-migration.js --dry-run
+            docker compose run --rm migrate
+            docker compose stop backend || true
+            docker compose rm -f backend || true
+            docker rm -f qlgiaidau-backend || true
+            docker ps -a --filter \"name=backend\" --format \"{{.ID}}\" | xargs -r docker rm -f || true
+            docker compose up -d --no-deps backend
+
+            for attempt in 1 2 3 4 5 6; do
+              if curl --fail --silent --show-error --max-time 15 \
+                -H \"x-app-key: \${app_api_key}\" \
+                \"https://sporto.asia/api/v1/categories\" > /dev/null; then
+                echo \"API smoke check passed on attempt \${attempt}\"
+                break
+              fi
+              if [ \"\${attempt}\" -eq 6 ]; then
+                echo \"API smoke check failed after restart\"
+                docker compose logs --tail=120 backend
+                exit 1
+              fi
+              sleep 5
+            done
+
+            wards_probe=\"\$(curl --fail --silent --show-error --max-time 15 \
+              -H \"x-app-key: \${app_api_key}\" \
+              \"https://sporto.asia/api/v1/regions/wards?provinceCode=30\")\" || {
+              echo \"Address v2 smoke check failed: /regions/wards rejected provinceCode\"
+              docker compose logs --tail=120 backend
+              exit 1
+            }
+            if ! printf '%s' \"\${wards_probe}\" | grep -q '\"data\"'; then
+              echo \"Address v2 smoke check failed: unexpected response shape\"
+              exit 1
+            fi
+
+            if ! docker image prune -f; then
+              echo \"WARNING: Docker image prune failed after smoke checks; continuing.\"
+            fi
+          '"
+
+      # Nạp dữ liệu địa giới: chạy SAU migration, trên VPS, trong chính
+      # container `migrate` mà bước trên vừa dùng.
+      #
+      # VÌ SAO KHÔNG CHẠY TRÊN RUNNER: Postgres production là service của
+      # compose trên VPS (DB_HOST=postgres — chỉ phân giải được trong docker
+      # network đó). Deploy job không có biến DB nào, repo cũng không có secret
+      # DB nào, nên runner không có đường nào tới production DB. Bước này phải
+      # đi qua SSH, và chạy `docker compose run` để mượn luôn network + DB_* của
+      # service `migrate` — không sửa thêm file nào trên VPS.
+      #
+      # VÌ SAO KHÔNG CHECKOUT Ở ĐÂY: code đã được checkout và đóng gói vào
+      # image bởi job build-and-push; job này chỉ kéo image theo tag nên không
+      # cần (và không dùng tới) bản source trên runner.
+      - name: Seed provinces/wards (v2) on VPS
+        # Bước này giờ chỉ gọi API v2, không tải cây GeoJSON nữa (xem lý do bên
+        # dưới). 45 phút là trần của job, không phải ngân sách thời gian thực
+        # tế — lần chạy thật tính bằng phút.
+        timeout-minutes: 45
+        env:
+          VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p 36789 203.167.15.81 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -p 36789 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@203.167.15.81 bash -c "'
+            set -euo pipefail
+            cd /usr/local/lsws/sporto.asia
+
+            echo \"== Nạp provinces/wards (thay bảng trong 1 transaction) ==\"
+            docker compose run --rm migrate node seed-regions-v2.js
+
+            # KHÔNG chạy seed-ward-boundaries.js ở bước này.
+            #
+            # Nguồn ranh giới là repo thứ ba, snapshot 11Mar2026 với 3321 phường;
+            # danh mục v2 (provinces.open-api.vn/api/v2) nay đã có 3452 phường và
+            # tên khác. Chạy script trên danh mục v2 chỉ phủ 2778/3452 = 80,48%
+            # và đúng ra phải đỏ ở ngưỡng 99% — script đúng, dữ liệu sai. Hạ
+            # ngưỡng cho xanh là che lỗi: đa số phường sẽ không có polygon, còn
+            # chỗ nào khớp tên thì có thể gắn NHẦM polygon của phường khác —
+            # tệ hơn hẳn là không có polygon.
+            #
+            # Script và bước COPY trong Dockerfile GIỮ NGUYÊN; chỉ gỡ lời gọi ở
+            # CI. Bật lại khi nguồn ranh giới được đối chiếu khớp với v2.
+            # Hệ quả tới lúc đó: /regions/resolve và /regions/wards/centroid
+            # trả null ở production (app đã xử lý null: cảnh báo + nút thử lại,
+            # không chặn lưu kèo). Đường ĐỊA CHỈ -> vùng không đổi: app tự
+            # khớp trên danh mục v2 mà server vừa nạp.
+          '"
