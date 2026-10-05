@@ -1,0 +1,23 @@
+$ jest -- participant-ranking-consent.service.spec.ts auth.service.participant-consent.spec.ts roster-import.dto.spec.ts tournament-import-email-link.spec.ts
+FAIL src/modules/auth/participant-ranking-consent.service.spec.ts
+  ● ParticipantRankingConsentService › does not grant consent when the email has no registered account
+
+    TypeError: Cannot read properties of undefined (reading 'match')
+
+      110 |     await service.sendConfirmation(PARTICIPANT_ID, EMAIL, 'Nguyễn An', 'Giải kiểm thử');
+      111 |     const html = mailService.sendMail.mock.calls[0][0].html as string;
+    > 112 |     const token = new URL(html.match(/href="([^"]+)"/)?.[1] ?? '').searchParams.get('token');
+          |                                ^
+      113 |
+      114 |     await expect(service.confirm(token!)).rejects.toBeInstanceOf(BadRequestException);
+      115 |     expect(update).not.toHaveBeenCalled();
+
+      at Object.<anonymous> (modules/auth/participant-ranking-consent.service.spec.ts:112:32)
+
+
+Test Suites: 1 failed, 3 passed, 4 total
+Tests:       1 failed, 20 passed, 21 total
+Snapshots:   0 total
+Time:        2.823 s
+Ran all test suites matching participant-ranking-consent.service.spec.ts|auth.service.participant-consent.spec.ts|roster-import.dto.spec.ts|tournament-import-email-link.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

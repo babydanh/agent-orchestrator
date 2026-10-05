@@ -1,0 +1,27 @@
+$ jest -- tournament-import-email-link.spec.ts
+FAIL src/modules/tournaments/repositories/tournament-import-email-link.spec.ts
+  ● importing a participant by email links only an existing account › keeps a contactless import display-only and never creates a mock or ELO consent
+
+    TypeError: Cannot read properties of undefined (reading 'trim')
+
+      224 |
+      225 | export function normalizeRosterEmail(value: string): string {
+    > 226 |   return value.trim().toLowerCase();
+          |                ^
+      227 | }
+      228 |
+      229 | /**
+
+      at normalizeRosterEmail (modules/tournaments/validation/roster-import.ts:226:16)
+      at modules/tournaments/repositories/tournament-import.repository.ts:343:50
+          at Array.map (<anonymous>)
+      at modules/tournaments/repositories/tournament-import.repository.ts:340:46
+      at TournamentImportRepository.importRosterRows (modules/tournaments/repositories/tournament-import.repository.ts:266:12)
+      at Object.<anonymous> (modules/tournaments/repositories/tournament-import-email-link.spec.ts:312:20)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 15 passed, 16 total
+Snapshots:   0 total
+Time:        1.992 s
+Ran all test suites matching tournament-import-email-link.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

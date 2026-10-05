@@ -1,0 +1,44 @@
+$ jest -- tournament-import.service.spec.ts
+FAIL src/modules/tournaments/services/tournament-import.service.spec.ts
+  ● TournamentImportService import contracts › sends a plain consent confirmation on the legacy import path without an invite flag
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "participant-legacy", "guest@example.test", "Khách", "Giải mở rộng"
+
+    Number of calls: 0
+
+      107 |     );
+      108 |
+    > 109 |     expect(consentMock.sendConfirmation).toHaveBeenCalledWith(
+          |                                          ^
+      110 |       'participant-legacy',
+      111 |       'guest@example.test',
+      112 |       'Khách',
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-import.service.spec.ts:109:42)
+
+  ● TournamentImportService import contracts › sends the same confirmation on the strict Excel import path
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "participant-excel", "excel@example.test", "VĐV Excel", "Giải mở rộng"
+
+    Number of calls: 0
+
+      152 |     );
+      153 |
+    > 154 |     expect(consentMock.sendConfirmation).toHaveBeenCalledWith(
+          |                                          ^
+      155 |       'participant-excel',
+      156 |       'excel@example.test',
+      157 |       'VĐV Excel',
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-import.service.spec.ts:154:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        1.303 s
+Ran all test suites matching tournament-import.service.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

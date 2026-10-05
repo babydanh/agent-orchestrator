@@ -1,0 +1,44 @@
+$ jest -- auth.service.participant-consent.spec.ts
+FAIL src/modules/auth/auth.service.participant-consent.spec.ts
+  ● AuthService participant consent notifications › checks for matching participant emails after registration
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "user-1", "athlete@example.test", false
+
+    Number of calls: 0
+
+      50 |     });
+      51 |
+    > 52 |     expect(participantConsent.handleAccountAccess).toHaveBeenCalledWith(
+         |                                                    ^
+      53 |       newUser.id,
+      54 |       newUser.email,
+      55 |       false,
+
+      at Object.<anonymous> (modules/auth/auth.service.participant-consent.spec.ts:52:52)
+
+  ● AuthService participant consent notifications › checks for matching participant emails after login
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "user-2", "athlete@example.test", false
+
+    Number of calls: 0
+
+      72 |     await service.login({ email: user.email, password: 'password' });
+      73 |
+    > 74 |     expect(participantConsent.handleAccountAccess).toHaveBeenCalledWith(
+         |                                                    ^
+      75 |       user.id,
+      76 |       user.email,
+      77 |       false,
+
+      at Object.<anonymous> (modules/auth/auth.service.participant-consent.spec.ts:74:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        2.205 s
+Ran all test suites matching auth.service.participant-consent.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

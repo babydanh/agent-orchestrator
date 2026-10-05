@@ -1,0 +1,22 @@
+$ jest -- participant-ranking-consent.service.spec.ts
+FAIL src/modules/auth/participant-ranking-consent.service.spec.ts
+  ● Test suite failed to run
+
+    Cannot find module './participant-ranking-consent.service' from 'modules/auth/participant-ranking-consent.service.spec.ts'
+
+      1 | import { BadRequestException } from '@nestjs/common';
+    > 2 | import { ParticipantRankingConsentService } from './participant-ranking-consent.service';
+        | ^
+      3 |
+      4 | const EMAIL = 'athlete@example.test';
+      5 | const PARTICIPANT_ID = 'participant-1';
+
+      at Resolver._throwModNotFoundError (../node_modules/.pnpm/jest-resolve@30.4.1/node_modules/jest-resolve/build/index.js:895:11)
+      at Object.<anonymous> (modules/auth/participant-ranking-consent.service.spec.ts:2:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.608 s
+Ran all test suites matching participant-ranking-consent.service.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

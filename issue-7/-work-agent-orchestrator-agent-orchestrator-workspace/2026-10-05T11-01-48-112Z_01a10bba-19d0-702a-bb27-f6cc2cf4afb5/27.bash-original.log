@@ -1,0 +1,18 @@
+ M src/modules/auth/auth.controller.ts
+ M src/modules/auth/auth.module.ts
+ M src/modules/auth/auth.service.ts
+ M src/modules/tournaments/dto/roster-import.dto.ts
+ M src/modules/tournaments/repositories/tournament-import-email-link.spec.ts
+ M src/modules/tournaments/repositories/tournament-import.repository.ts
+ M src/modules/tournaments/services/tournament-import.service.spec.ts
+ M src/modules/tournaments/services/tournament-import.service.ts
+ M src/modules/tournaments/validation/roster-import.ts
+?? src/modules/auth/auth.service.participant-consent.spec.ts
+?? src/modules/auth/dto/confirm-participant-consent.dto.ts
+?? src/modules/auth/participant-ranking-consent.service.spec.ts
+?? src/modules/auth/participant-ranking-consent.service.ts
+?? src/modules/tournaments/dto/roster-import.dto.spec.ts
+?? src/modules/tournaments/repositories/create-tournament-participant.ts
+?? src/modules/tournaments/services/tournament-football-roster-consent.spec.ts
+?? src/modules/tournaments/services/tournament-lite-consent.spec.ts
+omp/issue-7
