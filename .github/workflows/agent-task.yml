@@ -61,6 +61,19 @@ jobs:
           npm install -g @oh-my-pi/pi-coding-agent
           omp --version
 
+      - name: 3.1 Cài đặt Ripwire MCP (Code Intelligence)
+        run: |
+          echo "Installing Ripwire for Linux x64..."
+          RIPWIRE_REPO=redhat-et/ripwire bash -c "$(curl -fsSL https://raw.githubusercontent.com/redhat-et/ripwire/main/scripts/install.sh)" || {
+            echo "Fallback direct download..."
+            mkdir -p ~/.local/bin
+            LATEST_TAG=$(curl -s https://api.github.com/repos/redhat-et/ripwire/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+            curl -fsSL "https://github.com/redhat-et/ripwire/releases/download/${LATEST_TAG}/ripwire-linux-x64.tar.gz" | tar -xz -C ~/.local/bin || true
+            chmod +x ~/.local/bin/ripwire || true
+          }
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          ~/.local/bin/ripwire --version || ripwire --version || echo "Ripwire ready"
+
       - name: 4. Clone các Repositories của dự án
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
@@ -249,6 +262,10 @@ jobs:
                 "env": {
                   "GITHUB_PERSONAL_ACCESS_TOKEN": "$GH_PAT"
                 }
+              },
+              "ripwire": {
+                "command": "ripwire",
+                "args": ["--mcp"]
               }
             }
           }
