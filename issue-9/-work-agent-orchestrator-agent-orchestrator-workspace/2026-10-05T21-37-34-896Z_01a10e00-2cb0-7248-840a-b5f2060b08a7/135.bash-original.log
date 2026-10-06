@@ -1,0 +1,11 @@
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(31,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(57,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(67,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(79,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/social-sessions/social-sessions.service.spec.ts(120,15): error TS2554: Expected 4 arguments, but got 3.
+src/modules/social-sessions/social-sessions.service.spec.ts(396,9): error TS2554: Expected 1 arguments, but got 2.
+src/modules/social-sessions/social-sessions.service.spec.ts(927,19): error TS2554: Expected 4 arguments, but got 3.

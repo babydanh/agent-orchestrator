@@ -1,0 +1,3767 @@
+### region 1 (read, ~924 tok)
+
+[backend/src/modules/tournaments/dto/roster-import.dto.ts#58B2]
+1:import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+2:import { Type } from 'class-transformer';
+3:import {
+4:  ArrayMaxSize,
+5:  IsArray,
+6:  IsBoolean,
+7:  IsEmail,
+8:  IsIn,
+9:  IsNumber,
+10:  IsObject,
+11:  IsOptional,
+12:  IsString,
+13:  ValidateNested,
+14:} from 'class-validator';
+15:
+16:export const IMPORT_SOURCES = [
+17:  'MANUAL_EMAIL',
+18:  'EXCEL',
+19:  'AI_EXCEL',
+20:  'GOOGLE_FORM',
+21:] as const;
+22:export type ImportSource = (typeof IMPORT_SOURCES)[number];
+23:
+24:export const ROSTER_ENTRY_TYPES = ['REGULAR', 'WILD_CARD_REQUEST'] as const;
+25:export type RosterEntryType = (typeof ROSTER_ENTRY_TYPES)[number];
+26:
+27:/**
+28: * Strict roster row for `POST /tournaments/:id/roster-import`.
+29: *
+30: * New, additive endpoint: it never changes the legacy import contract, it only
+31: * adds the email/provenance guarantees the spreadsheet workflow depends on.
+32: */
+33:export class RosterImportItemDto {
+34:  @ApiProperty({ description: 'Tên đội / cặp đấu hoặc tên VĐV' })
+35:  @IsString()
+36:  teamName: string;
+37:
+38:  @ApiProperty({ description: 'Họ tên VĐV 1' })
+39:  @IsString()
+40:  player1Name: string;
+41:
+42:  @ApiProperty({ description: 'Email VĐV 1 (bắt buộc)' })
+43:  @IsEmail()
+44:  player1Email: string;
+45:
+46:  @ApiPropertyOptional({ description: 'SĐT VĐV 1' })
+47:  @IsOptional()
+48:  @IsString()
+49:  player1Phone?: string;
+50:
+51:  @ApiPropertyOptional({ description: 'Họ tên VĐV 2 (nếu giải đôi)' })
+52:  @IsOptional()
+53:  @IsString()
+54:  player2Name?: string;
+55:
+56:  @ApiPropertyOptional({ description: 'Email VĐV 2' })
+57:  @IsOptional()
+58:  @IsEmail()
+59:  player2Email?: string;
+60:
+61:  @ApiPropertyOptional({ description: 'SĐT VĐV 2' })
+62:  @IsOptional()
+63:  @IsString()
+64:  player2Phone?: string;
+65:
+66:  @ApiPropertyOptional({ description: 'Điểm trình / ELO khởi tạo' })
+67:  @IsOptional()
+68:  @IsNumber()
+69:  elo?: number;
+70:
+71:  @ApiPropertyOptional({ description: 'Đã thanh toán lệ phí hay chưa' })
+72:  @IsOptional()
+73:  @IsBoolean()
+74:  isPaid?: boolean;
+75:
+76:  @ApiPropertyOptional({ description: 'Tự động duyệt hồ sơ (APPROVED)' })
+77:  @IsOptional()
+78:  @IsBoolean()
+79:  autoApprove?: boolean;
+80:
+81:  @ApiPropertyOptional({ description: 'Loại nhập, không cấp quyền wildcard' })
+82:  @IsOptional()
+83:  @IsIn(ROSTER_ENTRY_TYPES)
+84:  entryType?: RosterEntryType;
+85:
+86:  @ApiProperty({ description: 'Nguồn nhập dữ liệu', enum: IMPORT_SOURCES })
+87:  @IsIn(IMPORT_SOURCES)
+88:  source: ImportSource;
+89:
+90:  @ApiPropertyOptional({ description: 'Tên nội dung thi đấu trên file' })
+91:  @IsOptional()
+92:  @IsString()
+93:  divisionName?: string;
+94:
+95:  @ApiPropertyOptional({ description: 'Ghi chú / câu trả lời custom form' })
+96:  @IsOptional()
+97:  @IsObject()
+98:  customResponses?: Record<string, unknown>;
+99:}
+100:
+101:export class RosterImportDto {
+102:  @ApiPropertyOptional({ description: 'ID của division / nội dung thi đấu' })
+103:  @IsOptional()
+104:  @IsString()
+105:  divisionId?: string;
+106:
+107:  @ApiProperty({
+108:    description: 'Danh sách VĐV / Đội cần nhập',
+109:    type: [RosterImportItemDto],
+110:    maxItems: 200,
+111:  })
+112:  @IsArray()
+113:  @ArrayMaxSize(200)
+114:  @ValidateNested({ each: true })
+115:  @Type(() => RosterImportItemDto)
+116:  participants: RosterImportItemDto[];
+117:
+118:  @ApiPropertyOptional({
+119:    description: 'Gửi thông báo trong SportO cho các VĐV đã có tài khoản',
+120:  })
+121:  @IsOptional()
+122:  @IsBoolean()
+123:  notifyLinkedAccounts?: boolean;
+124:}
+
+### region 2 (read, ~478 tok)
+
+# lsp — LSP
+
+Symbol-aware code intelligence from language servers — navigation, refactors, and diagnostics where text tools miss callsites.
+
+<operations>
+- Position-based: `file` + `line` + `symbol` (substring; `#N` for Nth match). `line` is 1-indexed.
+- `rename` — applies by default; `apply: false` previews. Project-aware lookups ERROR without `symbol` — no silent fallback on missing/ambiguous matches.
+- `code_actions` — lists by default; apply ONE with `apply: true` + `query` (title substring or index).
+- `rename_file` — moves file AND rewrites all imports/references; applies by default.
+- `diagnostics` — path, glob (`src/**/*.ts`), or `file: "*"` for workspace.
+- `symbols` — `file` lists file symbols; `file: "*"` + `query` searches workspace.
+- `reload` — restart one server (`file`) or all (`*`); `reload *` re-reads LSP config.
+- `request` — raw: `query` = method, `payload` = JSON params (else auto-built).
+</operations>
+
+<critical>
+- Symbol-aware work (rename, references, definition, code actions) MUST use `lsp` whenever a server is available.
+  It follows shadowing, re-exports, and cross-file usages text tools miss.
+- NEVER do a cross-file rename with `ast_edit`/`sed`/hand edits when `lsp` `rename`/`rename_file` can — text renames silently drop callsites.
+- Reach for `code_actions` on imports, quick-fixes, and server-known refactors before editing by hand.
+</critical>
+
+## Schema
+```ts
+type Args = {
+  action: "diagnostics" | "definition" | "references" | "hover" | "symbols" | "rename" | "rename_file" | "code_actions" | "type_definition" | "implementation" | "status" | "reload" | "capabilities" | "request";
+  file?: string;
+  line?: number;
+  symbol?: string;
+  query?: string;
+  new_name?: string;
+  apply?: boolean;
+  /** Timeout in seconds (default 20; range 5–300). */
+  timeout?: number;
+  payload?: string;
+};
+```
+Execute by writing JSON to xd://lsp.
+
+### region 3 (read, ~729 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#9DC1]
+1:import {
+2:  BadRequestException,
+3:  ForbiddenException,
+4:  Inject,
+5:  Injectable,
+6:  NotFoundException,
+7:} from '@nestjs/common';
+8:import { PG_CONNECTION } from '../../../database/database.module';
+9:import type { AppDb } from '../../../database/db.types';
+10:import { AuditService } from '../../audit/audit.service';
+11:import { TournamentsRepository } from '../tournaments.repository';
+12:import { TournamentPaymentRepository } from '../repositories/tournament-payment.repository';
+13:import { TournamentAccessService } from './tournament-access.service';
+14:import { NotificationsService } from '../../notifications/notifications.service';
+15:import {
+16:  buildParticipantOrganizerPairingPendingNotification,
+17:  buildParticipantRegistrationRejectedNotification,
+18:  buildParticipantRegistrationSuccessNotification,
+19:} from '../../notifications/notification-builder';
+20:import type { RosterImportPreviewDto } from '../dto/roster-import-preview.dto';
+21:import { isLiteRegistrationTournament } from '../utils/registration-payment-eligibility';
+22:import { resolveDoublesParticipantStatus } from '../utils/tournament-participant-status';
+23:import { calculateTournamentRefundQuote } from '../utils/tournament-refund-policy';
+24:
+25:export type RegistrationChanged = (
+26:  tournamentId: string,
+27:  payload: {
+28:    participantId?: string;
+29:    divisionId?: string | null;
+30:    action: string;
+31:  },
+32:) => void;
+33:
+34:@Injectable()
+35:export class TournamentParticipantAdminService {
+36:  constructor(
+37:    private readonly tournamentsRepository: TournamentsRepository,
+38:    private readonly tournamentAccessService: TournamentAccessService,
+39:    private readonly notificationsService: NotificationsService,
+40:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+41:    private readonly auditService: AuditService,
+42:    private readonly tournamentPaymentRepository: TournamentPaymentRepository,
+43:  ) {}
+44:
+45:  async previewRosterImport(
+46:    tournamentId: string,
+47:    userId: string,
+48:    systemRoles: string[],
+49:    dto: RosterImportPreviewDto,
+50:  ) {
+51:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+52:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+53:
+54:    const isAuthorized = await this.tournamentAccessService.isManager(
+55:      tournament,
+56:      userId,
+57:      systemRoles,
+58:    );
+59:    if (!isAuthorized) {
+60:      throw new ForbiddenException(
+61:        'Bạn không có quyền xem trước danh sách VĐV',
+62:      );
+63:    }
+64:
+65:    if (tournament.status === 'COMPLETED') {
+66:      throw new BadRequestException('Giải đấu đã kết thúc');
+67:    }
+68:    if (
+…
+71:    ) {
+…
+75:    }
+…
+78:  }
+…
+577:}
+
+[Showing lines 1-68 of 577. Use :69 to continue]
+
+### region 4 (write, ~10 tok)
+
+No language server found for this action
+
+### region 5 (write, ~179 tok)
+
+{"pattern":"new TournamentParticipantAdminService","root":"backend","files":3,"total":3,"shown":3,"capped":false,"hits_capped":false,"complete":true,"next":"--at=src/modules/tournaments/services/tournament-participant-admin.service.spec.ts:43","corpus_oversize":2,"corpus_pruned_dirs":3,"unindexed_hits":0,"unindexed_files_scanned":136,"unindexed_files_skipped":4,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"src/modules/tournaments/services/tournament-participant-admin.service.spec.ts","line":43},{"file":"src/modules/tournaments/tournaments-lite-pairing.spec.ts","line":281},{"file":"src/modules/tournaments/utils/registration-lifecycle.spec.ts","line":177}]}
+
+### region 6 (read, ~1345 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#4132]
+1:import {
+2:  BadRequestException,
+3:  ForbiddenException,
+4:  NotFoundException,
+5:} from '@nestjs/common';
+6:import type { AppDb } from '../../../database/db.types';
+7:import type { AuditService } from '../../audit/audit.service';
+8:import { NotificationsService } from '../../notifications/notifications.service';
+9:import { TournamentsRepository } from '../tournaments.repository';
+10:import type { TournamentPaymentRepository } from '../repositories/tournament-payment.repository';
+11:import { TournamentAccessService } from './tournament-access.service';
+12:import { TournamentParticipantAdminService } from './tournament-participant-admin.service';
+13:
+14:describe('TournamentParticipantAdminService', () => {
+15:  const repositoryMock = {
+16:    findById: jest.fn(),
+17:    findParticipantById: jest.fn(),
+18:    findCompletedParticipantPayment: jest.fn(),
+19:    markParticipantPaid: jest.fn(),
+20:    findDivisionById: jest.fn(),
+21:    updateParticipantStatus: jest.fn(),
+22:    assignNextAvailableSeed: jest.fn(),
+23:    getParticipantRosters: jest.fn(),
+24:  };
+25:  const notificationsMock = {
+26:    sendNotification: jest.fn().mockResolvedValue(undefined),
+27:  };
+28:  const accessMock = { isManager: jest.fn() };
+29:  const tx = {};
+30:  const dbMock = {
+31:    transaction: jest.fn(
+32:      (cb: (arg: unknown) => unknown) => Promise.resolve(cb(tx)),
+33:    ),
+34:  };
+35:  const auditMock = { logUpdate: jest.fn().mockResolvedValue(undefined) };
+36:  const paymentRepositoryMock = {
+37:    findCompletedParticipantPaymentInTx: jest.fn(),
+38:    createPendingRefund: jest.fn().mockResolvedValue({ id: 'refund-1' }),
+39:    setParticipantPaidInTx: jest.fn(),
+40:  };
+41:  const repository = repositoryMock as unknown as TournamentsRepository;
+42:  const access = accessMock as unknown as TournamentAccessService;
+43:  const admin = new TournamentParticipantAdminService(
+44:    repository,
+45:    access,
+46:    notificationsMock as unknown as NotificationsService,
+47:    dbMock as unknown as AppDb,
+48:    auditMock as unknown as AuditService,
+49:    paymentRepositoryMock as unknown as TournamentPaymentRepository,
+50:  );
+51:
+52:  beforeEach(() => {
+53:    jest.clearAllMocks();
+54:  });
+55:
+56:  it('rejects unsupported participant status before loading the participant', async () => {
+57:    repositoryMock.findById.mockResolvedValue({
+58:      id: 'tournament-1',
+59:      status: 'REGISTRATION_OPEN',
+60:    });
+61:    accessMock.isManager.mockResolvedValue(true);
+62:
+63:    await expect(
+64:      admin.updateParticipantStatus(
+65:        'tournament-1',
+66:        'participant-1',
+67:        'PENDING',
+68:        'organizer-1',
+69:        [],
+70:        jest.fn(),
+71:      ),
+72:    ).rejects.toBeInstanceOf(BadRequestException);
+73:    expect(repositoryMock.findParticipantById).not.toHaveBeenCalled();
+74:  });
+75:
+76:  it('requires a completed payment before approving a paid participant', async () => {
+77:    const tournament = {
+78:      id: 'tournament-1',
+79:      status: 'REGISTRATION_OPEN',
+80:      entryFee: 500,
+81:      name: 'Regional event',
+82:    };
+83:    const participant = {
+84:      id: 'participant-1',
+85:      tournamentId: 'tournament-1',
+86:      tournamentDivisionId: null,
+87:      teamStatus: 'PENDING_APPROVAL',
+88:      isPaid: false,
+89:      entryFeeAtRegistration: 500,
+90:    };
+91:    repositoryMock.findById.mockResolvedValue(tournament);
+92:    accessMock.isManager.mockResolvedValue(true);
+93:    repositoryMock.findParticipantById.mockResolvedValue(participant);
+94:    repositoryMock.findCompletedParticipantPayment.mockResolvedValue({
+95:      id: 'payment-1',
+96:    });
+97:    repositoryMock.updateParticipantStatus.mockResolvedValue({
+98:      ...participant,
+99:      teamStatus: 'COMPLETE',
+100:    });
+101:    repositoryMock.assignNextAvailableSeed.mockResolvedValue(null);
+102:    repositoryMock.getParticipantRosters.mockResolvedValue([]);
+103:    const broadcast = jest.fn();
+104:
+105:    await admin.updateParticipantStatus(
+106:      'tournament-1',
+107:      'participant-1',
+108:      'COMPLETE',
+109:      'organizer-1',
+110:      [],
+111:      broadcast,
+112:    );
+113:
+114:    expect(repositoryMock.markParticipantPaid).toHaveBeenCalledWith(
+115:      'participant-1',
+116:    );
+117:    expect(repositoryMock.updateParticipantStatus).toHaveBeenCalledWith(
+118:      'participant-1',
+119:      'COMPLETE',
+120:      'PENDING_APPROVAL',
+121:    );
+122:    expect(broadcast).toHaveBeenCalledWith('tournament-1', {
+123:      participantId: 'participant-1',
+124:      divisionId: null,
+125:      action: 'APPROVED',
+126:    });
+127:  });
+128:  it('approves a one-player double once when review requests race', async () => {
+129:    const tournament = {
+130:      id: 'tournament-1',
+131:      status: 'REGISTRATION_OPEN',
+132:      name: 'Regional event',
+133:      entryFee: 500,
+134:      matchType: 'DOUBLES',
+135:      tournamentConfig: {
+136:        registrationMode: 'APPROVAL',
+137:        doublesPairingMode: 'ORGANIZER',
+138:      },
+139:    };
+140:    const participant = {
+141:      id: 'participant-1',
+142:      tournamentId: 'tournament-1',
+143:      tournamentDivisionId: 'division-1',
+…
+147:    };
+…
+209:  });
+…
+646:});
+
+[Showing lines 1-143 of 646. Use :144 to continue]
+
+### region 7 (read, ~281 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#4132]
+14:describe('TournamentParticipantAdminService', () => {
+…
+345:  describe('setParticipantFeePaid', () => {
+…
+613:    it('still allows unmarking after the event, because refunds happen late', async () => {
+…
+619:      accessMock.isManager.mockResolvedValue(true);
+620:      repositoryMock.findParticipantById.mockResolvedValue({
+621:        ...baseParticipant,
+622:        isPaid: true,
+623:      });
+624:      paymentRepositoryMock.findCompletedParticipantPaymentInTx.mockResolvedValue(
+625:        null,
+626:      );
+627:      paymentRepositoryMock.setParticipantPaidInTx.mockResolvedValue(cleared);
+628:
+629:      await expect(
+630:        admin.setParticipantFeePaid(
+631:          'tournament-1',
+632:          'participant-1',
+633:          false,
+634:          'organizer-1',
+635:          [],
+636:          jest.fn(),
+637:        ),
+638:      ).resolves.toEqual({
+639:        participant: cleared,
+640:        refundRequested: false,
+641:        refundPaymentId: null,
+642:      });
+643:    });
+644:  });
+645:
+646:});
+
+### region 8 (edit, ~98 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#B3A1]
+14:describe('TournamentParticipantAdminService', () => {
+
+345:  describe('setParticipantFeePaid', () => {
+
+644:  });
+645:
+646:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+647:    repositoryMock.findById.mockResolvedValue({
+…
+663:  });
+664:
+665:});
+
+### region 9 (bash, ~225 tok)
+
+FAIL src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+  ● TournamentParticipantAdminService › rejects organizer athlete additions for a tournament they do not manage
+
+    TypeError: admin.addAthletes is not a function
+
+      652 |
+      653 |     await expect(
+    > 654 |       admin.addAthletes(
+          |             ^
+      655 |         'tournament-1',
+      656 |         'outsider-1',
+      657 |         [],
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-participant-admin.service.spec.ts:654:13)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 15 skipped, 16 total
+Snapshots:   0 total
+Time:        1.726 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "rejects organizer athlete additions".
+
+
+Wall time: 2.22 seconds
+
+Command exited with code 1
+
+### region 10 (write, ~38 tok)
+
+[backend/src/modules/tournaments/dto/add-athletes.dto.ts#60CE]
+Successfully wrote 2190 bytes to backend/src/modules/tournaments/dto/add-athletes.dto.ts
+
+### region 11 (write, ~43 tok)
+
+[backend/src/modules/tournaments/dto/add-athlete-candidates.dto.ts#E4AF]
+Successfully wrote 1003 bytes to backend/src/modules/tournaments/dto/add-athlete-candidates.dto.ts
+
+### region 12 (write, ~41 tok)
+
+[backend/src/modules/tournaments/dto/claim-guest-roster.dto.ts#AFD7]
+Successfully wrote 275 bytes to backend/src/modules/tournaments/dto/claim-guest-roster.dto.ts
+
+### region 13 (read, ~2050 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#29A1]
+172:export const tournamentGroups = pgTable('tournament_groups', {
+…
+180:}, (table) => ({
+…
+182:}));
+183:
+184:export const tournamentParticipants = pgTable('tournament_participants', {
+185:  id: uuid('id').primaryKey().defaultRandom(),
+186:  tournamentId: uuid('tournament_id')
+187:    .references(() => tournaments.id, { onDelete: 'cascade' })
+188:    .notNull(),
+189:  tournamentDivisionId: uuid('tournament_division_id').references(
+190:    () => tournamentDivisions.id,
+191:    { onDelete: 'cascade' },
+192:  ),
+193:  groupId: uuid('group_id').references(() => tournamentGroups.id, {
+194:    onDelete: 'set null',
+195:  }),
+196:  registeredBy: uuid('registered_by')
+197:    .references(() => users.id, { onDelete: 'restrict' })
+198:    .notNull(),
+199:  teamName: varchar('team_name', { length: 255 }).notNull(),
+200:  // FK is applied by the standalone migration to avoid a runtime schema import cycle.
+201:  footballTeamId: uuid('football_team_id'),
+202:  footballTeamLogoUrl: varchar('football_team_logo_url', { length: 1000 }),
+203:  seed: integer('seed'),
+204:  points: integer('points').default(0).notNull(),
+205:  rankingConsent: boolean('ranking_consent').default(false).notNull(),
+206:  customResponses: jsonb('custom_responses'),
+207:  organizerNote: varchar('organizer_note', { length: 280 }),
+208:  isPaid: boolean('is_paid').default(false).notNull(),
+209:  // Organizer's own day-of-event mark. Carries no meaning anywhere else: it does
+210:  // not gate roster approval, does not affect ELO, and does not block playing.
+211:  isPresent: boolean('is_present').default(false).notNull(),
+212:  // Effective registration fee captured when this participant is created.
+213:  // This is distinct from isPaid: zero means free at registration, while
+214:  // isPaid=true after a paid flow means the payment was captured.
+215:  entryFeeAtRegistration: numeric('entry_fee_at_registration', {
+216:    precision: 12,
+217:    scale: 2,
+218:  }).default('0.00').notNull(),
+219:  teamInviteToken: varchar('team_invite_token', { length: 50 }).unique(),
+220:  teamStatus: varchar('team_status', { length: 50 }).default('PENDING').notNull(),
+221:  partnerUserId: uuid('partner_user_id').references(() => users.id, { onDelete: 'restrict' }),
+222:  partnerInviteExpiresAt: timestamp('partner_invite_expires_at', { withTimezone: true }),
+223:  isMock: boolean('is_mock').default(false).notNull(),
+224:  isWildcard: boolean('is_wildcard').default(false).notNull(),
+225:  registeredAt: timestamp('registered_at', { withTimezone: true })
+226:    .defaultNow()
+227:    .notNull(),
+228:  rosterLockedAt: timestamp('roster_locked_at', { withTimezone: true }),
+229:}, (table) => ({
+230:  idxParticipantsTournamentStatus: index('idx_participants_tournament_status').on(
+231:    table.tournamentId,
+232:    table.teamStatus,
+233:  ),
+234:  idxParticipantsTournamentId: index('idx_participants_tournament_id').on(
+235:    table.tournamentId,
+236:  ),
+237:  idxParticipantsDivisionStatus: index(
+238:    'idx_participants_division_status',
+239:  ).on(table.tournamentDivisionId, table.teamStatus),
+240:}));
+241:
+242:export const tournamentRosters = pgTable('tournament_rosters', {
+243:  id: uuid('id').primaryKey().defaultRandom(),
+244:  participantId: uuid('participant_id')
+245:    .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+246:    .notNull(),
+247:  userId: uuid('user_id')
+248:    .references(() => users.id, { onDelete: 'restrict' })
+249:    .notNull(),
+250:  role: varchar('role', { length: 50 }).default('MAIN').notNull(),
+251:  // Team sport: status mời — INVITED (chưa accept) / ACTIVE / REMOVED
+252:  status: varchar('status', { length: 20 }).default('ACTIVE').notNull(),
+253:  // When THIS user agreed to have their results ranked in THIS tournament.
+254:  //
+255:  // Lives here, not on tournament_participants, because ELO is applied per
+256:  // tournament_rosters.userId: a team participant can carry several users
+257:  // (MAIN + RESERVE), so a single per-participant timestamp cannot tell whose
+258:  // consent it is — one user confirming would hand every team-mate their score.
+259:  //
+260:  // NULL means not confirmed. Distinct from tournament_participants.ranking_consent,
+261:  // which is only a copy of the tournament's isRanked flag.
+262:  //
+263:  // Business rule: a match counts only when matches.completedAt >= this instant.
+264:  // Matches played before confirming stay permanently unscored, so nobody can be
+265:  // force-enrolled and then have old results land against them.
+266:  rankingConsentAt: timestamp('ranking_consent_at', { withTimezone: true }),
+267:  joinedAt: timestamp('joined_at', { withTimezone: true })
+268:    .defaultNow()
+269:    .notNull(),
+270:  // When the confirmation mail was last queued, and how many times it has been
+271:  // sent. Self-reminders (1-3, then stop) are scheduled from these — without them
+272:  // the scheduler cannot tell "never notified" from "notified and ignored", and
+273:  // the organizer's "awaiting confirmation" view becomes unverifiable.
+274:  consentNotifiedAt: timestamp('consent_notified_at', { withTimezone: true }),
+275:  consentNotifiedCount: integer('consent_notified_count').default(0).notNull(),
+276:}, (table) => ({
+277:  idxRostersParticipantUserUnique: uniqueIndex(
+278:    'tournament_rosters_participant_user_unique_idx',
+279:  ).on(table.participantId, table.userId),
+280:}));
+281:export const tournamentGuestRosters = pgTable(
+282:  'tournament_guest_rosters',
+283:  {
+284:    id: uuid('id').primaryKey().defaultRandom(),
+285:    participantId: uuid('participant_id')
+286:      .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+287:      .notNull(),
+288:    displayName: varchar('display_name', { length: 255 }).notNull(),
+289:    role: varchar('role', { length: 50 }).default('MAIN').notNull(),
+290:    contactEmail: varchar('contact_email', { length: 320 }),
+291:    contactPhone: varchar('contact_phone', { length: 30 }),
+292:    claimTokenHash: varchar('claim_token_hash', { length: 64 }).notNull(),
+293:    claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true })
+294:      .notNull(),
+295:    createdAt: timestamp('created_at', { withTimezone: true })
+296:      .defaultNow()
+297:      .notNull(),
+298:  },
+299:  (table) => ({
+300:    idxGuestRostersParticipant: index('tournament_guest_rosters_participant_idx').on(
+301:      table.participantId,
+302:    ),
+303:    idxGuestRostersClaimHash: uniqueIndex(
+304:      'tournament_guest_rosters_claim_hash_unique_idx',
+305:    ).on(table.claimTokenHash),
+306:  }),
+307:);
+308:
+309:export const tournamentReferees = pgTable('tournament_referees', {
+310:  id: uuid('id').primaryKey().defaultRandom(),
+311:  tournamentId: uuid('tournament_id').references(() => tournaments.id, { onDelete: 'cascade' }).notNull(),
+312:  userId: uuid('user_id').references(() => users.id, { onDelete: 'restrict' }).notNull(),
+313:  assignedBy: uuid('assigned_by').references(() => users.id, { onDelete: 'set null' }),
+314:  status: varchar('status', { length: 50 }).default('INVITED').notNull(), // 'INVITED' | 'ACCEPTED' | 'DECLINED'
+315:  assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
+316:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+317:});
+318:
+319:export const tournamentStaff = pgTable('tournament_staff', {
+320:  id: uuid('id').primaryKey().defaultRandom(),
+321:  tournamentId: uuid('tournament_id')
+322:    .references(() => tournaments.id, { onDelete: 'cascade' })
+323:    .notNull(),
+324:  userId: uuid('user_id')
+325:    .references(() => users.id, { onDelete: 'restrict' })
+326:    .notNull(),
+327:  role: varchar('role', { length: 50 }).notNull(),
+328:  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+329:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+330:});
+331:
+332:export const tournamentFollows = pgTable('tournament_follows', {
+333:  id: uuid('id').primaryKey().defaultRandom(),
+…
+341:}, (table) => ({
+…
+343:}));
+
+[Showing lines 182-333 of 343. Use :334 to continue]
+
+### region 14 (read, ~1008 tok)
+
+[backend/src/database/schema/users.schema.ts#52C0]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  boolean,
+7:  timestamp,
+8:  date,
+9:  integer,
+10:  unique,
+11:  uniqueIndex,
+12:} from 'drizzle-orm/pg-core';
+13:import { provinces } from './regions.schema';
+14:import { tournaments } from './tournaments.schema';
+15:
+16:
+17:export const users = pgTable('users', {
+18:  id: uuid('id').primaryKey().defaultRandom(),
+19:  email: varchar('email', { length: 255 }).notNull().unique(),
+20:  passwordHash: text('password_hash'),
+21:  isEmailVerified: boolean('is_email_verified').default(false).notNull(),
+22:  isPhoneVerified: boolean('is_phone_verified').default(false).notNull(),
+23:  isMock: boolean('is_mock').default(false).notNull(),
+24:  acceptedTosAt: timestamp('accepted_tos_at', { withTimezone: true }),
+25:  createdAt: timestamp('created_at', { withTimezone: true })
+26:    .defaultNow()
+27:    .notNull(),
+28:  updatedAt: timestamp('updated_at', { withTimezone: true })
+29:    .defaultNow()
+30:    .notNull(),
+31:  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+32:});
+33:
+34:export const authProviders = pgTable('auth_providers', {
+35:  id: uuid('id').primaryKey().defaultRandom(),
+36:  userId: uuid('user_id')
+37:    .references(() => users.id, { onDelete: 'cascade' })
+38:    .notNull(),
+39:  provider: varchar('provider', { length: 50 }).notNull(),
+40:  providerUserId: varchar('provider_user_id', { length: 255 }).notNull(),
+41:  providerEmail: varchar('provider_email', { length: 255 }),
+42:  providerAvatarUrl: text('provider_avatar_url'),
+43:  providerDisplayName: varchar('provider_display_name', { length: 255 }),
+44:  accessToken: text('access_token'),
+45:  refreshToken: text('refresh_token'),
+46:  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }),
+47:  createdAt: timestamp('created_at', { withTimezone: true })
+48:    .defaultNow()
+49:    .notNull(),
+50:  updatedAt: timestamp('updated_at', { withTimezone: true })
+51:    .defaultNow()
+52:    .notNull(),
+53:}, (table) => ({
+54:  providerUserUnique: unique().on(table.provider, table.providerUserId),
+55:}));
+56:
+57:export const roles = pgTable('roles', {
+58:  id: uuid('id').primaryKey().defaultRandom(),
+59:  name: varchar('name', { length: 100 }).notNull().unique(),
+60:  slug: varchar('slug', { length: 100 }).notNull().unique(),
+61:  description: text('description'),
+62:  createdAt: timestamp('created_at', { withTimezone: true })
+63:    .defaultNow()
+64:    .notNull(),
+65:});
+66:
+67:export const userToRoles = pgTable('user_to_roles', {
+68:  id: uuid('id').primaryKey().defaultRandom(),
+69:  userId: uuid('user_id')
+70:    .references(() => users.id, { onDelete: 'cascade' })
+71:    .notNull(),
+72:  roleId: uuid('role_id')
+73:    .references(() => roles.id, { onDelete: 'cascade' })
+74:    .notNull(),
+75:  assignedAt: timestamp('assigned_at', { withTimezone: true })
+76:    .defaultNow()
+77:    .notNull(),
+78:  assignedBy: uuid('assigned_by').references(() => users.id, {
+79:    onDelete: 'set null',
+80:  }),
+81:}, (table) => ({
+82:  userRoleUnique: uniqueIndex('user_to_roles_user_id_role_id_unique').on(
+83:    table.userId,
+84:    table.roleId,
+85:  ),
+86:}));
+87:
+88:export const profiles = pgTable('profiles', {
+89:  id: uuid('id').primaryKey().defaultRandom(),
+90:  userId: uuid('user_id')
+91:    .references(() => users.id, { onDelete: 'cascade' })
+92:    .notNull()
+93:    .unique(),
+94:  fullName: varchar('full_name', { length: 255 }).notNull(),
+95:  avatarUrl: text('avatar_url'),
+96:  coverUrl: text('cover_url'),
+97:  phoneNumber: varchar('phone_number', { length: 20 }),
+98:  dateOfBirth: date('date_of_birth'),
+99:  gender: varchar('gender', { length: 20 }),
+100:  isGenderLocked: boolean('is_gender_locked').default(false).notNull(),
+101:  address: text('address'),
+102:  bio: text('bio'),
+103:  provinceCode: varchar('province_code', { length: 20 })
+104:    .references(() => provinces.code, { onDelete: 'set null' }),
+…
+114:});
+
+[Showing lines 1-103 of 159. Use :104 to continue]
+
+### region 15 (read, ~1823 tok)
+
+Note: interpreted as 2 paths: backend/src/database/schema/social.schema.ts:1-95, backend/src/database/schema/communities.schema.ts:1-80
+
+[backend/src/database/schema/social.schema.ts#0B66]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  boolean,
+7:  timestamp,
+8:  integer,
+9:  jsonb,
+10:  check,
+11:  uniqueIndex,
+12:  index,
+13:} from 'drizzle-orm/pg-core';
+14:import { sql } from 'drizzle-orm';
+15:import { users } from './users.schema';
+16:import { communities } from './communities.schema';
+17:import { socialSessions } from './social-sessions.schema';
+18:
+19:export const friendships = pgTable(
+20:  'friendships',
+21:  {
+22:    id: uuid('id').primaryKey().defaultRandom(),
+23:    senderId: uuid('sender_id')
+24:      .references(() => users.id, { onDelete: 'cascade' })
+25:      .notNull(),
+26:    receiverId: uuid('receiver_id')
+27:      .references(() => users.id, { onDelete: 'cascade' })
+28:      .notNull(),
+29:    status: varchar('status', { length: 50 }).default('PENDING').notNull(),
+30:    createdAt: timestamp('created_at', { withTimezone: true })
+31:      .defaultNow()
+32:      .notNull(),
+33:    updatedAt: timestamp('updated_at', { withTimezone: true })
+34:      .defaultNow()
+35:      .notNull(),
+36:    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+37:  },
+38:  (table) => ({
+39:    noSelfFriend: check(
+40:      'no_self_friend',
+41:      sql`${table.senderId} != ${table.receiverId}`,
+42:    ),
+43:    activeUnorderedPairUnique: uniqueIndex('uq_friendships_active_unordered_pair')
+44:      .on(
+45:        sql`least(${table.senderId}, ${table.receiverId})`,
+46:        sql`greatest(${table.senderId}, ${table.receiverId})`,
+47:      )
+48:      .where(sql`${table.deletedAt} is null`),
+49:    activeSenderUpdatedIdx: index('idx_friendships_active_sender_updated')
+50:      .on(table.senderId, table.updatedAt)
+51:      .where(sql`${table.deletedAt} is null`),
+52:    activeReceiverUpdatedIdx: index('idx_friendships_active_receiver_updated')
+53:      .on(table.receiverId, table.updatedAt)
+54:      .where(sql`${table.deletedAt} is null`),
+55:  }),
+56:);
+57:
+58:export const chatRooms = pgTable(
+59:  'chat_rooms',
+60:  {
+61:    id: uuid('id').primaryKey().defaultRandom(),
+62:    name: varchar('name', { length: 255 }),
+63:    type: varchar('type', { length: 50 }).default('DIRECT').notNull(),
+64:    // P2D.1: Club Chat — communityId nullable, unique khi type=CLUB; clubName/clubAvatar denormalized (snapshot lúc tạo room).
+65:    communityId: uuid('community_id').references(() => communities.id, {
+66:      onDelete: 'cascade',
+67:    }),
+68:    // Social Session Chat — 1 session có tối đa 1 room type=SOCIAL (unique partial bên dưới).
+69:    socialSessionId: uuid('social_session_id').references(() => socialSessions.id, {
+70:      onDelete: 'cascade',
+71:    }),
+72:    clubName: varchar('club_name', { length: 255 }),
+73:    clubAvatar: text('club_avatar'),
+74:    isAnnouncementOnly: boolean('is_announcement_only').default(false).notNull(),
+75:    slowModeSeconds: integer('slow_mode_seconds').default(0).notNull(),
+76:    pinnedMessageId: uuid('pinned_message_id'),
+77:    createdAt: timestamp('created_at', { withTimezone: true })
+78:      .defaultNow()
+79:      .notNull(),
+80:  },
+81:  (table) => ({
+82:    clubRoomUnique: uniqueIndex('uq_chat_rooms_club_community')
+83:      .on(table.communityId)
+84:      .where(sql`${table.type} = 'CLUB'`),
+85:    socialRoomUnique: uniqueIndex('uq_chat_rooms_social_session')
+86:      .on(table.socialSessionId)
+87:      .where(sql`${table.type} = 'SOCIAL'`),
+88:  }),
+89:);
+90:
+91:export const chatRoomMembers = pgTable('chat_room_members', {
+92:  id: uuid('id').primaryKey().defaultRandom(),
+93:  roomId: uuid('room_id')
+94:    .references(() => chatRooms.id, { onDelete: 'cascade' })
+95:    .notNull(),
+96:  userId: uuid('user_id')
+97:    .references(() => users.id, { onDelete: 'cascade' })
+98:    .notNull(),
+…
+103:});
+
+[Showing lines 1-98 of 167. Use :99 to continue]
+
+[backend/src/database/schema/communities.schema.ts#1562]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  timestamp,
+7:  customType,
+8:  jsonb,
+9:  integer,
+10:  unique,
+11:} from 'drizzle-orm/pg-core';
+12:import { sql } from 'drizzle-orm';
+13:
+14:const geography = customType<{ data: string }>({
+15:  dataType() {
+16:    return 'geography(Point, 4326)';
+17:  },
+18:});
+19:import { users } from './users.schema';
+20:import { categories } from './categories.schema';
+21:import { provinces, wards } from './regions.schema';
+22:import { tournaments } from './tournaments.schema';
+23:
+24:export const communities = pgTable('communities', {
+25:  id: uuid('id').primaryKey().defaultRandom(),
+26:  name: varchar('name', { length: 255 }).notNull(),
+27:  description: text('description'),
+28:  logoUrl: text('logo_url'),
+29:  bannerUrl: text('banner_url'),
+30:  creatorId: uuid('creator_id')
+31:    .references(() => users.id, { onDelete: 'restrict' })
+32:    .notNull(),
+33:  provinceCode: varchar('province_code', { length: 20 })
+34:    .references(() => provinces.code),
+35:  districtCode: varchar('district_code', { length: 20 }),
+36:  wardCode: varchar('ward_code', { length: 20 })
+37:    .references(() => wards.code),
+38:  visibility: varchar('visibility', { length: 50 }).default('PUBLIC').notNull(),
+39:  joinMode: varchar('join_mode', { length: 50 }).default('OPEN').notNull(),
+40:  joinQuestions: jsonb('join_questions').$type<string[]>().default([]).notNull(),
+41:  rules: text('rules'),
+42:  maxMembers: integer('max_members'),
+43:  status: varchar('status', { length: 50 }).default('ACTIVE').notNull(),
+44:  approvedBy: uuid('approved_by').references(() => users.id, {
+45:    onDelete: 'set null',
+46:  }),
+47:  rejectedReason: text('rejected_reason'),
+48:  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+49:  // Using custom type for PostGIS
+50:  locationGeolocation: geography('location_geolocation'),
+51:  locationAddress: text('location_address'),
+52:  socialLinks: jsonb('social_links').$type<{
+53:    facebook?: string;
+54:    zalo?: string;
+55:    website?: string;
+56:  }>(),
+57:  createdAt: timestamp('created_at', { withTimezone: true })
+58:    .defaultNow()
+59:    .notNull(),
+60:  updatedAt: timestamp('updated_at', { withTimezone: true })
+61:    .defaultNow()
+62:    .notNull(),
+63:  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+64:});
+65:
+66:export const communitySports = pgTable('community_sports', {
+67:  id: uuid('id').primaryKey().defaultRandom(),
+68:  communityId: uuid('community_id')
+69:    .references(() => communities.id, { onDelete: 'cascade' })
+70:    .notNull(),
+71:  categoryId: uuid('category_id')
+72:    .references(() => categories.id, { onDelete: 'cascade' })
+73:    .notNull(),
+74:}, (table) => ({
+75:  oneSportPerCommunity: unique('community_sports_community_id_unique').on(table.communityId),
+76:}));
+77:
+78:export const communityMembers = pgTable('community_members', {
+79:  id: uuid('id').primaryKey().defaultRandom(),
+80:  communityId: uuid('community_id')
+81:    .references(() => communities.id, { onDelete: 'cascade' })
+82:    .notNull(),
+83:  userId: uuid('user_id')
+84:    .references(() => users.id, { onDelete: 'cascade' })
+85:    .notNull(),
+…
+103:});
+
+[Showing lines 1-83 of 134. Use :84 to continue]
+
+### region 16 (read, ~1030 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+1:import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+2:import { PG_CONNECTION } from '../../../database/database.module';
+3:import type { AppDb, AppDbOrTx } from '../../../database/db.types';
+4:import * as schema from '../../../database/schema';
+5:import { and, count, eq, inArray } from 'drizzle-orm';
+6:import {
+7:  CAPACITY_RESERVING_TEAM_STATUSES,
+8:  calculateOccupiedCapacity,
+9:  calculateRequestedTeamSlots,
+10:  type CapacityEntry,
+11:} from '../utils/tournament-participant-status';
+12:import {
+13:  IMPORT_SOURCES,
+14:  type ImportSource,
+15:} from '../dto/roster-import.dto';
+16:
+17:/** Capacity is always expressed in team slots; `maxParticipants` stays a team limit. */
+18:export interface TournamentCapacitySnapshot {
+19:  occupiedTeamSlots: number;
+20:  occupiedMemberSlots: number;
+21:  maxTeamSlots: number | null;
+22:  isFull: boolean;
+23:}
+24:
+25:/** The subset a caller needs to decide whether a claim fits. */
+26:export type DivisionCapacityLimit = Pick<
+27:  TournamentCapacitySnapshot,
+28:  'occupiedTeamSlots' | 'maxTeamSlots' | 'isFull'
+29:>;
+30:
+31:/** Batched occupancy keyed by division id or tournament id. */
+32:export type CapacityByScopeId = Record<string, TournamentCapacitySnapshot>;
+33:
+34:export interface CapacityOwnerContext {
+35:  tournamentConfig?: unknown;
+36:}
+37:
+38:/**
+39: * Single source of truth for tournament/division occupancy.
+40: *
+41: * Doubles pairing divisions consume one team slot per two active roster
+42: * members, so a single unpaired member occupies half a team. Singles and team
+43: * sports keep one participant/team record per slot. Only capacity-reserving
+44: * statuses count; waitlisted and terminal rows release their seats.
+45: */
+…
+328:/**
+…
+330: *
+331: * A division-scoped claim reads its division's effective capacity, which
+332: * already inherits a parent cap that governs an uncapped division; a pair that
+333: * belongs to the tournament only is limited by the tournament itself.
+334: */
+335:export async function readEffectiveCapacity(
+336:  executor: AppDbOrTx,
+337:  scope: { tournamentId: string; divisionId?: string | null },
+338:): Promise<TournamentCapacitySnapshot> {
+339:  if (!scope.divisionId) {
+340:    return readTournamentCapacity(executor, scope.tournamentId);
+341:  }
+342:
+343:  return readDivisionCapacity(executor, scope.divisionId);
+344:}
+345:
+346:/** Tournament-wide occupancy for a page of tournaments in two queries. */
+347:export async function readTournamentCapacities(
+348:  executor: AppDbOrTx,
+349:  tournamentIds: readonly string[],
+350:): Promise<CapacityByScopeId> {
+351:  const ids = [...new Set(tournamentIds.filter(Boolean))];
+352:  if (ids.length === 0) return {};
+353:
+354:  const tournaments = await selectTournamentOwners(executor, ids);
+355:  return buildTournamentSnapshots(
+356:    tournaments,
+357:    ids,
+358:    await selectParticipantEntries(executor, { tournamentIds: ids }),
+359:  );
+360:}
+361:
+362:async function selectTournamentOwners(
+363:  executor: AppDbOrTx,
+364:  tournamentIds: readonly string[],
+365:): Promise<CapacityOwnerRow[]> {
+366:  return await executor
+367:    .select({
+368:      id: schema.tournaments.id,
+369:      tournamentId: schema.tournaments.id,
+370:      matchType: schema.tournaments.matchType,
+371:      maxParticipants: schema.tournaments.maxParticipants,
+372:      tournamentConfig: schema.tournaments.tournamentConfig,
+373:    })
+374:    .from(schema.tournaments)
+375:    .where(inArray(schema.tournaments.id, [...tournamentIds]));
+376:}
+377:
+378:function buildTournamentSnapshots(
+379:  tournaments: readonly CapacityOwnerRow[],
+380:  tournamentIds: readonly string[],
+381:  entries: readonly CapacityEntryRow[],
+382:): CapacityByScopeId {
+383:  const snapshots: CapacityByScopeId = {};
+384:  const entriesByTournament = groupEntriesByScope(entries);
+385:
+386:  for (const tournament of tournaments) {
+387:    snapshots[tournament.id] = buildSnapshot(
+388:      tournament,
+389:      entriesByTournament[tournament.id] ?? [],
+390:    );
+391:  }
+…
+398:}
+
+### region 17 (read, ~1141 tok)
+
+[backend/src/modules/tournaments/utils/football-team-config.ts#0164]
+1:import { BadRequestException } from '@nestjs/common';
+2:
+3:export const FOOTBALL_TEAM_SIZES = [5, 7, 11] as const;
+4:export type FootballTeamSize = (typeof FOOTBALL_TEAM_SIZES)[number];
+5:
+6:export interface FootballTeamConfigResolution {
+7:  isTeamSport: boolean;
+8:  mainSize: number;
+9:  maxReserve: number;
+10:  maxTotalSize: number;
+11:}
+12:
+13:export interface FootballTeamConfigValidationOptions {
+14:  requireTeamSize?: boolean;
+15:}
+16:
+17:/**
+18: * Validate the persisted tournamentConfig boundary before registration starts.
+19: * The DTO intentionally keeps tournamentConfig extensible for other sports,
+20: * so football-specific invariants belong here instead of being trusted only
+21: * by the web/app selectors.
+22: */
+23:export function assertValidFootballTeamConfig(
+24:  input: unknown,
+25:  options: FootballTeamConfigValidationOptions = {},
+26:): void {
+27:  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+28:    throw new BadRequestException('Cấu hình bóng đá không hợp lệ.');
+29:  }
+30:
+31:  const record = input as Record<string, unknown>;
+32:  const rawTeamSize = record.teamSize;
+33:  const rawMinTeamSize = record.minTeamSize;
+34:  const teamSize = rawTeamSize === undefined ? undefined : Number(rawTeamSize);
+35:  const minTeamSize = rawMinTeamSize === undefined ? undefined : Number(rawMinTeamSize);
+36:  const isAllowedSize = (value: number | undefined): value is FootballTeamSize =>
+37:    value !== undefined && Number.isInteger(value) && FOOTBALL_TEAM_SIZES.includes(value as FootballTeamSize);
+38:
+39:  if (options.requireTeamSize && !isAllowedSize(teamSize)) {
+40:    throw new BadRequestException('Bóng đá phải chọn sân 5, 7 hoặc 11 người.');
+41:  }
+42:  if (teamSize !== undefined && !isAllowedSize(teamSize)) {
+43:    throw new BadRequestException('teamSize bóng đá chỉ nhận 5, 7 hoặc 11.');
+44:  }
+45:  if (minTeamSize !== undefined && !isAllowedSize(minTeamSize)) {
+46:    throw new BadRequestException('minTeamSize bóng đá chỉ nhận 5, 7 hoặc 11.');
+47:  }
+48:  if (teamSize !== undefined && minTeamSize !== undefined && teamSize !== minTeamSize) {
+49:    throw new BadRequestException('teamSize và minTeamSize phải cùng một cỡ sân.');
+50:  }
+51:
+52:  if (record.teamSizeOptions !== undefined) {
+53:    if (!Array.isArray(record.teamSizeOptions) || record.teamSizeOptions.length === 0) {
+54:      throw new BadRequestException('teamSizeOptions bóng đá không được rỗng.');
+55:    }
+56:    const optionsAreValid = record.teamSizeOptions.every((value) => isAllowedSize(Number(value)));
+57:    if (!optionsAreValid || (teamSize !== undefined && !record.teamSizeOptions.some((value) => Number(value) === teamSize))) {
+58:      throw new BadRequestException('teamSizeOptions bóng đá không khớp cỡ sân đã chọn.');
+59:    }
+60:  }
+61:
+62:  const maxReserve = record.maxReserve === undefined ? 0 : Number(record.maxReserve);
+63:  if (!Number.isInteger(maxReserve) || maxReserve < 0 || maxReserve > 20) {
+64:    throw new BadRequestException('Số cầu thủ dự bị phải từ 0 đến 20.');
+65:  }
+66:  if (record.allowReserve === false && maxReserve > 0) {
+67:    throw new BadRequestException('Không cho phép dự bị thì maxReserve phải bằng 0.');
+68:  }
+69:
+70:  const mainSize = teamSize ?? minTeamSize;
+71:  const maxTeamSize = record.maxTeamSize === undefined ? undefined : Number(record.maxTeamSize);
+72:  if (maxTeamSize !== undefined) {
+73:    if (!Number.isInteger(maxTeamSize) || maxTeamSize < 0 || (mainSize !== undefined && maxTeamSize < mainSize)) {
+74:      throw new BadRequestException('maxTeamSize phải đủ số cầu thủ chính của sân.');
+75:    }
+76:    if (mainSize !== undefined && maxTeamSize - mainSize < maxReserve) {
+77:      throw new BadRequestException('maxTeamSize không đủ chỗ cho số cầu thủ dự bị.');
+78:    }
+79:  }
+80:
+81:  for (const key of ['twoLegged', 'awayGoalsRule', 'penaltyShootout', 'allowDraw']) {
+82:    if (record[key] !== undefined && typeof record[key] !== 'boolean') {
+83:      throw new BadRequestException(`${key} bóng đá phải là boolean.`);
+84:    }
+85:  }
+86:}
+87:
+88:/**
+89: * Resolve all football roster limits from the legacy and current config shapes.
+90: * `teamSize` remains the selected format; `teamSizeOptions` is only a legacy
+91: * fallback for records created before the selector stored that value.
+92: */
+
+[Showing lines 1-91 of 130. Use :92 to continue]
+
+### region 18 (read, ~762 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-payment.repository.ts#ED81]
+24:export class TournamentPaymentRepository {
+25:  constructor(@Inject(PG_CONNECTION) private readonly db: AppDb) {}
+26:  async assertEntryFeeChangeAllowed(
+27:    tx: AppDbOrTx,
+28:    tournament: {
+29:      id: string;
+30:      status: string;
+31:      isRegistrationLocked: boolean | null;
+32:    },
+33:    currentEntryFee: string | number | null | undefined,
+34:    nextEntryFee: number | null | undefined,
+35:    currentOverrideEnabled?: boolean | null,
+36:    nextOverrideEnabled?: boolean | null,
+37:  ) {
+38:    if (nextEntryFee === undefined && nextOverrideEnabled === undefined) {
+39:      return;
+40:    }
+41:
+42:    const currentEnabled = currentOverrideEnabled ?? currentEntryFee != null;
+43:    const nextEnabled = nextOverrideEnabled ?? nextEntryFee != null;
+44:    const currentFee = currentEnabled ? Number(currentEntryFee ?? 0) : 0;
+45:    const nextFee = nextEnabled ? Number(nextEntryFee ?? 0) : 0;
+46:    if (currentEnabled === nextEnabled && currentFee === nextFee) return;
+47:
+48:    const editableStatuses = new Set([
+49:      'DRAFT',
+50:      'PENDING_APPROVAL',
+51:      'UPCOMING',
+52:      'REGISTRATION_OPEN',
+53:    ]);
+54:    const lockedStatuses = new Set([
+55:      'REGISTRATION_CLOSED',
+56:      'IN_PROGRESS',
+57:      'ONGOING',
+58:      'COMPLETED',
+59:      'CANCELLED',
+60:      'PENDING_DELETE',
+61:    ]);
+62:
+63:    if (
+64:      tournament.isRegistrationLocked ||
+65:      lockedStatuses.has(tournament.status) ||
+66:      !editableStatuses.has(tournament.status)
+67:    ) {
+68:      throw new BadRequestException(
+69:        'Không thể thay đổi lệ phí khi giải đã khóa đăng ký, đang diễn ra hoặc đã kết thúc.',
+70:      );
+71:    }
+72:
+73:    const [activeParticipantResult] = await tx
+74:      .select({ value: count() })
+75:      .from(schema.tournamentParticipants)
+76:      .where(
+77:        and(
+78:          eq(schema.tournamentParticipants.tournamentId, tournament.id),
+79:          notInArray(schema.tournamentParticipants.teamStatus, [
+80:            'REJECTED',
+81:            'WITHDRAWN',
+82:            'KICKED',
+83:            'EXPIRED',
+84:            'CANCELLED',
+85:          ]),
+86:        ),
+87:      );
+88:
+89:    if (Number(activeParticipantResult?.value ?? 0) > 0) {
+90:      throw new BadRequestException(
+91:        'Không thể thay đổi lệ phí sau khi giải đã có người tham gia.',
+92:      );
+93:    }
+94:  }
+95:  async resolveDivisionEntryFee(
+96:    tx: Transaction | AppDbOrTx,
+97:    tournament: { id?: string; entryFee: string | null },
+98:    divisionId?: string | null,
+99:  ) {
+100:    if (divisionId) {
+101:      const [division] = await tx
+102:        .select({
+103:          entryFee: schema.tournamentDivisions.entryFee,
+…
+106:        })
+107:        .from(schema.tournamentDivisions)
+108:        .where(
+…
+115:        )
+116:        .limit(1);
+…
+125:    }
+…
+128:  }
+…
+360:}
+
+[Showing lines 24-103 of 360. Use :104 to continue]
+
+### region 19 (read, ~1434 tok)
+
+Note: interpreted as 2 paths: backend/src/database/schema/communities.schema.ts:78-120, backend/src/modules/tournaments/services/tournament-capacity.service.ts:45-130
+
+[backend/src/database/schema/communities.schema.ts#1562]
+77:
+78:export const communityMembers = pgTable('community_members', {
+79:  id: uuid('id').primaryKey().defaultRandom(),
+80:  communityId: uuid('community_id')
+81:    .references(() => communities.id, { onDelete: 'cascade' })
+82:    .notNull(),
+83:  userId: uuid('user_id')
+84:    .references(() => users.id, { onDelete: 'cascade' })
+85:    .notNull(),
+86:  role: varchar('role', { length: 50 }).default('MEMBER').notNull(),
+87:  status: varchar('status', { length: 50 }).default('JOINED').notNull(),
+88:  invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+89:  joinAnswers: jsonb('join_answers').$type<Record<string, string>>(),
+90:  // P2C.1: tag BQT gán cho member (text[] đơn giản, hiển thị trực tiếp; streak tính động KHÔNG lưu).
+91:  tags: text('tags')
+92:    .array()
+93:    .default(sql`'{}'::text[]`)
+94:    .notNull(),
+95:  notificationPreference: varchar('notification_preference', { length: 32 })
+96:    .default('ALL')
+97:    .notNull(),
+98:  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+99:  approvedAt: timestamp('approved_at', { withTimezone: true }),
+100:  joinedAt: timestamp('joined_at', { withTimezone: true })
+101:    .defaultNow()
+102:    .notNull(),
+103:});
+104:
+105:export const communityFollows = pgTable('community_follows', {
+106:  id: uuid('id').primaryKey().defaultRandom(),
+107:  communityId: uuid('community_id')
+108:    .references(() => communities.id, { onDelete: 'cascade' }).notNull(),
+109:  userId: uuid('user_id')
+110:    .references(() => users.id, { onDelete: 'cascade' }).notNull(),
+111:  type: varchar('type', { length: 50 }).notNull(),
+112:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+113:}, (table) => ({
+114:  uniqueFollow: unique('unique_community_follow').on(table.communityId, table.userId, table.type),
+115:}));
+116:
+117:export const communityChallenges = pgTable('community_challenges', {
+118:  id: uuid('id').primaryKey().defaultRandom(),
+119:  challengerId: uuid('challenger_id')
+120:    .references(() => communities.id, { onDelete: 'cascade' })
+121:    .notNull(),
+122:  challengedId: uuid('challenged_id')
+123:    .references(() => communities.id, { onDelete: 'cascade' })
+124:    .notNull(),
+…
+134:});
+
+[Showing lines 77-123 of 134. Use :124 to continue]
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+38:/**
+…
+44: * statuses count; waitlisted and terminal rows release their seats.
+45: */
+46:
+47:/**
+48: * Reject a capacity claim that would not fit `requestedTeamSlots`.
+49: *
+50: * Uncapped scopes never block, and a non-positive request consumes nothing
+51: * (an athlete appended to an already-counted team row must not re-claim that
+52: * row's slot).
+53: */
+54:export function assertCapacityHasRoom(
+55:  capacity: DivisionCapacityLimit,
+56:  requestedTeamSlots: number,
+57:): void {
+58:  if (capacity.maxTeamSlots == null) return;
+59:  if (!(requestedTeamSlots > 0)) return;
+60:
+61:  if (capacity.occupiedTeamSlots + requestedTeamSlots > capacity.maxTeamSlots) {
+62:    throw new BadRequestException('Nội dung thi đấu đã đầy.');
+63:  }
+64:}
+65:
+66:/**
+67: * Reject a capacity claim that would not fit.
+68: *
+69: * Doubles/mixed doubles add `requestedMemberCount / 2` team slots; every other
+70: * unit adds one whole team for the new registration row.
+71: */
+72:export function assertDivisionHasRoom(
+73:  capacity: DivisionCapacityLimit,
+74:  matchType: string | null | undefined,
+75:  requestedMemberCount: number,
+76:  context?: CapacityOwnerContext,
+77:): void {
+78:  assertCapacityHasRoom(
+79:    capacity,
+80:    calculateRequestedTeamSlots(matchType, requestedMemberCount, context),
+81:  );
+82:}
+83:
+84:@Injectable()
+85:export class TournamentCapacityService {
+86:  constructor(@Inject(PG_CONNECTION) private readonly db: AppDb) {}
+87:
+88:  async getDivisionCapacity(
+89:    divisionId: string,
+90:    options?: { executor?: AppDbOrTx },
+91:  ): Promise<TournamentCapacitySnapshot> {
+92:    return readDivisionCapacity(options?.executor ?? this.db, divisionId);
+93:  }
+94:
+95:  /** Batched occupancy for every division; avoids one read per division. */
+96:  async getDivisionCapacities(
+97:    tournamentId: string,
+98:    options?: { executor?: AppDbOrTx },
+99:  ): Promise<CapacityByScopeId> {
+100:    return readDivisionCapacities(options?.executor ?? this.db, tournamentId);
+101:  }
+102:
+103:  async getTournamentCapacity(
+104:    tournamentId: string,
+105:    options?: { executor?: AppDbOrTx },
+106:  ): Promise<TournamentCapacitySnapshot> {
+107:    return readTournamentCapacity(options?.executor ?? this.db, tournamentId);
+108:  }
+109:
+110:  /** Batched occupancy for a page of tournaments; avoids one read per item. */
+111:  async getTournamentCapacities(
+112:    tournamentIds: readonly string[],
+113:    options?: { executor?: AppDbOrTx },
+114:  ): Promise<CapacityByScopeId> {
+115:    return readTournamentCapacities(
+116:      options?.executor ?? this.db,
+117:      tournamentIds,
+118:    );
+119:  }
+120:}
+121:
+122:const EMPTY_CAPACITY: TournamentCapacitySnapshot = {
+123:  occupiedTeamSlots: 0,
+124:  occupiedMemberSlots: 0,
+125:  maxTeamSlots: null,
+126:  isFull: false,
+127:};
+128:
+129:/** A row that owns a capacity limit, plus the config that picks the unit. */
+130:interface CapacityOwnerRow {
+131:  id: string;
+132:  tournamentId: string | null;
+133:  matchType: string | null;
+…
+136:}
+
+[Showing lines 44-133 of 616. Use :134 to continue]
+
+### region 20 (read, ~551 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+249:async function readCapacitiesForDivisionOwners(
+…
+252:): Promise<CapacityByScopeId> {
+…
+292:  const entriesByDivision =
+293:    divisionOwned.length > 0
+294:      ? groupEntriesByScope(
+295:          await selectParticipantEntries(executor, {
+296:            divisionIds: divisionOwned.map((division) => division.id),
+297:          }),
+298:        )
+299:      : {};
+300:
+301:  for (const division of divisionOwned) {
+302:    snapshots[division.id] = buildSnapshot(
+303:      division,
+304:      entriesByDivision[division.id] ?? [],
+305:    );
+306:  }
+307:
+308:  // An inherited division adopts its parent's snapshot whole: the same limit
+309:  // and the same parent-wide occupancy, so no projection can show a division
+310:  // as open while the cap that actually governs it is already spent.
+311:  for (const division of divisions) {
+312:    const parent = inheritedSnapshot(division);
+313:    if (parent) snapshots[division.id] = { ...parent };
+314:  }
+315:
+316:  return snapshots;
+317:}
+318:
+319:/** Tournament-wide occupancy, the limit owner for a division-less claim. */
+320:export async function readTournamentCapacity(
+321:  executor: AppDbOrTx,
+322:  tournamentId: string,
+323:): Promise<TournamentCapacitySnapshot> {
+324:  const snapshots = await readTournamentCapacities(executor, [tournamentId]);
+325:  return snapshots[tournamentId] ?? EMPTY_CAPACITY;
+326:}
+327:
+328:/**
+329: * The capacity that actually applies to a claim.
+330: *
+331: * A division-scoped claim reads its division's effective capacity, which
+332: * already inherits a parent cap that governs an uncapped division; a pair that
+333: * belongs to the tournament only is limited by the tournament itself.
+334: */
+335:export async function readEffectiveCapacity(
+336:  executor: AppDbOrTx,
+337:  scope: { tournamentId: string; divisionId?: string | null },
+338:): Promise<TournamentCapacitySnapshot> {
+339:  if (!scope.divisionId) {
+340:    return readTournamentCapacity(executor, scope.tournamentId);
+341:  }
+342:
+343:  return readDivisionCapacity(executor, scope.divisionId);
+344:}
+
+[Showing lines 294-343 of 616. Use :344 to continue]
+
+### region 21 (write, ~583 tok)
+
+{"root":"backend","symbol":{"name":"lockCapacityOwner","kind":"fn","file":"src/modules/tournaments/services/tournament-capacity.service.ts","line":146,"handle":"sym#c3fe81060d7a6532@d81aa2375e5a919d","tested":true},"defs":1,"count":1,"hop_tested":0,"hop_untested":1,"next":"--expand=lockCapacityOwner","calledBy":[{"name":"importRosterRows","kind":"method","file":"src/modules/tournaments/repositories/tournament-import.repository.ts","line":254,"handle":"sym#58f4d4047064bf3b@a25ef362c71b9240","tested":true},{"name":"pairLiteParticipantsInTx","kind":"method","file":"src/modules/tournaments/repositories/tournament-lite.repository.ts","line":153,"handle":"sym#04169bf68332de20@0ec766279c79ac04"},{"name":"promoteNextWaitlisted","kind":"method","file":"src/modules/tournaments/repositories/tournament-registration.repository.ts","line":2657,"handle":"sym#9c01799b8bb82b79@a68cd9225dee3fda","tested":true},{"name":"importParticipants","kind":"method","file":"src/modules/tournaments/repositories/tournament-import.repository.ts","line":404,"handle":"sym#82a7b9a1b62e10cb@a25ef362c71b9240","tested":true},{"name":"resolveMatchingDivision","kind":"fn","file":"src/modules/tournaments/repositories/tournament-registration.repository.ts","line":280,"handle":"sym#f11297e3407edea4@a68cd9225dee3fda","tested":true},{"name":"acceptPartnerInvite","kind":"method","file":"src/modules/tournaments/repositories/tournament-registration.repository.ts","line":1255,"handle":"sym#64422c55094949eb@a68cd9225dee3fda","tested":true},{"name":"joinTeam","kind":"method","file":"src/modules/tournaments/repositories/tournament-registration.repository.ts","line":1533,"handle":"sym#9dd8ded1d211cf11@a68cd9225dee3fda","tested":true},{"name":"withdraw","kind":"method","file":"src/modules/tournaments/repositories/tournament-registration.repository.ts","line":1940,"handle":"sym#68bcfd6b4fc3c3b2@a68cd9225dee3fda"},{"name":"<file-scope>","kind":"modscope","file":"src/modules/tournaments/services/tournament-capacity.service.spec.ts","line":1,"handle":"sym#806f8d3c96c3bb2e@5350e96e8edc9ac8"}],"calls":[{"name":"select","kind":"fn","file":"src/modules/tournaments/services/ranking-consent.service.spec.ts","line":262,"handle":"sym#8dfe6ad19d2e1eca@6c87e16e65dc070a"}],"graph_ambiguous":523,"graph_unresolved":652,"graph_unindexed":140,"counts_floor":true}
+
+### region 22 (read, ~330 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+138:/**
+139: * Serialize a capacity claim on the rows that own the limit.
+140: *
+141: * Two concurrent claims would otherwise both read the same free slot and both
+142: * write, overfilling the division. Lock order is always tournament -> division
+143: * and callers take these locks before any participant row, so two capacity
+144: * paths can never deadlock against each other.
+145: */
+146:export async function lockCapacityOwner(
+147:  executor: AppDbOrTx,
+148:  scope: { tournamentId: string; divisionId?: string | null },
+149:): Promise<void> {
+150:  await executor
+151:    .select({ id: schema.tournaments.id })
+152:    .from(schema.tournaments)
+153:    .where(eq(schema.tournaments.id, scope.tournamentId))
+154:    .for('update')
+155:    .limit(1);
+156:
+157:  if (!scope.divisionId) return;
+158:
+159:  await executor
+160:    .select({ id: schema.tournamentDivisions.id })
+161:    .from(schema.tournamentDivisions)
+162:    .where(eq(schema.tournamentDivisions.id, scope.divisionId))
+163:    .for('update')
+164:    .limit(1);
+165:}
+166:
+167:async function selectDivisionOwners(
+168:  executor: AppDbOrTx,
+169:  scope: {
+…
+173:  },
+174:): Promise<CapacityOwnerRow[]> {
+…
+198:}
+
+[Showing lines 138-169 of 616. Use :170 to continue]
+
+### region 23 (write, ~738 tok)
+
+{"pattern":"encodeCursor","root":"backend/src","files":11,"shown":20,"capped":true,"total":24,"has_more":true,"next_offset":20,"offset":0,"limit":20,"hits_capped":false,"next":"--grep=encodeCursor --offset=20 --legend=compact","corpus_oversize":2,"unindexed_hits":0,"unindexed_files_scanned":122,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"common/helpers/cursor-pagination.helper.ts","line":7,"in":"encodeCursor"},{"file":"modules/admin/admin.service.ts","line":2096,"in":"listTournaments"},{"file":"modules/chat/chat.repository.ts","line":947,"in":"getMessagesPage"},{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":31,"in":"encodeCursor"},{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":509,"in":"listSessions"},{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":570,"in":"listParticipants"},{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":983,"in":"listMatches"},{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":1038,"in":"listStandaloneMatches"},{"file":"modules/communities/communities.repository.ts","line":337,"in":"findAll"},{"file":"modules/communities/communities.repository.ts","line":727,"in":"getMembers"},{"file":"modules/communities/community-social.repository.ts","line":305,"in":"listPosts"},{"file":"modules/communities/community-social.repository.ts","line":680,"in":"listActivityFeed"},{"file":"modules/communities/community-social.repository.ts","line":892,"in":"listComments"},{"file":"modules/matches/matches.repository.ts","line":751,"in":"findAll"},{"file":"modules/notifications/notifications.repository.ts","line":148,"in":"getNotificationsByUser"},{"file":"modules/rankings/admin-ranking.service.ts","line":251,"in":"listContexts"},{"file":"modules/rankings/admin-ranking.service.ts","line":348,"in":"listPairs"},{"file":"modules/rankings/admin-ranking.service.ts","line":431,"in":"listPlayers"},{"file":"modules/rankings/admin-ranking.service.ts","line":837,"in":"getHistory"},{"file":"modules/tournaments/repositories/tournament-catalog.repository.ts","line":421,"in":"findAll"}],"enclosing":[{"n":"encodeCursor","callers":22,"defs":2,"cx":1},{"n":"listTournaments","callers":0,"cx":14},{"n":"getMessagesPage","callers":1,"cx":19},{"n":"listSessions","callers":1,"cx":7},{"n":"listParticipants","callers":0,"cx":7},{"n":"listMatches","callers":0,"cx":8},{"n":"listStandaloneMatches","callers":0,"cx":8},{"n":"findAll","callers":3,"defs":3,"cx":118},{"n":"getMembers","callers":1,"cx":11},{"n":"listPosts","callers":1,"cx":21},{"n":"listActivityFeed","callers":0,"cx":43},{"n":"listComments","callers":0,"cx":9},{"n":"getNotificationsByUser","callers":2,"cx":8},{"n":"listContexts","callers":1,"cx":8},{"n":"listPairs","callers":1,"cx":13},{"n":"listPlayers","callers":1,"cx":9},{"n":"getHistory","callers":1,"cx":7}]}
+
+### region 24 (read, ~243 tok)
+
+[backend/src/common/helpers/cursor-pagination.helper.ts#1C03]
+1:export class CursorPaginationHelper {
+2:  /**
+3:   * Mã hoá (encode) đối tượng thành chuỗi cursor base64
+4:   * @param payload Bất kỳ object nào (VD: { id: string, createdAt: Date })
+5:   * @returns Chuỗi base64
+6:   */
+7:  static encodeCursor(payload: Record<string, unknown>): string {
+8:    const stringified = JSON.stringify(payload);
+9:    return Buffer.from(stringified).toString('base64');
+10:  }
+11:
+12:  /**
+13:   * Giải mã (decode) chuỗi cursor base64 về object
+14:   * @param cursor Chuỗi base64
+15:   * @returns Object hoặc null nếu lỗi
+16:   */
+17:  static decodeCursor<T = Record<string, unknown>>(cursor: string): T | null {
+18:    if (!cursor) return null;
+19:    try {
+20:      const stringified = Buffer.from(cursor, 'base64').toString('utf-8');
+21:      return JSON.parse(stringified) as T;
+22:    } catch (e) {
+23:      return null;
+24:    }
+25:  }
+26:}
+
+### region 25 (read, ~423 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-payment.repository.ts#ED81]
+26:  async assertEntryFeeChangeAllowed(
+…
+37:  ) {
+…
+94:  }
+95:  async resolveDivisionEntryFee(
+96:    tx: Transaction | AppDbOrTx,
+97:    tournament: { id?: string; entryFee: string | null },
+98:    divisionId?: string | null,
+99:  ) {
+100:    if (divisionId) {
+101:      const [division] = await tx
+102:        .select({
+103:          entryFee: schema.tournamentDivisions.entryFee,
+104:          entryFeeOverrideEnabled:
+105:            schema.tournamentDivisions.entryFeeOverrideEnabled,
+106:        })
+107:        .from(schema.tournamentDivisions)
+108:        .where(
+109:          tournament.id
+110:            ? and(
+111:                eq(schema.tournamentDivisions.id, divisionId),
+112:                eq(schema.tournamentDivisions.tournamentId, tournament.id),
+113:              )
+114:            : eq(schema.tournamentDivisions.id, divisionId),
+115:        )
+116:        .limit(1);
+117:
+118:      if (
+119:        division?.entryFeeOverrideEnabled === true &&
+120:        division.entryFee !== undefined &&
+121:        division.entryFee !== null
+122:      ) {
+123:        return parseFloat(division.entryFee);
+124:      }
+125:    }
+126:
+127:    return parseFloat(tournament.entryFee || '0');
+128:  }
+129:  async invalidatePendingParticipantPayments(
+130:    tx: Transaction | AppDbOrTx,
+131:    tournamentId: string,
+132:    participantId: string,
+133:    reason: string,
+134:  ) {
+135:    const pendingPayments = await tx
+136:      .select({
+…
+139:      })
+140:      .from(schema.payments)
+141:      .where(
+…
+147:      );
+…
+170:  }
+
+[Showing lines 94-135 of 360. Use :136 to continue]
+
+### region 26 (write, ~132 tok)
+
+MCP failure
+server: ripwire
+tool: grep
+transport: stdio
+stage: protocol
+failure: json_rpc
+retryable: no
+message: MCP error -32602: path is a FILE, not a directory: 'backend/src/modules/tournaments/services/tournament-participant-admin.service.ts' — every verb answers about a TREE (to reach inside one file, pass its directory and use `file`/`pattern`) — needs a directory to answer about (or a `paths` array of 1..16 workspace roots), e.g. path="."
+code: -32602
+next: Address the server-reported MCP error before retrying.
+
+### region 27 (write, ~262 tok)
+
+{"pattern":"buildParticipantRegistrationSuccessNotification","root":"backend/src/modules/tournaments/services","files":3,"total":7,"shown":7,"capped":false,"hits_capped":false,"complete":true,"next":"--at=tournament-import.service.ts:15","unindexed_hits":0,"unindexed_files_scanned":0,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"tournament-import.service.ts","line":15},{"file":"tournament-import.service.ts","line":177,"in":"notifyLinkedAccounts"},{"file":"tournament-participant-admin.service.ts","line":18},{"file":"tournament-participant-admin.service.ts","line":330,"in":"updateParticipantStatus"},{"file":"tournament-registration.service.ts","line":23},{"file":"tournament-registration.service.ts","line":562,"in":"register"},{"file":"tournament-registration.service.ts","line":721,"in":"joinTeam"}],"enclosing":[{"n":"notifyLinkedAccounts","callers":2,"cx":6},{"n":"updateParticipantStatus","callers":1,"cx":33},{"n":"register","callers":2,"cx":55},{"n":"joinTeam","callers":1,"cx":17}]}
+
+### region 28 (read, ~1134 tok)
+
+Note: interpreted as 2 paths: backend/src/modules/tournaments/services/tournament-participant-admin.service.ts:310-355, backend/src/modules/tournaments/services/tournament-import.service.ts:165-202
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#9DC1]
+306:    if (nextStatus === 'COMPLETE') {
+307:      try {
+308:        updated =
+309:          (await this.tournamentsRepository.assignNextAvailableSeed(
+310:            tournamentId,
+311:            updated.id,
+312:          )) ?? updated;
+313:      } catch (err) {
+314:        // Approval is already persisted; seed assignment is deliberately
+315:        // best-effort so a transient seed-write failure cannot undo approval.
+316:        console.error(
+317:          'Failed to assign next available seed after participant approval:',
+318:          err,
+319:        );
+320:      }
+321:    }
+322:
+323:    try {
+324:      const rosters =
+325:        participantRosters ??
+326:        (await this.tournamentsRepository.getParticipantRosters(participantId));
+327:      for (const roster of rosters) {
+328:        if (nextStatus === 'COMPLETE') {
+329:          await this.notificationsService.sendNotification(
+330:            buildParticipantRegistrationSuccessNotification({
+331:              receiverId: roster.userId,
+332:              tournamentId: tournament.id,
+333:              tournamentName: tournament.name,
+334:              divisionId: updated.tournamentDivisionId,
+335:            }),
+336:          );
+337:        } else if (
+338:          nextStatus === 'PENDING_PARTNER' &&
+339:          !participant.teamInviteToken &&
+340:          tournamentConfig.doublesPairingMode !== 'SELF'
+341:        ) {
+342:          await this.notificationsService.sendNotification(
+343:            buildParticipantOrganizerPairingPendingNotification({
+344:              receiverId: roster.userId,
+345:              tournamentId: tournament.id,
+346:              tournamentName: tournament.name,
+347:              divisionId: updated.tournamentDivisionId,
+348:            }),
+349:          );
+350:        } else if (status === 'REJECTED') {
+351:          await this.notificationsService.sendNotification(
+352:            buildParticipantRegistrationRejectedNotification({
+353:              receiverId: roster.userId,
+354:              tournamentId: tournament.id,
+355:              tournamentName: tournament.name,
+356:              divisionId: updated.tournamentDivisionId,
+357:            }),
+358:          );
+359:        }
+360:      }
+361:    } catch (err) {
+…
+366:    }
+
+[Showing lines 309-358 of 577. Use :359 to continue]
+
+[backend/src/modules/tournaments/services/tournament-import.service.ts#EDD6]
+160:  private async notifyLinkedAccounts(
+…
+164:    recipients:
+165:      | Array<{
+166:          userId: string;
+167:          status: 'COMPLETE' | 'PENDING_APPROVAL';
+168:          divisionId: string | null;
+169:        }>
+170:      | undefined,
+171:  ): Promise<void> {
+172:    if (!requested || !recipients?.length) return;
+173:    for (const recipient of recipients) {
+174:      try {
+175:        const notification =
+176:          recipient.status === 'COMPLETE'
+177:            ? buildParticipantRegistrationSuccessNotification({
+178:                tournamentId,
+179:                tournamentName,
+180:                receiverId: recipient.userId,
+181:                divisionId: recipient.divisionId,
+182:              })
+183:            : buildParticipantRegistrationPendingNotification({
+184:                tournamentId,
+185:                tournamentName,
+186:                receiverId: recipient.userId,
+187:                divisionId: recipient.divisionId,
+188:              });
+189:        await this.notificationsService.sendNotification(notification);
+190:      } catch {
+191:        // A notification failure must not roll back a successful import.
+192:      }
+193:    }
+194:  }
+195:
+196:  /**
+197:   * Gửi yêu cầu xác nhận cho mọi VĐV import có tài khoản.
+198:   *
+199:   * Cố ý KHÔNG nằm sau cờ `notifyLinkedAccounts`: đó là tuỳ chọn của ban tổ chức,
+200:   * còn consent thì không. Gộp chung thì tổ chức chỉ cần bỏ cờ là mọi người im
+201:   * lặng không consent và trận của họ không tính — đúng loại loại ngầm mà nghiệp vụ
+202:   * này sinh ra để chặn.
+203:   *
+204:   * allSettled vì một mail lỗi không được làm hỏng cả lần import đã thành công.
+205:   */
+
+[Showing lines 164-205 of 264. Use :206 to continue]
+
+### region 29 (read, ~565 tok)
+
+[backend/src/modules/tournaments/utils/football-team-config.ts#0164]
+87:
+88:/**
+89: * Resolve all football roster limits from the legacy and current config shapes.
+90: * `teamSize` remains the selected format; `teamSizeOptions` is only a legacy
+91: * fallback for records created before the selector stored that value.
+92: */
+93:export function resolveFootballTeamConfig(input: unknown): FootballTeamConfigResolution {
+94:  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+95:    return { isTeamSport: false, mainSize: 0, maxReserve: 0, maxTotalSize: Number.MAX_SAFE_INTEGER };
+96:  }
+97:
+98:  const record = input as Record<string, unknown>;
+99:  const explicitSize = Number(record.teamSize);
+100:  const minSize = Number(record.minTeamSize);
+101:  const option = Array.isArray(record.teamSizeOptions)
+102:    ? record.teamSizeOptions.map(Number).find((size) => FOOTBALL_TEAM_SIZES.includes(size as FootballTeamSize))
+103:    : undefined;
+104:  const mainSize = [explicitSize, minSize, option ?? 0].find(
+105:    (size) => Number.isInteger(size) && FOOTBALL_TEAM_SIZES.includes(size as FootballTeamSize),
+106:  ) ?? 0;
+107:  const isTeamSport = mainSize > 0 || record.teamSize !== undefined || record.minTeamSize !== undefined || option !== undefined;
+108:  if (!isTeamSport) {
+109:    return { isTeamSport: false, mainSize: 0, maxReserve: 0, maxTotalSize: Number.MAX_SAFE_INTEGER };
+110:  }
+111:
+112:  const configuredReserve = Number(record.maxReserve ?? 0);
+113:  const maxReserve = record.allowReserve === false
+114:    ? 0
+115:    : Number.isFinite(configuredReserve) && configuredReserve > 0
+116:      ? Math.floor(configuredReserve)
+117:      : 0;
+118:  const configuredMax = Number(record.maxTeamSize);
+119:  const maxTotalSize = Number.isInteger(configuredMax) && configuredMax >= mainSize
+120:    ? configuredMax
+121:    : mainSize + maxReserve;
+122:
+123:  return { isTeamSport: true, mainSize, maxReserve, maxTotalSize };
+124:}
+125:
+126:/** Preserve legacy non-team tournaments while resolving football team sizes once. */
+127:export function getRequiredFootballMainRosterCount(config: unknown): number {
+128:  const resolved = resolveFootballTeamConfig(config);
+129:  return resolved.isTeamSport ? resolved.mainSize : 1;
+130:}
+
+### region 30 (write, ~448 tok)
+
+{"pattern":"auditService.logCreate","root":"backend/src","files":9,"shown":10,"capped":false,"total":10,"has_more":false,"next_offset":10,"offset":0,"limit":20,"hits_capped":false,"complete":true,"next":"--at=modules/club-match-sessions/club-match-sessions.repository.ts:385","corpus_oversize":2,"unindexed_hits":0,"unindexed_files_scanned":122,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"modules/club-match-sessions/club-match-sessions.repository.ts","line":385,"in":"createSession"},{"file":"modules/football-teams/football-teams.repository.ts","line":323,"in":"invite"},{"file":"modules/rankings/admin-ranking.service.ts","line":737,"in":"applyOperation"},{"file":"modules/tournaments/repositories/tournament-catalog.repository.ts","line":897,"in":"create"},{"file":"modules/tournaments/repositories/tournament-catalog.repository.ts","line":2315,"in":"createParent"},{"file":"modules/tournaments/repositories/tournament-division.repository.ts","line":232,"in":"createDivision"},{"file":"modules/tournaments/repositories/tournament-lite.repository.ts","line":530,"in":"unpairParticipantInTx"},{"file":"modules/tournaments/repositories/tournament-registration.repository.ts","line":1205,"in":"registerParticipant"},{"file":"modules/venues/venues.repository.ts","line":188,"in":"write"},{"file":"modules/rankings/admin-ranking.safety.spec.ts","line":30}],"enclosing":[{"n":"createSession","callers":1,"cx":13},{"n":"invite","callers":1,"cx":7},{"n":"applyOperation","callers":1,"cx":14},{"n":"create","callers":1,"cx":36},{"n":"createParent","callers":0,"cx":4},{"n":"createDivision","callers":0,"cx":8},{"n":"unpairParticipantInTx","callers":1,"cx":13},{"n":"registerParticipant","callers":2,"cx":268},{"n":"write","callers":3,"cx":5}]}
+
+### region 31 (read, ~442 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#9AD8]
+1126:      if (isTeamSport && data.footballTeamId && selectedDivision?.id) {
+…
+1187:        if (entry) {
+1188:          await tx.insert(schema.tournamentTeamRosterSnapshots).values(
+1189:            snapshotMemberIds.map((memberId) => ({
+…
+1191:              userId: memberId,
+1192:              role: snapshotMainMemberIds.includes(memberId)
+1193:                ? 'MAIN'
+1194:                : 'RESERVE',
+1195:              confirmationStatus: memberId === userId ? 'CONFIRMED' : 'PENDING',
+1196:            })),
+1197:          );
+1198:        }
+1199:      }
+1200:
+1201:      // Payment intent is created later by the checkout flow.
+1202:      const paymentUrl: string | null = null;
+1203:
+1204:      // 12. Audit log
+1205:      await this.auditService.logCreate(
+1206:        tx,
+1207:        userId,
+1208:        'tournament_participants',
+1209:        participant.id,
+1210:        participant,
+1211:      );
+1212:
+1213:      const registrationRosterCount = isTeamSport
+1214:        ? 1 +
+1215:          new Set([
+1216:            ...footballTeamMemberIds.filter((memberId) => memberId !== userId),
+1217:            ...footballTeamReserveMemberIds,
+1218:          ]).size
+1219:        : partnerId
+1220:          ? 2
+1221:          : 1;
+1222:      const registrationMainRosterCount = isTeamSport
+1223:        ? footballTeamMemberIds.length
+1224:        : registrationRosterCount;
+1225:      const registrationRosterComplete = isRegistrationRosterCompleteForPayment(
+1226:        {
+1227:          teamStatus: participant.teamStatus,
+1228:          matchType: effectiveMatchType,
+…
+1233:        },
+1234:      );
+
+[Showing lines 1191-1228 of 2790. Use :1229 to continue]
+
+### region 32 (edit, ~447 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#4E05]
+1:import {
+2:  BadRequestException,
+3:  ConflictException,
+4:  ForbiddenException,
+5:  Inject,
+6:  Injectable,
+7:  Logger,
+8:  NotFoundException,
+9:  Optional,
+10:} from '@nestjs/common';
+11:import { createHash, randomBytes, randomUUID } from 'node:crypto';
+12:import {
+…
+23:  sql,
+24:} from 'drizzle-orm';
+25:import { PG_CONNECTION } from '../../../database/database.module';
+26:import type { AppDb, AppDbOrTx } from '../../../database/db.types';
+27:import * as schema from '../../../database/schema';
+28:import { AuditService } from '../../audit/audit.service';
+29:import { CursorPaginationHelper } from '../../../common/helpers/cursor-pagination.helper';
+30:import { TournamentsRepository } from '../tournaments.repository';
+31:import { TournamentPaymentRepository } from '../repositories/tournament-payment.repository';
+
+34:import {
+
+38:} from '../../notifications/notification-builder';
+39:import type { RosterImportPreviewDto } from '../dto/roster-import-preview.dto';
+40:import type { AddAthleteCandidatesDto } from '../dto/add-athlete-candidates.dto';
+41:import type {
+42:  AddAthletePlayerDto,
+43:  AddAthletesDto,
+44:} from '../dto/add-athletes.dto';
+45:import { isLiteRegistrationTournament } from '../utils/registration-payment-eligibility';
+46:import { resolveDoublesParticipantStatus } from '../utils/tournament-participant-status';
+47:import { CAPACITY_RESERVING_TEAM_STATUSES } from '../utils/tournament-participant-status';
+48:import {
+…
+53:import { resolveFootballTeamConfig } from '../utils/football-team-config';
+54:import { RankingConsentService } from './ranking-consent.service';
+55:import { calculateTournamentRefundQuote } from '../utils/tournament-refund-policy';
+56:
+
+### region 33 (read, ~538 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#4E05]
+34:import {
+…
+37:  buildParticipantRegistrationSuccessNotification,
+38:} from '../../notifications/notification-builder';
+39:import type { RosterImportPreviewDto } from '../dto/roster-import-preview.dto';
+40:import type { AddAthleteCandidatesDto } from '../dto/add-athlete-candidates.dto';
+41:import type {
+42:  AddAthletePlayerDto,
+43:  AddAthletesDto,
+44:} from '../dto/add-athletes.dto';
+45:import { isLiteRegistrationTournament } from '../utils/registration-payment-eligibility';
+46:import { resolveDoublesParticipantStatus } from '../utils/tournament-participant-status';
+47:import { CAPACITY_RESERVING_TEAM_STATUSES } from '../utils/tournament-participant-status';
+48:import {
+49:  assertDivisionHasRoom,
+50:  lockCapacityOwner,
+51:  readEffectiveCapacity,
+52:} from './tournament-capacity.service';
+53:import { resolveFootballTeamConfig } from '../utils/football-team-config';
+54:import { RankingConsentService } from './ranking-consent.service';
+55:import { calculateTournamentRefundQuote } from '../utils/tournament-refund-policy';
+56:
+57:export type RegistrationChanged = (
+58:  tournamentId: string,
+59:  payload: {
+60:    participantId?: string;
+61:    divisionId?: string | null;
+62:    action: string;
+63:  },
+64:) => void;
+65:
+66:@Injectable()
+67:export class TournamentParticipantAdminService {
+68:  constructor(
+69:    private readonly tournamentsRepository: TournamentsRepository,
+70:    private readonly tournamentAccessService: TournamentAccessService,
+71:    private readonly notificationsService: NotificationsService,
+72:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+73:    private readonly auditService: AuditService,
+74:    private readonly tournamentPaymentRepository: TournamentPaymentRepository,
+75:  ) {}
+76:
+77:  async previewRosterImport(
+78:    tournamentId: string,
+79:    userId: string,
+80:    systemRoles: string[],
+81:    dto: RosterImportPreviewDto,
+82:  ) {
+83:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+…
+110:  }
+…
+609:}
+
+[Showing lines 37-83 of 609. Use :84 to continue]
+
+### region 34 (edit, ~189 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#6563]
+57:export type RegistrationChanged = (
+
+64:) => void;
+65:
+66:type AdminTournament = NonNullable<
+67:  Awaited<ReturnType<TournamentsRepository['findById']>>
+…
+96:
+97:
+98:@Injectable()
+99:export class TournamentParticipantAdminService {
+100:  private readonly logger = new Logger(TournamentParticipantAdminService.name);
+101:
+102:  constructor(
+103:    private readonly tournamentsRepository: TournamentsRepository,
+107:    private readonly auditService: AuditService,
+108:    private readonly tournamentPaymentRepository: TournamentPaymentRepository,
+109:    @Optional()
+110:    private readonly rankingConsentService?: RankingConsentService,
+111:  ) {}
+112:
+
+645:}
+
+### region 35 (read, ~645 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#6563]
+56:
+57:export type RegistrationChanged = (
+58:  tournamentId: string,
+59:  payload: {
+60:    participantId?: string;
+61:    divisionId?: string | null;
+62:    action: string;
+63:  },
+64:) => void;
+65:
+66:type AdminTournament = NonNullable<
+67:  Awaited<ReturnType<TournamentsRepository['findById']>>
+68:>;
+69:
+70:interface AddAthleteCursor {
+71:  displayName: string;
+72:  divisionId: string | null;
+73:  search: string;
+74:  source: 'FRIENDS' | 'CLUB';
+75:  userId: string;
+76:}
+77:
+78:interface ResolvedAddAthlete {
+79:  displayName: string;
+80:  email: string | null;
+81:  phone: string | null;
+82:  role: 'MAIN' | 'RESERVE';
+83:  userId: string | null;
+84:}
+85:
+86:interface PendingGuestClaim {
+87:  claimToken: string;
+88:  displayName: string;
+89:  email: string | null;
+90:  guestId: string;
+91:  phone: string | null;
+92:  role: 'MAIN' | 'RESERVE';
+93:}
+94:
+95:const GUEST_CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+96:
+97:
+98:@Injectable()
+99:export class TournamentParticipantAdminService {
+100:  private readonly logger = new Logger(TournamentParticipantAdminService.name);
+101:
+102:  constructor(
+103:    private readonly tournamentsRepository: TournamentsRepository,
+104:    private readonly tournamentAccessService: TournamentAccessService,
+105:    private readonly notificationsService: NotificationsService,
+106:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+107:    private readonly auditService: AuditService,
+108:    private readonly tournamentPaymentRepository: TournamentPaymentRepository,
+109:    @Optional()
+110:    private readonly rankingConsentService?: RankingConsentService,
+111:  ) {}
+112:
+113:  async previewRosterImport(
+114:    tournamentId: string,
+115:    userId: string,
+116:    systemRoles: string[],
+117:    dto: RosterImportPreviewDto,
+118:  ) {
+119:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+120:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+121:
+122:    const isAuthorized = await this.tournamentAccessService.isManager(
+123:      tournament,
+124:      userId,
+125:      systemRoles,
+126:    );
+127:    if (!isAuthorized) {
+128:      throw new ForbiddenException(
+129:        'Bạn không có quyền xem trước danh sách VĐV',
+130:      );
+131:    }
+132:
+133:    if (tournament.status === 'COMPLETED') {
+134:      throw new BadRequestException('Giải đấu đã kết thúc');
+135:    }
+…
+146:  }
+…
+645:}
+
+[Showing lines 56-135 of 645. Use :136 to continue]
+
+### region 36 (edit, ~73 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#1AED]
+102:  constructor(
+
+111:  ) {}
+112:
+113:  async listAddAthleteCandidates(
+114:    tournamentId: string,
+…
+511:  }
+512:
+513:  async previewRosterImport(
+514:    tournamentId: string,
+
+518:  ) {
+
+546:  }
+
+### region 37 (read, ~1940 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#1AED]
+113:  async listAddAthleteCandidates(
+114:    tournamentId: string,
+115:    userId: string,
+116:    systemRoles: string[],
+117:    dto: AddAthleteCandidatesDto,
+118:  ) {
+119:    const tournament = await this.getManagedAddableTournament(
+120:      tournamentId,
+121:      userId,
+122:      systemRoles,
+123:    );
+124:    if (dto.divisionId) {
+125:      await this.getTournamentDivision(this.db, tournamentId, dto.divisionId);
+126:    }
+127:    const sourceUserIds = await this.getSourceUserIds(
+128:      this.db,
+129:      tournament,
+130:      userId,
+131:      dto.source,
+132:    );
+133:    if (sourceUserIds.length === 0) return { items: [], nextCursor: null };
+134:
+135:    const limit = dto.limit ?? 20;
+136:    const search = dto.search?.trim() ?? '';
+137:    const cursor = this.decodeCandidateCursor(dto.cursor, {
+138:      source: dto.source,
+139:      divisionId: dto.divisionId ?? null,
+140:      search,
+141:    });
+142:    const activeRosterQuery = this.db
+143:      .select({ id: schema.tournamentRosters.id })
+144:      .from(schema.tournamentRosters)
+145:      .innerJoin(
+146:        schema.tournamentParticipants,
+147:        eq(
+148:          schema.tournamentParticipants.id,
+149:          schema.tournamentRosters.participantId,
+150:        ),
+151:      )
+152:      .where(
+153:        and(
+154:          eq(schema.tournamentRosters.userId, schema.users.id),
+155:          eq(schema.tournamentRosters.status, 'ACTIVE'),
+156:          eq(schema.tournamentParticipants.tournamentId, tournamentId),
+157:          inArray(
+158:            schema.tournamentParticipants.teamStatus,
+159:            [...CAPACITY_RESERVING_TEAM_STATUSES],
+160:          ),
+161:          dto.divisionId
+162:            ? eq(
+163:                schema.tournamentParticipants.tournamentDivisionId,
+164:                dto.divisionId,
+165:              )
+166:            : undefined,
+167:        ),
+168:      );
+169:    const rows = await this.db
+170:      .select({
+171:        userId: schema.users.id,
+172:        displayName: schema.profiles.fullName,
+173:        avatarUrl: schema.profiles.avatarUrl,
+174:      })
+175:      .from(schema.profiles)
+176:      .innerJoin(schema.users, eq(schema.users.id, schema.profiles.userId))
+177:      .where(
+178:        and(
+179:          inArray(schema.users.id, sourceUserIds),
+180:          eq(schema.users.isMock, false),
+181:          isNull(schema.users.deletedAt),
+182:          notExists(activeRosterQuery),
+183:          search ? ilike(schema.profiles.fullName, `%${search}%`) : undefined,
+184:          cursor
+185:            ? or(
+186:                gt(schema.profiles.fullName, cursor.displayName),
+187:                and(
+188:                  eq(schema.profiles.fullName, cursor.displayName),
+189:                  gt(schema.users.id, cursor.userId),
+190:                ),
+191:              )
+192:            : undefined,
+193:        ),
+194:      )
+195:      .orderBy(asc(schema.profiles.fullName), asc(schema.users.id))
+196:      .limit(limit + 1);
+197:
+198:    const hasMore = rows.length > limit;
+199:    const items = rows.slice(0, limit).map((row) => ({
+200:      ...row,
+201:      source: dto.source,
+202:    }));
+203:    const last = items[items.length - 1];
+204:    return {
+205:      items,
+…
+216:    };
+217:  }
+…
+379:  async claimGuestRoster(
+…
+385:  ) {
+…
+387:    const claimed = await this.db.transaction(async (tx) => {
+…
+402:      const [guest] = await tx
+…
+404:        .from(schema.tournamentGuestRosters)
+405:        .where(eq(schema.tournamentGuestRosters.id, guestId))
+406:        .for('update')
+407:        .limit(1);
+408:      if (
+409:        !guest ||
+410:        guest.participantId.length === 0 ||
+411:        guest.claimExpiresAt <= new Date() ||
+412:        guest.claimTokenHash !== claimHash
+413:      ) {
+414:        throw new ConflictException('Mã nhận suất không hợp lệ hoặc đã hết hạn.');
+415:      }
+416:      if (
+417:        guest.contactEmail &&
+418:        normalizeEmail(guest.contactEmail) !== normalizeEmail(user.email)
+419:      ) {
+420:        throw new ForbiddenException(
+421:          'Tài khoản phải dùng email đã nhận lời mời.',
+422:        );
+423:      }
+424:
+425:      const [context] = await tx
+426:        .select({
+427:          participantId: schema.tournamentParticipants.id,
+428:          tournamentId: schema.tournamentParticipants.tournamentId,
+429:          divisionId: schema.tournamentParticipants.tournamentDivisionId,
+430:          participantStatus: schema.tournamentParticipants.teamStatus,
+431:          tournamentName: schema.tournaments.name,
+432:          tournamentStatus: schema.tournaments.status,
+433:          tournamentEndDate: schema.tournaments.endDate,
+434:          tournamentDeletedAt: schema.tournaments.deletedAt,
+435:          isRanked: schema.tournaments.isRanked,
+436:        })
+437:        .from(schema.tournamentParticipants)
+438:        .innerJoin(
+439:          schema.tournaments,
+440:          eq(
+441:            schema.tournaments.id,
+442:            schema.tournamentParticipants.tournamentId,
+443:          ),
+444:        )
+445:        .where(eq(schema.tournamentParticipants.id, guest.participantId))
+446:        .for('share')
+447:        .limit(1);
+448:      this.assertClaimContext(context, tournamentId);
+449:      await this.assertNoExistingRoster(
+450:        tx,
+451:        tournamentId,
+452:        null,
+453:        [{ userId, displayName: '', email: null, phone: null, role: guest.role }],
+454:      );
+455:
+456:      const [roster] = await tx
+457:        .insert(schema.tournamentRosters)
+458:        .values({
+459:          participantId: guest.participantId,
+460:          userId,
+461:          role: guest.role,
+462:          status: 'ACTIVE',
+463:        })
+464:        .returning({
+465:          id: schema.tournamentRosters.id,
+466:          participantId: schema.tournamentRosters.participantId,
+467:          userId: schema.tournamentRosters.userId,
+468:        });
+469:      if (!roster) {
+470:        throw new ConflictException('Không thể nhận suất tham gia.');
+471:      }
+472:      await tx
+473:        .delete(schema.tournamentGuestRosters)
+474:        .where(eq(schema.tournamentGuestRosters.id, guestId));
+475:      await this.auditService.logDelete(
+476:        tx,
+477:        userId,
+478:        'tournament_guest_rosters',
+479:        guestId,
+480:        { participantId: guest.participantId, role: guest.role },
+481:      );
+482:      await this.auditService.logCreate(
+483:        tx,
+484:        userId,
+485:        'tournament_rosters',
+486:        roster.id,
+487:        {
+488:          participantId: roster.participantId,
+489:          userId: roster.userId,
+490:          role: guest.role,
+491:        },
+492:      );
+493:      return { roster, context };
+494:    });
+495:
+496:    await this.notifyAddedAccounts(
+497:      [{ id: claimed.roster.id, userId }],
+498:      tournamentId,
+499:      claimed.context.tournamentName,
+500:      claimed.context.divisionId,
+501:    );
+502:    broadcast(tournamentId, {
+503:      participantId: claimed.roster.participantId,
+504:      divisionId: claimed.context.divisionId,
+505:      action: 'GUEST_CLAIMED',
+506:    });
+507:    return {
+508:      participantId: claimed.roster.participantId,
+509:      claimed: true,
+510:    };
+511:  }
+512:
+513:  async previewRosterImport(
+514:    tournamentId: string,
+515:    userId: string,
+516:    systemRoles: string[],
+517:    dto: RosterImportPreviewDto,
+518:  ) {
+519:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+520:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+…
+546:  }
+
+### region 38 (read, ~822 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#1AED]
+98:@Injectable()
+99:export class TournamentParticipantAdminService {
+…
+845:  async setParticipantFeePaid(
+…
+852:  ) {
+…
+893:    const result = await this.db.transaction(async (tx) => {
+…
+960:      const refundRequested = completedPayment !== null && !completedPayment.refundStatus;
+961:      return {
+962:        participant: updatedParticipant,
+963:        refundRequested,
+964:        refundPaymentId: refundRequested ? completedPayment!.id : null,
+965:      };
+966:    });
+967:
+968:    broadcastRegistrationChanged(tournamentId, {
+969:      participantId: result.participant.id,
+970:      divisionId: result.participant.tournamentDivisionId,
+971:      action: 'FEE_PAYMENT_UPDATED',
+972:    });
+973:
+974:    return result;
+975:  }
+976:
+977:  /**
+978:   * Organizer's day-of-event mark.
+979:   *
+980:   * Deliberately ungated by tournament status: attendance happens while the
+981:   * event runs, long after registration closes, so a REGISTRATION_OPEN gate
+982:   * would make the feature unusable exactly when it is needed. Nothing reads
+983:   * this flag except the list view.
+984:   */
+985:  async setParticipantPresent(
+986:    tournamentId: string,
+987:    participantId: string,
+988:    present: boolean,
+989:    userId: string,
+990:    systemRoles: string[],
+991:    broadcastRegistrationChanged: (
+992:      tournamentId: string,
+993:      payload: { participantId: string; divisionId?: string | null; action: string },
+994:    ) => void,
+995:  ) {
+996:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+997:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+998:
+999:    const isAuthorized = await this.tournamentAccessService.isManager(
+1000:      tournament,
+1001:      userId,
+1002:      systemRoles,
+1003:    );
+1004:    if (!isAuthorized) {
+1005:      throw new ForbiddenException('Bạn không có quyền đánh dấu người tham gia có mặt');
+1006:    }
+1007:
+1008:    const participant =
+1009:      await this.tournamentsRepository.findParticipantById(participantId);
+1010:    if (!participant || participant.tournamentId !== tournamentId) {
+1011:      throw new NotFoundException('Người tham gia không tồn tại');
+1012:    }
+1013:
+1014:    const updatedParticipant = await this.db.transaction(async (tx) => {
+1015:      const updated =
+1016:        await this.tournamentPaymentRepository.setParticipantPresentInTx(
+1017:          tx,
+1018:          participantId,
+1019:          present,
+1020:        );
+1021:      if (!updated) {
+1022:        throw new NotFoundException('Người tham gia không tồn tại');
+1023:      }
+1024:
+1025:      await this.auditService.logUpdate(
+1026:        tx,
+1027:        userId,
+1028:        'tournament_participants',
+1029:        participantId,
+1030:        participant,
+1031:        updated,
+1032:      );
+1033:
+1034:      return updated;
+1035:    });
+1036:
+1037:    broadcastRegistrationChanged(tournamentId, {
+1038:      participantId: updatedParticipant.id,
+1039:      divisionId: updatedParticipant.tournamentDivisionId,
+1040:      action: 'PRESENCE_UPDATED',
+1041:    });
+1042:
+1043:    return { participant: updatedParticipant };
+1044:  }
+1045:}
+
+### region 39 (read, ~1579 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#1AED]
+113:  async listAddAthleteCandidates(
+…
+118:  ) {
+…
+204:    return {
+205:      items,
+206:      nextCursor:
+207:        hasMore && last
+208:          ? CursorPaginationHelper.encodeCursor({
+209:              displayName: last.displayName,
+210:              divisionId: dto.divisionId ?? null,
+211:              search,
+212:              source: dto.source,
+213:              userId: last.userId,
+214:            })
+215:          : null,
+216:    };
+217:  }
+218:
+219:  async addAthletes(
+220:    tournamentId: string,
+221:    userId: string,
+222:    systemRoles: string[],
+223:    dto: AddAthletesDto,
+224:    broadcast: RegistrationChanged,
+225:  ) {
+226:    await this.getManagedAddableTournament(tournamentId, userId, systemRoles);
+227:    this.assertAddAthletePayload(dto);
+228:
+229:    const created = await this.db.transaction(async (tx) => {
+230:      await lockCapacityOwner(tx, {
+231:        tournamentId,
+232:        divisionId: dto.divisionId,
+233:      });
+234:      const tournament = await this.getTransactionalTournament(tx, tournamentId);
+235:      this.assertAddableTournament(tournament);
+236:      const division = dto.divisionId
+237:        ? await this.getTournamentDivision(tx, tournamentId, dto.divisionId)
+238:        : null;
+239:      const players = await this.resolveAddAthletes(
+240:        tx,
+241:        tournament,
+242:        userId,
+243:        dto,
+244:      );
+245:      const matchType = division?.matchType ?? tournament.matchType;
+246:      this.assertRosterComposition(
+247:        tournament,
+248:        matchType,
+249:        players,
+250:      );
+251:      await this.assertNoExistingRoster(
+252:        tx,
+253:        tournamentId,
+254:        dto.divisionId ?? null,
+255:        players,
+256:      );
+257:      const capacity = await readEffectiveCapacity(tx, {
+258:        tournamentId,
+259:        divisionId: dto.divisionId,
+260:      });
+261:      assertDivisionHasRoom(
+262:        capacity,
+263:        matchType,
+264:        players.length,
+265:        { tournamentConfig: tournament.tournamentConfig },
+266:      );
+267:
+268:      const entryFee = await this.tournamentPaymentRepository
+269:        .resolveDivisionEntryFee(tx, tournament, dto.divisionId)
+270:        .then(Number);
+271:      if (!Number.isFinite(entryFee) || entryFee < 0) {
+272:        throw new BadRequestException('Lệ phí giải đấu không hợp lệ.');
+273:      }
+274:      const [participant] = await tx
+275:        .insert(schema.tournamentParticipants)
+276:        .values({
+277:          tournamentId,
+278:          tournamentDivisionId: dto.divisionId ?? null,
+279:          registeredBy: userId,
+280:          teamName:
+281:            dto.teamName?.trim() ||
+282:            players.map((player) => player.displayName).join(' / '),
+283:          teamStatus: 'COMPLETE',
+284:          rankingConsent: Boolean(tournament.isRanked),
+285:          organizerNote: dto.organizerNote?.trim() || null,
+286:          isPaid: entryFee === 0,
+287:          isPresent: false,
+288:          entryFeeAtRegistration: entryFee.toFixed(2),
+289:          isMock: false,
+290:          isWildcard: false,
+291:        })
+292:        .returning();
+293:      if (!participant) {
+294:        throw new BadRequestException('Không thể thêm VĐV vào giải đấu.');
+295:      }
+296:
+297:      const accountPlayers = players.filter(
+298:        (player): player is ResolvedAddAthlete & { userId: string } =>
+299:          player.userId !== null,
+300:      );
+301:      const rosters =
+302:        accountPlayers.length > 0
+303:          ? await tx
+304:              .insert(schema.tournamentRosters)
+305:              .values(
+306:                accountPlayers.map((player) => ({
+307:                  participantId: participant.id,
+308:                  userId: player.userId,
+309:                  role: player.role,
+310:                  status: 'ACTIVE',
+311:                })),
+312:              )
+313:              .returning({
+314:                id: schema.tournamentRosters.id,
+315:                userId: schema.tournamentRosters.userId,
+316:              })
+317:          : [];
+318:
+319:      const pendingGuests = await this.insertGuestRosters(
+320:        tx,
+321:        participant.id,
+322:        players.filter((player) => player.userId === null),
+323:      );
+324:      await this.auditService.logCreate(
+325:        tx,
+326:        userId,
+327:        'tournament_participants',
+328:        participant.id,
+329:        participant,
+330:      );
+331:      for (const roster of rosters) {
+332:        await this.auditService.logCreate(
+333:          tx,
+334:          userId,
+335:          'tournament_rosters',
+336:          roster.id,
+337:          {
+338:            participantId: participant.id,
+339:            userId: roster.userId,
+340:          },
+341:        );
+342:      }
+343:      for (const guest of pendingGuests) {
+344:        await this.auditService.logCreate(
+345:          tx,
+346:          userId,
+347:          'tournament_guest_rosters',
+348:          guest.guestId,
+349:          {
+350:            participantId: participant.id,
+351:            role: guest.role,
+352:            claimExpiresAt: guest.claimExpiresAt,
+353:          },
+354:        );
+355:      }
+356:      return { participant, rosters, pendingGuests };
+357:    });
+358:
+359:    const claims = await this.deliverGuestClaims(
+360:      created.pendingGuests,
+361:      tournamentId,
+362:      created.participant.tournamentId,
+363:      created.participant.teamName,
+364:    );
+365:    await this.notifyAddedAccounts(
+366:      created.rosters,
+367:      tournamentId,
+368:      created.participant.teamName,
+369:      created.participant.tournamentDivisionId,
+370:    );
+371:    broadcast(tournamentId, {
+372:      participantId: created.participant.id,
+373:      divisionId: created.participant.tournamentDivisionId,
+374:      action: 'PARTICIPANT_ADDED',
+375:    });
+376:    return { participant: created.participant, claims };
+377:  }
+378:
+379:  async claimGuestRoster(
+380:    tournamentId: string,
+381:    guestId: string,
+382:    userId: string,
+383:    claimToken: string,
+384:    broadcast: RegistrationChanged,
+385:  ) {
+…
+511:  }
+
+[Showing lines 204-385 of 1045. Use :386 to continue]
+
+### region 40 (edit, ~389 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#38CA]
+1:import {
+
+9:  Optional,
+10:} from '@nestjs/common';
+11:import {
+12:  createHash,
+13:  randomBytes,
+…
+16:} from 'node:crypto';
+17:import {
+18:  and,
+19:  asc,
+
+29:} from 'drizzle-orm';
+
+90:
+91:interface PendingGuestClaim {
+92:  claimExpiresAt: Date;
+93:  claimToken: string;
+94:  displayName: string;
+
+99:}
+
+225:  async addAthletes(
+
+230:    broadcast: RegistrationChanged,
+231:  ) {
+232:    const tournament = await this.getManagedAddableTournament(
+233:      tournamentId,
+234:      userId,
+235:      systemRoles,
+236:    );
+237:    this.assertAddAthletePayload(dto);
+238:    this.assertAddAthletePayload(dto);
+239:
+240:    const created = await this.db.transaction(async (tx) => {
+
+368:    });
+
+370:    const claims = await this.deliverGuestClaims(
+371:      created.pendingGuests,
+372:      tournamentId,
+373:      tournament.name,
+374:    );
+375:    await this.notifyAddedAccounts(
+
+380:    );
+
+387:  }
+
+418:      if (
+419:        !guest ||
+420:        guest.claimExpiresAt <= new Date() ||
+421:        !isMatchingClaimHash(guest.claimTokenHash, claimHash)
+422:      ) {
+423:        throw new ConflictException('Mã nhận suất không hợp lệ hoặc đã hết hạn.');
+424:      }
+
+Warnings:
+Auto-repaired replacement boundaries at line 408: dropped 1 body row(s) duplicated just outside the range. The result was verified by the syntax probe — re-issue with the range covering exactly the changed lines and the body as their complete final content.
+
+### region 41 (read, ~247 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#38CA]
+224:
+225:  async addAthletes(
+226:    tournamentId: string,
+227:    userId: string,
+228:    systemRoles: string[],
+229:    dto: AddAthletesDto,
+230:    broadcast: RegistrationChanged,
+231:  ) {
+232:    const tournament = await this.getManagedAddableTournament(
+233:      tournamentId,
+234:      userId,
+235:      systemRoles,
+236:    );
+237:    this.assertAddAthletePayload(dto);
+238:    this.assertAddAthletePayload(dto);
+239:
+240:    const created = await this.db.transaction(async (tx) => {
+241:      await lockCapacityOwner(tx, {
+242:        tournamentId,
+243:        divisionId: dto.divisionId,
+244:      });
+245:      const tournament = await this.getTransactionalTournament(tx, tournamentId);
+246:      this.assertAddableTournament(tournament);
+247:      const division = dto.divisionId
+…
+249:        : null;
+…
+368:    });
+…
+387:  }
+
+[Showing lines 224-247 of 1054. Use :248 to continue]
+
+### region 42 (edit, ~74 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#E50F]
+232:    const tournament = await this.getManagedAddableTournament(
+
+236:    );
+237:    this.assertAddAthletePayload(dto);
+238:
+239:    const created = await this.db.transaction(async (tx) => {
+
+367:    });
+
+### region 43 (read, ~427 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#E50F]
+104:@Injectable()
+105:export class TournamentParticipantAdminService {
+…
+993:  async setParticipantPresent(
+…
+1003:  ) {
+…
+1007:    const isAuthorized = await this.tournamentAccessService.isManager(
+…
+1011:    );
+1012:    if (!isAuthorized) {
+1013:      throw new ForbiddenException('Bạn không có quyền đánh dấu người tham gia có mặt');
+1014:    }
+1015:
+1016:    const participant =
+1017:      await this.tournamentsRepository.findParticipantById(participantId);
+1018:    if (!participant || participant.tournamentId !== tournamentId) {
+1019:      throw new NotFoundException('Người tham gia không tồn tại');
+1020:    }
+1021:
+1022:    const updatedParticipant = await this.db.transaction(async (tx) => {
+1023:      const updated =
+1024:        await this.tournamentPaymentRepository.setParticipantPresentInTx(
+1025:          tx,
+1026:          participantId,
+1027:          present,
+1028:        );
+1029:      if (!updated) {
+1030:        throw new NotFoundException('Người tham gia không tồn tại');
+1031:      }
+1032:
+1033:      await this.auditService.logUpdate(
+1034:        tx,
+1035:        userId,
+1036:        'tournament_participants',
+1037:        participantId,
+1038:        participant,
+1039:        updated,
+1040:      );
+1041:
+1042:      return updated;
+1043:    });
+1044:
+1045:    broadcastRegistrationChanged(tournamentId, {
+1046:      participantId: updatedParticipant.id,
+1047:      divisionId: updatedParticipant.tournamentDivisionId,
+1048:      action: 'PRESENCE_UPDATED',
+1049:    });
+1050:
+1051:    return { participant: updatedParticipant };
+1052:  }
+1053:}
+
+### region 44 (edit, ~181 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#C9EE]
+104:@Injectable()
+105:export class TournamentParticipantAdminService {
+
+993:  async setParticipantPresent(
+
+1003:  ) {
+
+1051:    return { participant: updatedParticipant };
+1052:  }
+1053:  private async getManagedAddableTournament(
+1054:    tournamentId: string,
+…
+1581:    }
+1582:  }
+1583:}
+1584:
+1585:function normalizeEmail(email: string): string {
+…
+1600:}
+1601:}
+
+Warnings:
+This edit introduced a syntax error near line 1053: the file parsed before the patch and no longer does. It was applied exactly as written, so a line number or range endpoint is likely wrong — re-read the touched region and re-issue a correcting edit.
+
+### region 45 (read, ~541 tok)
+
+Note: interpreted as 2 paths: backend/src/modules/tournaments/services/tournament-participant-admin.service.ts:1032-1075, :-30
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#C9EE]
+1003:  ) {
+…
+1022:    const updatedParticipant = await this.db.transaction(async (tx) => {
+…
+1029:      if (!updated) {
+…
+1031:      }
+1032:
+1033:      await this.auditService.logUpdate(
+1034:        tx,
+1035:        userId,
+1036:        'tournament_participants',
+1037:        participantId,
+1038:        participant,
+1039:        updated,
+1040:      );
+1041:
+1042:      return updated;
+1043:    });
+1044:
+1045:    broadcastRegistrationChanged(tournamentId, {
+1046:      participantId: updatedParticipant.id,
+1047:      divisionId: updatedParticipant.tournamentDivisionId,
+1048:      action: 'PRESENCE_UPDATED',
+1049:    });
+1050:
+1051:    return { participant: updatedParticipant };
+1052:  }
+1053:  private async getManagedAddableTournament(
+1054:    tournamentId: string,
+1055:    userId: string,
+1056:    systemRoles: string[],
+1057:  ): Promise<AdminTournament> {
+1058:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+1059:    if (!tournament || tournament.deletedAt) {
+1060:      throw new NotFoundException('Giải đấu không tồn tại');
+1061:    }
+1062:    const allowed = await this.tournamentAccessService.isManager(
+1063:      tournament,
+1064:      userId,
+1065:      systemRoles,
+1066:    );
+1067:    if (!allowed) throw new ForbiddenException('Bạn không có quyền quản lý giải đấu');
+1068:    this.assertAddableTournament(tournament);
+1069:    return tournament;
+1070:  }
+1071:
+1072:  private assertAddableTournament(tournament: AdminTournament): void {
+1073:    if (tournament.deletedAt) throw new NotFoundException('Giải đấu không tồn tại');
+1074:    if (
+1075:      tournament.status === 'COMPLETED' ||
+1076:      tournament.status === 'CANCELLED' ||
+1077:      (tournament.endDate && tournament.endDate <= new Date())
+1078:    ) {
+…
+1080:    }
+…
+1089:  }
+
+[Showing lines 1031-1078 of 1601. Use :1079 to continue]
+
+[Could not read :-30: Path ':-30' not found]
+
+### region 46 (read, ~438 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#C9EE]
+105:export class TournamentParticipantAdminService {
+…
+1557:  private assertClaimContext(
+…
+1559:      | {
+1560:          tournamentId: string;
+1561:          participantStatus: string;
+1562:          tournamentStatus: string;
+1563:          tournamentEndDate: Date | null;
+1564:          tournamentDeletedAt: Date | null;
+1565:        }
+1566:      | undefined,
+1567:    tournamentId: string,
+1568:  ): asserts context {
+1569:    if (
+1570:      !context ||
+1571:      context.tournamentId !== tournamentId ||
+1572:      !CAPACITY_RESERVING_TEAM_STATUSES.some(
+1573:        (status) => status === context.participantStatus,
+1574:      ) ||
+1575:      context.tournamentDeletedAt ||
+1576:      context.tournamentStatus === 'COMPLETED' ||
+1577:      context.tournamentStatus === 'CANCELLED' ||
+1578:      (context.tournamentEndDate && context.tournamentEndDate <= new Date())
+1579:    ) {
+1580:      throw new ConflictException('Suất tham gia không còn khả dụng.');
+1581:    }
+1582:  }
+1583:}
+1584:
+1585:function normalizeEmail(email: string): string {
+1586:  return email.trim().toLowerCase();
+1587:}
+1588:
+1589:function isUuid(value: string): boolean {
+1590:  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+1591:    value,
+1592:  );
+1593:}
+1594:
+1595:function isMatchingClaimHash(storedHash: string, suppliedHash: string): boolean {
+1596:  if (!/^[0-9a-f]{64}$/i.test(storedHash)) return false;
+1597:  const stored = Buffer.from(storedHash, 'hex');
+1598:  const supplied = Buffer.from(suppliedHash, 'hex');
+1599:  return stored.length === supplied.length && timingSafeEqual(stored, supplied);
+1600:}
+1601:}
+
+### region 47 (edit, ~67 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3B40]
+1595:function isMatchingClaimHash(storedHash: string, suppliedHash: string): boolean {
+
+1599:  return stored.length === supplied.length && timingSafeEqual(stored, supplied);
+1600:}
+
+### region 48 (write, ~358 tok)
+
+{"pattern":"previewRosterImport","root":"backend/src/modules/tournaments","files":6,"shown":12,"capped":false,"total":12,"has_more":false,"next_offset":12,"offset":0,"limit":20,"hits_capped":false,"complete":true,"next":"--at=repositories/tournament-import.repository.ts:169","unindexed_hits":0,"unindexed_files_scanned":0,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"repositories/tournament-import.repository.ts","line":169,"in":"previewRosterImport"},{"file":"services/tournament-participant-admin.service.ts","line":521,"in":"previewRosterImport"},{"file":"services/tournament-participant-admin.service.ts","line":553,"in":"previewRosterImport"},{"file":"tournaments.controller.ts","line":1496,"in":"previewRosterImport"},{"file":"tournaments.controller.ts","line":1501,"in":"previewRosterImport"},{"file":"tournaments.repository.ts","line":529,"in":"previewRosterImport"},{"file":"tournaments.repository.ts","line":530,"in":"previewRosterImport"},{"file":"tournaments.repository.ts","line":532,"in":"previewRosterImport"},{"file":"tournaments.service.ts","line":804,"in":"previewRosterImport"},{"file":"tournaments.service.ts","line":810,"in":"previewRosterImport"},{"file":"repositories/tournament-import-capacity.spec.ts","line":128},{"file":"repositories/tournament-import-capacity.spec.ts","line":145}],"enclosing":[{"n":"previewRosterImport","callers":1,"defs":5,"cx":7}]}
+
+### region 49 (read, ~493 tok)
+
+[backend/src/modules/tournaments/tournaments.service.ts#CEB5]
+784:
+785:  async deleteDivision(
+786:    divisionId: string,
+787:    userId: string,
+788:    systemRoles: string[] = [],
+789:  ) {
+790:    return this.tournamentDivisionService.deleteDivision(
+791:      divisionId,
+792:      userId,
+793:      systemRoles,
+794:    );
+795:  }
+796:
+797:  async getParticipantsByDivision(tournamentId: string, divisionId: string) {
+798:    return this.tournamentDivisionService.getParticipantsByDivision(
+799:      tournamentId,
+800:      divisionId,
+801:    );
+802:  }
+803:
+804:  async previewRosterImport(
+805:    tournamentId: string,
+806:    userId: string,
+807:    systemRoles: string[],
+808:    dto: RosterImportPreviewDto,
+809:  ) {
+810:    return this.tournamentParticipantAdminService.previewRosterImport(
+811:      tournamentId,
+812:      userId,
+813:      systemRoles,
+814:      dto,
+815:    );
+816:  }
+817:  async seedMockParticipants(
+818:    tournamentId: string,
+819:    userId: string,
+820:    names: string[],
+821:    systemRoles: string[] = [],
+822:    divisionId?: string,
+823:  ) {
+824:    return this.tournamentParticipantAdminService.seedMockParticipants(
+825:      tournamentId,
+826:      userId,
+827:      names,
+828:      systemRoles,
+829:      divisionId,
+830:    );
+831:  }
+832:
+833:  async clearMockParticipants(
+834:    tournamentId: string,
+835:    userId: string,
+836:    systemRoles: string[] = [],
+837:    divisionId?: string,
+838:  ) {
+839:    return this.tournamentParticipantAdminService.clearMockParticipants(
+840:      tournamentId,
+841:      userId,
+842:      systemRoles,
+843:      divisionId,
+844:    );
+845:  }
+846:
+847:  async deleteMockParticipant(
+848:    tournamentId: string,
+849:    participantId: string,
+850:    userId: string,
+851:    systemRoles: string[] = [],
+852:  ) {
+853:    return this.tournamentParticipantAdminService.deleteMockParticipant(
+…
+859:    );
+860:  }
+
+[Showing lines 784-853 of 1624. Use :854 to continue]
+
+### region 50 (read, ~871 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#1EDE]
+1449:
+1450:  @Post(':id/mock-participants')
+1451:  @ApiBearerAuth()
+1452:  @ApiOperation({ summary: 'Sinh danh sách VĐV giả lập để test' })
+1453:  async seedMockParticipants(
+1454:    @Param('id', ParseUUIDPipe) id: string,
+1455:    @Body() dto: SeedMockParticipantsDto,
+1456:    @CurrentUser() user: JwtPayload,
+1457:  ) {
+1458:    return this.tournamentsService.seedMockParticipants(
+1459:      id,
+1460:      user.sub,
+1461:      dto.names,
+1462:      this.getSystemRoles(user),
+1463:      dto.divisionId,
+1464:    );
+1465:  }
+1466:
+1467:  @Post(':id/registration-attachment')
+1468:  @ApiBearerAuth()
+1469:  @UseInterceptors(FileInterceptor('file'))
+1470:  @ApiOperation({ summary: 'Tải tệp đính kèm cho biểu mẫu đăng ký nâng cao' })
+1471:  @ApiResponse({ status: 201, description: 'Tệp đã được tải lên Cloudinary' })
+1472:  async uploadRegistrationAttachment(
+1473:    @Param('id', ParseUUIDPipe) id: string,
+1474:    @Body('fieldId') fieldId: string | undefined,
+1475:    @CurrentUser() user: JwtPayload,
+1476:    @UploadedFile(
+1477:      new ParseFilePipe({
+1478:        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
+1479:      }),
+1480:    )
+1481:    file: Express.Multer.File,
+1482:  ) {
+1483:    return this.tournamentsService.uploadRegistrationAttachment(
+1484:      id,
+1485:      user.sub,
+1486:      fieldId,
+1487:      file,
+1488:    );
+1489:  }
+1490:
+1491:  @Post(':id/import-participants/preview')
+1492:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1493:  @Verified()
+1494:  @ApiBearerAuth()
+1495:  @ApiOperation({ summary: 'Xem trước danh sách VĐV cần nhập' })
+1496:  async previewRosterImport(
+1497:    @Param('id', ParseUUIDPipe) id: string,
+1498:    @Body() dto: RosterImportPreviewDto,
+1499:    @CurrentUser() user: JwtPayload,
+1500:  ) {
+1501:    return this.tournamentsService.previewRosterImport(
+1502:      id,
+1503:      user.sub,
+1504:      this.getSystemRoles(user),
+1505:      dto,
+1506:    );
+1507:  }
+1508:
+1509:  @Post(':id/import-participants')
+1510:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1511:  @Verified()
+1512:  @ApiBearerAuth()
+1513:  @ApiOperation({ summary: 'Nhập danh sách VĐV từ Google Form / Excel' })
+1514:  async importParticipants(
+1515:    @Param('id', ParseUUIDPipe) id: string,
+1516:    @Body() dto: ImportParticipantsDto,
+1517:    @CurrentUser() user: JwtPayload,
+1518:  ) {
+1519:    return this.tournamentsService.importParticipantsFromForm(
+1520:      id,
+1521:      user.sub,
+1522:      this.getSystemRoles(user),
+1523:      dto,
+1524:    );
+1525:  }
+1526:
+1527:  @Post(':id/roster-import')
+1528:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1529:  @Verified()
+1530:  @ApiBearerAuth()
+1531:  @ApiOperation({ summary: 'Nhập danh sách VĐV từ bảng tính (yêu cầu email)' })
+1532:  async importRoster(
+1533:    @Param('id', ParseUUIDPipe) id: string,
+1534:    @Body() dto: RosterImportDto,
+1535:    @CurrentUser() user: JwtPayload,
+1536:  ) {
+1537:    return this.tournamentsService.importRosterFromForm(
+1538:      id,
+1539:      user.sub,
+1540:      this.getSystemRoles(user),
+1541:      dto,
+1542:    );
+1543:  }
+1544:
+1545:  @Delete(':id/mock-participants')
+1546:  @ApiBearerAuth()
+1547:  @ApiOperation({ summary: 'Xóa toàn bộ VĐV giả lập' })
+1548:  async clearMockParticipants(
+…
+1552:  ) {
+…
+1559:  }
+
+[Showing lines 1449-1548 of 2020. Use :1549 to continue]
+
+### region 51 (read, ~423 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#1EDE]
+1472:  async uploadRegistrationAttachment(
+…
+1482:  ) {
+…
+1489:  }
+1490:
+1491:  @Post(':id/import-participants/preview')
+1492:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1493:  @Verified()
+1494:  @ApiBearerAuth()
+1495:  @ApiOperation({ summary: 'Xem trước danh sách VĐV cần nhập' })
+1496:  async previewRosterImport(
+1497:    @Param('id', ParseUUIDPipe) id: string,
+1498:    @Body() dto: RosterImportPreviewDto,
+1499:    @CurrentUser() user: JwtPayload,
+1500:  ) {
+1501:    return this.tournamentsService.previewRosterImport(
+1502:      id,
+1503:      user.sub,
+1504:      this.getSystemRoles(user),
+1505:      dto,
+1506:    );
+1507:  }
+1508:
+1509:  @Post(':id/import-participants')
+1510:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1511:  @Verified()
+1512:  @ApiBearerAuth()
+1513:  @ApiOperation({ summary: 'Nhập danh sách VĐV từ Google Form / Excel' })
+1514:  async importParticipants(
+1515:    @Param('id', ParseUUIDPipe) id: string,
+1516:    @Body() dto: ImportParticipantsDto,
+1517:    @CurrentUser() user: JwtPayload,
+1518:  ) {
+1519:    return this.tournamentsService.importParticipantsFromForm(
+1520:      id,
+1521:      user.sub,
+1522:      this.getSystemRoles(user),
+1523:      dto,
+1524:    );
+1525:  }
+1526:
+1527:  @Post(':id/roster-import')
+1528:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1529:  @Verified()
+1530:  @ApiBearerAuth()
+1531:  @ApiOperation({ summary: 'Nhập danh sách VĐV từ bảng tính (yêu cầu email)' })
+1532:  async importRoster(
+1533:    @Param('id', ParseUUIDPipe) id: string,
+…
+1536:  ) {
+…
+1543:  }
+
+[Showing lines 1489-1533 of 2020. Use :1534 to continue]
+
+### region 52 (read, ~1283 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#1EDE]
+1:import {
+2:  Controller,
+3:  Get,
+4:  Header,
+5:  Post,
+6:  Body,
+7:  Patch,
+8:  Param,
+9:  Delete,
+10:  Query,
+11:  ParseUUIDPipe,
+12:  ParseIntPipe,
+13:  Req,
+14:  UnauthorizedException,
+15:  UseInterceptors,
+16:  UploadedFile,
+17:  ParseFilePipe,
+18:  MaxFileSizeValidator,
+19:} from '@nestjs/common';
+20:import { Throttle, SkipThrottle } from '@nestjs/throttler';
+21:import { FileInterceptor } from '@nestjs/platform-express';
+22:import type { Request } from 'express';
+23:import { TournamentsService } from './tournaments.service';
+24:import { CreateTournamentVenueDto } from './dto/create-tournament-venue.dto';
+25:import { CreateLiteTournamentDto } from './dto/create-lite-tournament.dto';
+26:import { UpdateTournamentDto } from './dto/update-tournament.dto';
+27:import { QueryTournamentDto } from './dto/query-tournament.dto';
+28:import { QueryMyManagementTournamentsDto } from './dto/query-my-management-tournaments.dto';
+29:import { QueryMyWorkspaceDto } from './dto/query-my-workspace.dto';
+30:import { RegisterTournamentDto } from './dto/register-tournament.dto';
+31:import { AddLiteClubMemberDto } from './dto/add-lite-club-member.dto';
+32:import { UpdateFootballRosterDto } from './dto/update-football-roster.dto';
+33:import { PairLiteParticipantsDto } from './dto/pair-lite-participants.dto';
+34:import { GenerateLitePairsDto } from './dto/generate-lite-pairs.dto';
+35:import { UpdateStageDto } from './dto/update-stage.dto';
+36:import { UpdateGroupDto } from './dto/update-group.dto';
+37:import { SeedMockParticipantsDto } from './dto/seed-mock-participants.dto';
+38:import { ImportParticipantsDto } from './dto/import-participants.dto';
+39:import { RosterImportPreviewDto } from './dto/roster-import-preview.dto';
+40:import { RosterImportDto } from './dto/roster-import.dto';
+41:import { UploadGalleryDto } from './dto/gallery.dto';
+42:import { CreateParentTournamentDto } from './dto/create-parent-tournament.dto';
+43:import { UpdateParentTournamentDto } from './dto/update-parent-tournament.dto';
+44:import { CreateDivisionDto } from './dto/create-division.dto';
+45:import { UpdateDivisionDto } from './dto/update-division.dto';
+46:import { UpdateBracketSlotsDto } from './dto/update-bracket-slots.dto';
+47:import { UpdateParticipantFeePaymentDto } from './dto/update-participant-fee-payment.dto';
+48:import { UpdateParticipantPresenceDto } from './dto/update-participant-presence.dto';
+49:import { ConfirmRankingConsentResultDto } from './dto/confirm-ranking-consent-result.dto';
+50:
+51:import { AddRefereeDto } from './dto/add-referee.dto';
+52:import { AddStaffMemberDto } from './dto/add-staff-member.dto';
+53:import { CreateVenueCourtDto } from '../venues/dto/create-venue-court.dto';
+54:import { CreateVenueDto } from '../venues/dto/create-venue.dto';
+55:import { UpdateVenueDto } from '../venues/dto/update-venue.dto';
+56:import { CreateBatchCourtsDto } from '../venues/dto/create-batch-courts.dto';
+57:import {
+58:  ApiTags,
+59:  ApiOperation,
+60:  ApiBearerAuth,
+61:  ApiResponse,
+62:} from '@nestjs/swagger';
+63:import { Roles } from '../../common/decorators/roles.decorator';
+64:import { UserRole } from '../../common/constants/enums';
+65:import { Public } from '../../common/decorators/public.decorator';
+66:import { Verified } from '../../common/decorators/verified.decorator';
+67:import { CurrentUser } from '../../common/decorators/current-user.decorator';
+68:import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+69:import { JwtService } from '@nestjs/jwt';
+70:
+71:@ApiTags('tournaments')
+72:@Controller('tournaments')
+73:export class TournamentsController {
+74:  constructor(
+75:    private readonly tournamentsService: TournamentsService,
+76:    private readonly jwtService: JwtService,
+77:  ) {}
+78:
+79:  private getSystemRoles(user: JwtPayload): string[] {
+80:    if (Array.isArray(user.roles) && user.roles.length > 0) {
+81:      return user.roles;
+82:    }
+83:    return user.role ? [user.role] : [];
+84:  }
+85:
+86:  @Public()
+87:  @Get('fees')
+88:  @ApiOperation({
+89:    summary: 'Lấy cấu hình các loại phí giải đấu và phí hoa hồng',
+90:  })
+91:  async getFeesConfig() {
+92:    return this.tournamentsService.getFeesConfig();
+93:  }
+94:
+95:  @Public()
+96:  @Header(
+97:    'Cache-Control',
+98:    'public, max-age=0, s-maxage=60, stale-while-revalidate=30',
+99:  )
+100:  @Header('Vary', 'Accept-Encoding')
+101:  @Get('public')
+102:  @ApiOperation({ summary: 'Chỉ lấy danh sách giải đấu PUBLIC công khai' })
+103:  async findPublic(@Query() query: QueryTournamentDto) {
+104:    return this.tournamentsService.findPublic(query);
+105:  }
+106:
+107:  @Get('my')
+108:  @ApiBearerAuth()
+109:  @ApiOperation({
+110:    summary: 'Lấy danh sách giải đấu người dùng tạo hoặc tham gia',
+111:  })
+112:  async findMy(@CurrentUser() user: JwtPayload) {
+113:    return this.tournamentsService.findMy(user.sub);
+114:  }
+115:
+116:  @Get('my/management')
+117:  @ApiBearerAuth()
+118:  @ApiOperation({
+…
+120:  })
+…
+2020:}
+
+[Showing lines 1-118 of 2020. Use :119 to continue]
+
+### region 53 (read, ~1618 tok)
+
+[backend/src/modules/tournaments/tournaments.service.ts#CEB5]
+1:import {
+2:  Injectable,
+3:  NotFoundException,
+4:  ForbiddenException,
+5:  BadRequestException,
+6:  Optional,
+7:  Logger,
+8:} from '@nestjs/common';
+9:import { ConfigService } from '@nestjs/config';
+10:import { isDeepStrictEqual } from 'node:util';
+11:import { TournamentsRepository } from './tournaments.repository';
+12:import { TournamentAccessService } from './services/tournament-access.service';
+13:import { TournamentVenueService } from './services/tournament-venue.service';
+14:import { TournamentMediaService } from './services/tournament-media.service';
+15:import { TournamentDiscoveryService } from './services/tournament-discovery.service';
+16:import { TournamentLifecycleService } from './services/tournament-lifecycle.service';
+17:import { TournamentFeePolicyService } from './services/tournament-fee-policy.service';
+18:import { TournamentStaffService } from './services/tournament-staff.service';
+19:import { TournamentRefereeService } from './services/tournament-referee.service';
+20:import { TournamentFollowService } from './services/tournament-follow.service';
+21:import { TournamentDivisionService } from './services/tournament-division.service';
+22:import { TournamentParticipantAdminService } from './services/tournament-participant-admin.service';
+23:import { TournamentImportService } from './services/tournament-import.service';
+24:import { TournamentResultsService } from './services/tournament-results.service';
+25:import { TournamentBracketService } from './services/tournament-bracket.service';
+26:import { TournamentRealtimeService } from './services/tournament-realtime.service';
+27:import { TournamentRegistrationService } from './services/tournament-registration.service';
+28:import { TournamentLiteService } from './services/tournament-lite.service';
+29:import { TournamentFootballRosterService } from './services/tournament-football-roster.service';
+30:import {
+31:  applyDefaultDoublesPairingMode,
+32:  validateMatchTypeAgainstCategory,
+33:  validateMatchTypeGenderRestriction,
+34:  validateRegistrationMode,
+35:} from './utils/tournament-input-policy';
+36:import { mapTournamentFormat } from './utils/tournament-presentation';
+37:import { CreateTournamentDto } from './dto/create-tournament.dto';
+38:import { CreateTournamentVenueDto } from './dto/create-tournament-venue.dto';
+39:import { CreateLiteTournamentDto } from './dto/create-lite-tournament.dto';
+40:import { UpdateTournamentDto } from './dto/update-tournament.dto';
+41:import { QueryTournamentDto } from './dto/query-tournament.dto';
+42:import { QueryMyManagementTournamentsDto } from './dto/query-my-management-tournaments.dto';
+43:import { RegisterTournamentDto } from './dto/register-tournament.dto';
+44:import { UpdateFootballRosterDto } from './dto/update-football-roster.dto';
+45:import { PairLiteParticipantsDto } from './dto/pair-lite-participants.dto';
+46:import { GenerateLitePairsDto } from './dto/generate-lite-pairs.dto';
+47:import { UpdateStageDto } from './dto/update-stage.dto';
+48:import { UpdateGroupDto } from './dto/update-group.dto';
+49:import { CreateParentTournamentDto } from './dto/create-parent-tournament.dto';
+50:import { UpdateParentTournamentDto } from './dto/update-parent-tournament.dto';
+51:import { ImportParticipantsDto } from './dto/import-participants.dto';
+52:import type { RosterImportPreviewDto } from './dto/roster-import-preview.dto';
+53:import type { RosterImportDto } from './dto/roster-import.dto';
+54:import { MailService } from '../../providers/mail/mail.service';
+55:import { BracketGeneratorService } from './bracket-generator.service';
+56:import {
+57:  CategoryConfig,
+58:  TournamentConfig,
+59:} from './interfaces/tournament-config.interface';
+60:import { EloCapViolationException } from './exceptions/elo-cap-violation.exception';
+61:import * as schema from '../../database/schema';
+62:import { PaymentStatus } from '../../common/constants/enums';
+63:import { NotificationsService } from '../notifications/notifications.service';
+64:
+65:import {
+66:  CreateDivisionDto,
+67:  DivisionBracketType,
+68:  GenderRestriction,
+69:  MatchType,
+70:} from './dto/create-division.dto';
+71:import { UpdateDivisionDto } from './dto/update-division.dto';
+72:import { UpdateBracketSlotsDto } from './dto/update-bracket-slots.dto';
+73:import { resolveEffectiveSportRules } from './utils/sport-rules/resolve-effective-sport-rules';
+74:import {
+75:  canOpenRegistrationImmediately,
+76:  isRegistrationDeadlineExpired,
+77:  isRegistrationOpenStatus,
+78:} from './utils/registration-lifecycle';
+79:import {
+80:  inferAllowedSportRuleKinds,
+81:  inferExpectedSportRuleKind,
+82:  validateSportRuleConfig,
+83:} from './utils/sport-rules/validate-sport-rules-config';
+84:import {
+85:  buildOrganizerNewRegistrationNotification,
+86:  buildFootballRosterConfirmationNotification,
+87:  buildOrganizerTeamCompletedNotification,
+88:  buildParticipantKickedNotification,
+89:  buildParticipantPendingTeammateNotification,
+90:  buildParticipantRegistrationPendingNotification,
+91:  buildParticipantRegistrationRejectedNotification,
+92:  buildParticipantRegistrationSuccessNotification,
+93:  buildParticipantTeammateJoinedNotification,
+94:  buildParticipantWithdrawnNotification,
+95:  buildPartnerInviteAcceptedNotification,
+96:  buildPartnerInviteCancelledNotification,
+97:  buildPartnerInviteReceivedNotification,
+98:  buildPartnerInviteRejectedNotification,
+99:  buildRefereeInviteAcceptedNotification,
+100:  buildRefereeInviteDeclinedNotification,
+101:  buildRefereeInviteNotification,
+102:  buildRefereeInviteRevokedNotification,
+103:  buildReservedSlotAssignedNotification,
+104:  buildStaffAddedNotification,
+105:  buildTournamentCancelledNotification,
+106:  buildCommunityPostNewNotification,
+107:} from '../notifications/notification-builder';
+108:import { RedisService } from '../../providers/redis/redis.service';
+109:import { StorageService } from '../../providers/storage/storage.service';
+110:import {
+111:  isStoredImageUrl,
+112:  extractStoredImagePublicId,
+113:} from '../../common/helpers/cloudinary.helper';
+114:import { CommunitySocialRepository } from '../communities/community-social.repository';
+115:import { validateFootballRosterSelection } from './utils/football-roster-validation';
+116:import {
+117:  normalizeGenderRestriction,
+118:  normalizeProfileGender,
+119:} from '../../common/helpers/gender.helper';
+
+[Showing lines 1-118 of 1624. Use :119 to continue]
+
+### region 54 (write, ~126 tok)
+
+MCP failure
+server: ripwire
+tool: grep
+transport: stdio
+stage: protocol
+failure: json_rpc
+retryable: no
+message: MCP error -32602: path is a FILE, not a directory: 'backend/src/modules/tournaments/tournaments.service.ts' — every verb answers about a TREE (to reach inside one file, pass its directory and use `file`/`pattern`) — needs a directory to answer about (or a `paths` array of 1..16 workspace roots), e.g. path="."
+code: -32602
+next: Address the server-reported MCP error before retrying.
+
+### region 55 (write, ~752 tok)
+
+{"pattern":"broadcastRegistrationChanged","root":"backend/src/modules/tournaments","files":7,"shown":20,"capped":true,"total":33,"has_more":true,"next_offset":20,"offset":0,"limit":20,"hits_capped":false,"next":"--grep=broadcastRegistrationChanged --offset=20 --legend=compact","unindexed_hits":0,"unindexed_files_scanned":0,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"services/tournament-football-roster.service.ts","line":89,"in":"lockParticipantRoster"},{"file":"services/tournament-football-roster.service.ts","line":126,"in":"unlockParticipantRoster"},{"file":"services/tournament-football-roster.service.ts","line":214,"in":"respondFootballRoster"},{"file":"services/tournament-football-roster.service.ts","line":329,"in":"updateFootballRoster"},{"file":"services/tournament-import.service.ts","line":43,"in":"importParticipantsFromForm"},{"file":"services/tournament-import.service.ts","line":73,"in":"importParticipantsFromForm"},{"file":"services/tournament-import.service.ts","line":95,"in":"importRosterFromForm"},{"file":"services/tournament-import.service.ts","line":119,"in":"importRosterFromForm"},{"file":"services/tournament-participant-admin.service.ts","line":638,"in":"deleteMockParticipant"},{"file":"services/tournament-participant-admin.service.ts","line":670,"in":"deleteMockParticipant"},{"file":"services/tournament-participant-admin.service.ts","line":682,"in":"updateParticipantStatus"},{"file":"services/tournament-participant-admin.service.ts","line":844,"in":"updateParticipantStatus"},{"file":"services/tournament-participant-admin.service.ts","line":859,"in":"setParticipantFeePaid"},{"file":"services/tournament-participant-admin.service.ts","line":976,"in":"setParticipantFeePaid"},{"file":"services/tournament-participant-admin.service.ts","line":999,"in":"setParticipantPresent"},{"file":"services/tournament-participant-admin.service.ts","line":1045,"in":"setParticipantPresent"},{"file":"services/tournament-realtime.service.ts","line":10,"in":"broadcastRegistrationChanged"},{"file":"services/tournament-registration.service.ts","line":596,"in":"register"},{"file":"services/tournament-registration.service.ts","line":737,"in":"joinTeam"},{"file":"services/tournament-registration.service.ts","line":814,"in":"addTeamMember"}],"enclosing":[{"n":"lockParticipantRoster","callers":0,"cx":6},{"n":"unlockParticipantRoster","callers":0,"cx":7},{"n":"respondFootballRoster","callers":0,"cx":8},{"n":"updateFootballRoster","callers":0,"cx":17},{"n":"importParticipantsFromForm","callers":1,"cx":2},{"n":"importRosterFromForm","callers":1,"cx":1},{"n":"deleteMockParticipant","callers":0,"cx":7},{"n":"updateParticipantStatus","callers":1,"cx":33},{"n":"setParticipantFeePaid","callers":1,"cx":15},{"n":"setParticipantPresent","callers":0,"cx":6},{"n":"broadcastRegistrationChanged","callers":17,"cx":1},{"n":"register","callers":2,"cx":55},{"n":"joinTeam","callers":1,"cx":17},{"n":"addTeamMember","callers":0,"cx":14}]}
+
+### region 56 (write, ~1206 tok)
+
+{"root":"backend","symbol":{"name":"broadcastRegistrationChanged","kind":"method","file":"src/modules/tournaments/services/tournament-realtime.service.ts","line":10,"handle":"sym#b2fd57ca0f461bd5@f9e64daf574e0610","tested":true},"defs":2,"count":1,"hop_tested":1,"hop_untested":0,"next":"--expand=broadcastRegistrationChanged","calledBy":[{"name":"register","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":272,"handle":"sym#d14e8bef747a2566@776e44a24d0e1880","tested":true},{"name":"importParticipantsFromForm","kind":"method","file":"src/modules/tournaments/services/tournament-import.service.ts","line":38,"handle":"sym#e21b09004df37ef6@bc9811370de2e251","tested":true},{"name":"importRosterFromForm","kind":"method","file":"src/modules/tournaments/services/tournament-import.service.ts","line":90,"handle":"sym#4c8a7999491f7d93@bc9811370de2e251","tested":true},{"name":"updateParticipantStatus","kind":"method","file":"src/modules/tournaments/services/tournament-participant-admin.service.ts","line":676,"handle":"sym#10c9cb701b643847@9b90e84f78c6a404","tested":true},{"name":"setParticipantFeePaid","kind":"method","file":"src/modules/tournaments/services/tournament-participant-admin.service.ts","line":853,"handle":"sym#6ae239a075752cb6@9b90e84f78c6a404","tested":true},{"name":"joinTeam","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":604,"handle":"sym#ff0778d486ba975a@776e44a24d0e1880","tested":true},{"name":"importParticipantsFromForm","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":935,"handle":"sym#d7d64628b6e72aa0@ed265d8201b30380"},{"name":"importRosterFromForm","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":949,"handle":"sym#374ea465cbd47f7d@ed265d8201b30380"},{"name":"lockParticipantRoster","kind":"method","file":"src/modules/tournaments/services/tournament-football-roster.service.ts","line":57,"handle":"sym#f9518e0e1a198d88@a3408fbe244bc4a6"},{"name":"unlockParticipantRoster","kind":"method","file":"src/modules/tournaments/services/tournament-football-roster.service.ts","line":96,"handle":"sym#0c150189d055023d@a3408fbe244bc4a6"},{"name":"respondFootballRoster","kind":"method","file":"src/modules/tournaments/services/tournament-football-roster.service.ts","line":180,"handle":"sym#4480789a289a3570@a3408fbe244bc4a6"},{"name":"updateFootballRoster","kind":"method","file":"src/modules/tournaments/services/tournament-football-roster.service.ts","line":221,"handle":"sym#914ef1dd22b859c6@a3408fbe244bc4a6"},{"name":"deleteMockParticipant","kind":"method","file":"src/modules/tournaments/services/tournament-participant-admin.service.ts","line":633,"handle":"sym#789fcd26c48b295d@9b90e84f78c6a404"},{"name":"setParticipantPresent","kind":"method","file":"src/modules/tournaments/services/tournament-participant-admin.service.ts","line":993,"handle":"sym#dcf3ce632f506523@9b90e84f78c6a404"},{"name":"addTeamMember","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":745,"handle":"sym#05a828ccfc3f27fd@776e44a24d0e1880"},{"name":"removeTeamMember","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":821,"handle":"sym#a344844ee166f088@776e44a24d0e1880"},{"name":"withdraw","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":857,"handle":"sym#68a06816c5c6f3c9@776e44a24d0e1880"},{"name":"kickParticipant","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":1091,"handle":"sym#398c4050a9f649ba@776e44a24d0e1880"},{"name":"acceptPartnerInvite","kind":"method","file":"src/modules/tournaments/services/tournament-registration.service.ts","line":1149,"handle":"sym#cf721da6710249e6@776e44a24d0e1880"},{"name":"deleteMockParticipant","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":847,"handle":"sym#c530ef42f445cabd@ed265d8201b30380"},{"name":"updateParticipantStatus","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":862,"handle":"sym#3c3ca3be7623e327@ed265d8201b30380"},{"name":"setParticipantFeePaid","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":879,"handle":"sym#4584c048ba0e5f56@ed265d8201b30380"},{"name":"setParticipantPresent","kind":"method","file":"src/modules/tournaments/tournaments.service.ts","line":896,"handle":"sym#f6358a0c7daee483@ed265d8201b30380"}],"calls":[{"name":"broadcastRegistrationUpdate","kind":"method","file":"src/modules/matches/live-score.gateway.ts","line":454,"handle":"sym#74a722689ccda6d9@0619c52ce52e9d08","tested":true}],"graph_ambiguous":523,"graph_unresolved":654,"graph_unindexed":140,"counts_floor":true}
+
+### region 57 (read, ~644 tok)
+
+Note: interpreted as 2 paths: backend/src/modules/tournaments/tournaments.service.ts:920-965, backend/src/modules/tournaments/services/tournament-realtime.service.ts:1-40
+
+[backend/src/modules/tournaments/tournaments.service.ts#CEB5]
+913:  /**
+…
+919:   *
+920:   * userId lấy từ JWT, không lấy từ request — không có đường nào để khai thao cho
+921:   * hộ người khác.
+922:   */
+923:  async confirmRankingConsent(tournamentId: string, userId: string) {
+924:    const result = await this.tournamentsRepository.confirmRankingConsent(
+925:      tournamentId,
+926:      userId,
+927:    );
+928:    if (!result) {
+929:      throw new NotFoundException(
+930:        'Bạn không có tư cách tham gia giải này nên không thể xác nhận.',
+931:      );
+932:    }
+933:    return result;
+934:  }
+935:  async importParticipantsFromForm(
+936:    tournamentId: string,
+937:    userId: string,
+938:    systemRoles: string[],
+939:    dto: ImportParticipantsDto,
+940:  ) {
+941:    return this.tournamentImportService.importParticipantsFromForm(
+942:      tournamentId,
+943:      userId,
+944:      systemRoles,
+945:      dto,
+946:      (id, payload) => this.broadcastRegistrationChanged(id, payload),
+947:    );
+948:  }
+949:  async importRosterFromForm(
+950:    tournamentId: string,
+951:    userId: string,
+952:    systemRoles: string[],
+953:    dto: RosterImportDto,
+954:  ) {
+955:    return this.tournamentImportService.importRosterFromForm(
+956:      tournamentId,
+957:      userId,
+958:      systemRoles,
+959:      dto,
+960:      (id, payload) => this.broadcastRegistrationChanged(id, payload),
+961:    );
+962:  }
+963:  async findBracket(id: string, divisionId?: string) {
+964:    return this.tournamentBracketService.findBracket(id, divisionId);
+965:  }
+966:
+967:  async updateStage(
+968:    stageId: string,
+…
+972:  ) {
+…
+979:  }
+
+[Showing lines 919-968 of 1624. Use :969 to continue]
+
+[backend/src/modules/tournaments/services/tournament-realtime.service.ts#E388]
+1:import { Injectable, Optional } from '@nestjs/common';
+2:import { LiveScoreGateway } from '../../matches/live-score.gateway';
+3:
+4:@Injectable()
+5:export class TournamentRealtimeService {
+6:  constructor(
+7:    @Optional() private readonly liveScoreGateway?: LiveScoreGateway,
+8:  ) {}
+9:
+10:  broadcastRegistrationChanged(
+11:    tournamentId: string,
+12:    payload: {
+13:      participantId?: string;
+14:      divisionId?: string | null;
+15:      action: string;
+16:    },
+17:  ) {
+18:    this.liveScoreGateway?.broadcastRegistrationUpdate(tournamentId, payload);
+19:  }
+20:}
+
+### region 58 (edit, ~198 tok)
+
+[backend/src/modules/tournaments/tournaments.service.ts#6BEB]
+52:import type { RosterImportPreviewDto } from './dto/roster-import-preview.dto';
+53:import type { RosterImportDto } from './dto/roster-import.dto';
+54:import type { AddAthleteCandidatesDto } from './dto/add-athlete-candidates.dto';
+55:import type { AddAthletesDto } from './dto/add-athletes.dto';
+56:import { MailService } from '../../providers/mail/mail.service';
+57:import { BracketGeneratorService } from './bracket-generator.service';
+
+806:  async previewRosterImport(
+
+811:  ) {
+812:    return this.tournamentParticipantAdminService.previewRosterImport(
+
+817:    );
+818:  }
+819:
+820:  async listAddAthleteCandidates(
+…
+861:    );
+862:  }
+863:  async seedMockParticipants(
+864:    tournamentId: string,
+
+869:  ) {
+
+877:  }
+
+### region 59 (edit, ~197 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#D394]
+39:import { RosterImportPreviewDto } from './dto/roster-import-preview.dto';
+40:import { RosterImportDto } from './dto/roster-import.dto';
+41:import { AddAthleteCandidatesDto } from './dto/add-athlete-candidates.dto';
+42:import { AddAthletesDto } from './dto/add-athletes.dto';
+43:import { ClaimGuestRosterDto } from './dto/claim-guest-roster.dto';
+44:import { UploadGalleryDto } from './dto/gallery.dto';
+45:import { CreateParentTournamentDto } from './dto/create-parent-tournament.dto';
+
+1535:  async importRoster(
+
+1539:  ) {
+
+1546:  }
+1547:
+1548:  @Get(':id/add-athletes/candidates')
+1549:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+…
+1600:  }
+1601:
+1602:  @Delete(':id/mock-participants')
+1603:  @ApiBearerAuth()
+
+### region 60 (read, ~1414 tok)
+
+[backend/src/modules/tournaments/tournaments.module.ts#EA16]
+1:import { forwardRef, Module } from '@nestjs/common';
+2:import { TournamentsService } from './tournaments.service';
+3:import { TournamentsController } from './tournaments.controller';
+4:import { TournamentsRepository } from './tournaments.repository';
+5:import { BracketGeneratorService } from './bracket-generator.service';
+6:import { TournamentSchedulerService } from './tournament-scheduler.service';
+7:import { DatabaseModule } from '../../database/database.module';
+8:import { SeriesModule } from '../series/series.module';
+9:import { RedisModule } from '../../providers/redis/redis.module';
+10:import { StorageModule } from '../../providers/storage/storage.module';
+11:import { AuthModule } from '../auth/auth.module';
+12:import { CommunitiesModule } from '../communities/communities.module';
+13:import { MatchesModule } from '../matches/matches.module';
+14:import { MailModule } from '../../providers/mail/mail.module';
+15:import { VenuesModule } from '../venues/venues.module';
+16:import { TournamentAccessService } from './services/tournament-access.service';
+17:import { TournamentVenueService } from './services/tournament-venue.service';
+18:import { TournamentMediaService } from './services/tournament-media.service';
+19:import { TournamentDiscoveryService } from './services/tournament-discovery.service';
+20:import { TournamentLifecycleService } from './services/tournament-lifecycle.service';
+21:import { TournamentFeePolicyService } from './services/tournament-fee-policy.service';
+22:import { TournamentStaffService } from './services/tournament-staff.service';
+23:import { TournamentRefereeService } from './services/tournament-referee.service';
+24:import { TournamentFollowService } from './services/tournament-follow.service';
+25:import { TournamentResultsService } from './services/tournament-results.service';
+26:import { TournamentDivisionService } from './services/tournament-division.service';
+27:
+28:import { TournamentParticipantAdminService } from './services/tournament-participant-admin.service';
+29:import { TournamentImportService } from './services/tournament-import.service';
+30:import { RankingConsentService } from './services/ranking-consent.service';
+31:import { TournamentBracketService } from './services/tournament-bracket.service';
+32:import { TournamentRealtimeService } from './services/tournament-realtime.service';
+33:import { TournamentRegistrationService } from './services/tournament-registration.service';
+34:import { TournamentCapacityService } from './services/tournament-capacity.service';
+35:import { TournamentLiteService } from './services/tournament-lite.service';
+36:import { TournamentFootballRosterService } from './services/tournament-football-roster.service';
+37:import { TournamentPaymentRepository } from './repositories/tournament-payment.repository';
+38:import { TournamentAdminRepository } from './repositories/tournament-admin.repository';
+39:import { TournamentCatalogRepository } from './repositories/tournament-catalog.repository';
+40:import { TournamentDivisionRepository } from './repositories/tournament-division.repository';
+41:import { TournamentResultsRepository } from './repositories/tournament-results.repository';
+42:import { TournamentBracketRepository } from './repositories/tournament-bracket.repository';
+43:import { TournamentRatingRepository } from './repositories/tournament-rating.repository';
+44:import { TournamentLiteRepository } from './repositories/tournament-lite.repository';
+45:import { TournamentImportRepository } from './repositories/tournament-import.repository';
+46:import { TournamentOperationsRepository } from './repositories/tournament-operations.repository';
+47:import { TournamentParticipantRepository } from './repositories/tournament-participant.repository';
+48:import { TournamentRegistrationRepository } from './repositories/tournament-registration.repository';
+49:@Module({
+50:  imports: [
+51:    DatabaseModule,
+52:    SeriesModule,
+53:    RedisModule,
+54:    StorageModule,
+55:    AuthModule,
+56:    CommunitiesModule,
+57:    forwardRef(() => MatchesModule),
+58:    MailModule,
+59:    VenuesModule,
+60:  ],
+61:  controllers: [TournamentsController],
+62:  providers: [
+63:    TournamentsService,
+64:    TournamentsRepository,
+65:    TournamentPaymentRepository,
+66:    TournamentAdminRepository,
+67:    TournamentCatalogRepository,
+68:    TournamentDivisionRepository,
+69:    TournamentResultsRepository,
+70:    TournamentBracketRepository,
+71:    TournamentRatingRepository,
+72:    TournamentLiteRepository,
+73:    TournamentImportRepository,
+74:    TournamentOperationsRepository,
+75:    TournamentParticipantRepository,
+76:    TournamentRegistrationRepository,
+77:    TournamentAccessService,
+78:    TournamentVenueService,
+79:    TournamentMediaService,
+80:    TournamentDiscoveryService,
+81:    TournamentLifecycleService,
+82:    TournamentFeePolicyService,
+83:    TournamentStaffService,
+84:    TournamentRefereeService,
+85:    TournamentFollowService,
+86:    TournamentResultsService,
+87:    TournamentDivisionService,
+88:    TournamentParticipantAdminService,
+89:    TournamentImportService,
+90:    TournamentBracketService,
+91:    TournamentRealtimeService,
+92:    TournamentRegistrationService,
+93:    TournamentCapacityService,
+94:    TournamentLiteService,
+95:    TournamentFootballRosterService,
+96:    BracketGeneratorService,
+97:    TournamentSchedulerService,
+98:    RankingConsentService,
+99:  ],
+100:  exports: [
+101:    TournamentsService,
+102:    BracketGeneratorService,
+103:    TournamentsRepository,
+104:  ],
+105:})
+106:export class TournamentsModule {}
+
+### region 61 (bash, ~81 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       15 skipped, 1 passed, 16 total
+Snapshots:   0 total
+Time:        1.047 s, estimated 2 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "rejects organizer athlete additions".
+
+
+Wall time: 1.48 seconds

@@ -1,0 +1,1993 @@
+### region 1 (read, ~622 tok)
+
+[backend/src/modules/matches/matches.repository.ts#41CC]
+1967:    // such entrants — who have no account to confirm — would be scored anyway.
+1968:    //
+1969:    // All-or-nothing is deliberate: scoring only the consenting side would let a
+1970:    // player farm rating by facing opponents who never confirmed.
+1971:    const completionTime = updated.completedAt?.getTime() ?? null;
+1972:    const consentRosterRows =
+1973:      participantIds.length === 2
+1974:        ? await tx
+1975:            .select({
+1976:              participantId: schema.tournamentRosters.participantId,
+1977:              rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+1978:            })
+1979:            .from(schema.tournamentRosters)
+1980:            .where(inArray(schema.tournamentRosters.participantId, participantIds))
+1981:        : [];
+1982:    const guestRosterRows =
+1983:      participantIds.length === 2
+1984:        ? await tx
+1985:            .select({
+1986:              participantId: schema.tournamentGuestRosters.participantId,
+1987:            })
+1988:            .from(schema.tournamentGuestRosters)
+1989:            .where(inArray(schema.tournamentGuestRosters.participantId, participantIds))
+1990:        : [];
+1991:    const allParticipantsConsented =
+1992:      participantIds.length === 2 &&
+1993:      participantIds[0] !== participantIds[1] &&
+1994:      completionTime !== null &&
+1995:      Number.isFinite(completionTime) &&
+1996:      consentRosterRows.length > 0 &&
+1997:      guestRosterRows.length === 0 &&
+1998:      participantIds.every((participantId) => {
+1999:        const rows = consentRosterRows.filter(
+2000:          (row) => row.participantId === participantId,
+2001:        );
+2002:        return (
+2003:          rows.length > 0 &&
+2004:          rows.every(
+2005:            (row) =>
+2006:              row.rankingConsentAt !== null &&
+2007:              Number.isFinite(row.rankingConsentAt.getTime()) &&
+2008:              row.rankingConsentAt.getTime() <= completionTime,
+2009:          )
+2010:        );
+2011:      });
+2012:
+2013:    const footballTeamRows = participantIds.length
+2014:      ? await tx
+2015:          .select({
+2016:            footballTeamId: schema.tournamentParticipants.footballTeamId,
+2017:          })
+2018:          .from(schema.tournamentParticipants)
+2019:          .where(inArray(schema.tournamentParticipants.id, participantIds))
+2020:      : [];
+
+[Showing lines 1967-2018 of 2946. Use :2019 to continue]
+
+### region 2 (edit, ~223 tok)
+
+[backend/src/modules/matches/matches.repository.ts#8730]
+1970:    // player farm rating by facing opponents who never confirmed.
+1971:    const completionTime = updated.completedAt?.getTime() ?? null;
+1972:    const canCheckRankedElo =
+1973:      eloTournament?.isRanked === true &&
+1974:      participantIds.length === 2 &&
+1975:      participantIds[0] !== participantIds[1] &&
+1976:      completionTime !== null &&
+1977:      Number.isFinite(completionTime);
+1978:    const consentRosterRows = canCheckRankedElo
+…
+1995:    const allParticipantsConsented =
+1996:      canCheckRankedElo &&
+1997:      consentRosterRows.length > 0 &&
+1998:      guestRosterRows.length === 0 &&
+
+2012:      });
+
+Warnings:
+Auto-repaired a replacement boundary echo at line 1971: dropped 14 trailing body line(s) already present outside the range. Issue the body as final content for the selected range only.
+
+### region 3 (read, ~585 tok)
+
+[backend/src/modules/matches/matches.repository.ts#8730]
+1970:    // player farm rating by facing opponents who never confirmed.
+1971:    const completionTime = updated.completedAt?.getTime() ?? null;
+1972:    const canCheckRankedElo =
+1973:      eloTournament?.isRanked === true &&
+1974:      participantIds.length === 2 &&
+1975:      participantIds[0] !== participantIds[1] &&
+1976:      completionTime !== null &&
+1977:      Number.isFinite(completionTime);
+1978:    const consentRosterRows = canCheckRankedElo
+1979:      ? await tx
+1980:          .select({
+1981:            participantId: schema.tournamentRosters.participantId,
+1982:            rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+1983:          })
+1984:          .from(schema.tournamentRosters)
+1985:          .where(inArray(schema.tournamentRosters.participantId, participantIds))
+1986:      : [];
+1987:    const guestRosterRows = canCheckRankedElo
+1988:      ? await tx
+1989:          .select({
+1990:            participantId: schema.tournamentGuestRosters.participantId,
+1991:          })
+1992:          .from(schema.tournamentGuestRosters)
+1993:          .where(inArray(schema.tournamentGuestRosters.participantId, participantIds))
+1994:      : [];
+1995:    const allParticipantsConsented =
+1996:      canCheckRankedElo &&
+1997:      consentRosterRows.length > 0 &&
+1998:      guestRosterRows.length === 0 &&
+1999:      participantIds.every((participantId) => {
+2000:        const rows = consentRosterRows.filter(
+2001:          (row) => row.participantId === participantId,
+2002:        );
+2003:        return (
+2004:          rows.length > 0 &&
+2005:          rows.every(
+2006:            (row) =>
+2007:              row.rankingConsentAt !== null &&
+2008:              Number.isFinite(row.rankingConsentAt.getTime()) &&
+2009:              row.rankingConsentAt.getTime() <= completionTime,
+2010:          )
+2011:        );
+2012:      });
+2013:
+2014:    const footballTeamRows = participantIds.length
+2015:      ? await tx
+2016:          .select({
+2017:            footballTeamId: schema.tournamentParticipants.footballTeamId,
+2018:          })
+2019:          .from(schema.tournamentParticipants)
+2020:          .where(inArray(schema.tournamentParticipants.id, participantIds))
+2021:      : [];
+
+[Showing lines 1970-2018 of 2947. Use :2019 to continue]
+
+### region 4 (read, ~1757 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx#A1F6]
+84:  const initialDivisionId = selectedDivisionId || divisions[0]?.id || '';
+85:  const initialMatchType = divisions.find((division) => division.id === initialDivisionId)?.matchType ?? tournament.matchType ?? 'SINGLES';
+86:  const initialRequiredPlayerCount = getAddAthleteRosterCounts(tournament, initialMatchType).requiredPlayerCount;
+87:  const [divisionId, setDivisionId] = React.useState(initialDivisionId);
+88:  const [source, setSource] = React.useState<AddAthleteSource>('FRIENDS');
+89:  const [search, setSearch] = React.useState('');
+90:  const [rows, setRows] = React.useState<AddAthleteCandidate[]>([]);
+91:  const [nextCursor, setNextCursor] = React.useState<string | null>(null);
+92:  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+93:  const [pageLoading, setPageLoading] = React.useState(false);
+94:  const [candidateError, setCandidateError] = React.useState(false);
+95:  const [submitError, setSubmitError] = React.useState('');
+96:  const candidateRequestId = React.useRef(0);
+97:  const [submitting, setSubmitting] = React.useState(false);
+98:  const [players, setPlayers] = React.useState(() => createPlayers(initialRequiredPlayerCount));
+99:  const [teamName, setTeamName] = React.useState('');
+100:  const [organizerNote, setOrganizerNote] = React.useState('');
+101:  const [handoffLinks, setHandoffLinks] = React.useState<Array<{ guestId: string; url: string }>>([]);
+102:  const selectedDivision = divisions.find((division) => division.id === divisionId);
+103:  const matchType = selectedDivision?.matchType ?? tournament.matchType ?? 'SINGLES';
+104:  const { isTeamSport, requiredPlayerCount, maxPlayerCount, maxReserveCount } =
+105:    getAddAthleteRosterCounts(tournament, matchType);
+106:
+107:  const loadCandidates = React.useCallback(async (cursor?: string, append = false) => {
+108:    if (source === 'DIRECT' || !open) return;
+109:    const requestId = ++candidateRequestId.current;
+110:    setPageLoading(true);
+111:    setCandidateError(false);
+112:    if (!append) {
+113:      setRows([]);
+114:      setNextCursor(null);
+115:    }
+116:    try {
+117:      const response = await tournamentsApi.getAddAthleteCandidates(tournament.id, {
+118:        source,
+119:        divisionId: divisionId || undefined,
+120:        search: search.trim() || undefined,
+121:        cursor,
+122:        limit: 20,
+123:      });
+124:      const payload = response.data?.data ?? response.data;
+125:      if (requestId !== candidateRequestId.current) return;
+126:      setRows((current) => append ? [...current, ...(payload?.rows ?? [])] : (payload?.rows ?? []));
+127:      setNextCursor(payload?.nextCursor ?? null);
+128:    } catch (error) {
+129:      if (requestId !== candidateRequestId.current) return;
+130:      setCandidateError(true);
+131:      toast.error(getErrorMessage(error));
+132:      if (!append) {
+133:        setRows([]);
+134:        setNextCursor(null);
+135:      }
+136:    } finally {
+137:      if (requestId === candidateRequestId.current) setPageLoading(false);
+138:    }
+139:  }, [divisionId, open, search, source, tournament.id]);
+140:
+141:  React.useEffect(() => {
+142:    if (open && source !== 'DIRECT') void loadCandidates();
+143:  }, [loadCandidates, open, source]);
+144:
+145:  React.useEffect(() => {
+146:    if (!open) return;
+147:    setDivisionId(initialDivisionId);
+148:    setSource('FRIENDS');
+149:    setSearch('');
+150:    setSelectedIds([]);
+151:    setPlayers(createPlayers(initialRequiredPlayerCount));
+152:    setTeamName('');
+153:    setOrganizerNote('');
+154:    setCandidateError(false);
+155:    setSubmitError('');
+156:  }, [initialDivisionId, initialRequiredPlayerCount, open]);
+157:
+158:  const switchSource = (value: AddAthleteSource) => {
+159:    setSource(value);
+160:    setSelectedIds([]);
+161:    setRows([]);
+162:    setNextCursor(null);
+163:    setCandidateError(false);
+164:  };
+165:
+166:  const submit = async () => {
+167:    const playerCount = source === 'DIRECT' ? players.length : selectedIds.length;
+168:    if (submitting || requiredPlayerCount === 0 || playerCount < requiredPlayerCount ||
+169:      playerCount > maxPlayerCount || (source === 'DIRECT' && players.some((player) => !player.displayName.trim()))) return;
+170:    setSubmitting(true);
+171:    setSubmitError('');
+172:    try {
+173:      const response = await tournamentsApi.addAthletes(tournament.id, {
+174:        source,
+175:        ...(divisionId ? { divisionId } : {}),
+176:        ...(teamName.trim() ? { teamName: teamName.trim() } : {}),
+177:        players: source === 'DIRECT'
+178:          ? players.map((player, index) => ({
+179:              displayName: player.displayName.trim(),
+180:              ...(player.email.trim() ? { email: player.email.trim() } : {}),
+181:              ...(player.phone.trim() ? { phone: player.phone.trim() } : {}),
+182:              role: rosterRoleForIndex(index, isTeamSport, requiredPlayerCount),
+183:            }))
+184:          : selectedIds.map((userId, index) => ({
+185:              userId,
+186:              role: rosterRoleForIndex(index, isTeamSport, requiredPlayerCount),
+187:            })),
+188:        ...(organizerNote.trim() ? { organizerNote: organizerNote.trim().slice(0, 280) } : {}),
+189:      });
+190:      if (!response.data) throw new Error(t('addFailed'));
+191:      const payload = response.data.data ?? response.data;
+192:      const claimLinks = (payload?.claims ?? []).flatMap((claim) => {
+193:        if (claim.delivery !== 'HANDOFF' || !claim.claimToken) return [];
+194:        return [{
+195:          guestId: claim.guestId,
+196:          url: `${window.location.origin}/tournaments/${encodeURIComponent(tournament.id)}/guest-claim/${encodeURIComponent(claim.guestId)}#token=${encodeURIComponent(claim.claimToken)}`,
+197:        }];
+198:      });
+199:      setHandoffLinks(claimLinks);
+200:      if (claimLinks.length === 0) onOpenChange(false);
+201:      void Promise.resolve(onSuccess()).catch((error) => toast.error(getErrorMessage(error)));
+202:    } catch (error) {
+203:      const message = getErrorMessage(error, t('addFailed'));
+204:      setSubmitError(message);
+205:      toast.error(message);
+206:    } finally {
+207:      setSubmitting(false);
+208:    }
+209:  };
+210:
+211:  const copyHandoffLink = async (url: string) => {
+212:    try {
+213:      await navigator.clipboard.writeText(url);
+214:      toast.success(t('claimLinkCopied'));
+215:    } catch {
+216:      toast.error(t('copyLinkFailed'));
+217:    }
+218:  };
+219:
+220:  const canSubmit = requiredPlayerCount > 0 && (source === 'DIRECT'
+221:    ? players.length >= requiredPlayerCount && players.length <= maxPlayerCount && players.every((player) => player.displayName.trim().length > 0)
+222:    : selectedIds.length >= requiredPlayerCount && selectedIds.length <= maxPlayerCount);
+223:
+224:  return (
+225:    <Modal
+226:      open={open}
+…
+231:    >
+…
+383:    </Modal>
+384:  );
+
+[Showing lines 84-226 of 385. Use :227 to continue]
+
+### region 5 (read, ~2969 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx#A1F6]
+223:
+224:  return (
+225:    <Modal
+226:      open={open}
+227:      onOpenChange={(nextOpen) => {
+228:        if (!nextOpen && (submitting || handoffLinks.length > 0)) return;
+229:        onOpenChange(nextOpen);
+230:      }}
+231:    >
+232:      <ModalContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" aria-describedby="add-athlete-description">
+233:        <ModalHeader>
+234:          <ModalTitle>{handoffLinks.length > 0 ? t('handoffTitle') : t('title')}</ModalTitle>
+235:          <ModalDescription id="add-athlete-description">
+236:            {handoffLinks.length > 0 ? t('claimTokenHandoff') : t('description')}
+237:          </ModalDescription>
+238:        </ModalHeader>
+239:        {handoffLinks.length > 0 ? (
+240:          <section
+241:            role="region"
+242:            aria-live="polite"
+243:            aria-label={t('handoffTitle')}
+244:            className="space-y-4 rounded-md border border-amber-200 bg-amber-50 p-4"
+245:          >
+246:            {handoffLinks.map((handoff, index) => (
+247:              <div key={handoff.guestId}>
+248:                <label
+249:                  htmlFor={`guest-claim-link-${index}`}
+250:                  className="mb-1 block text-sm font-medium"
+251:                >
+252:                  {t('claimLinkLabel', { number: index + 1 })}
+253:                </label>
+254:                <div className="flex flex-col gap-2 sm:flex-row">
+255:                  <Input
+256:                    id={`guest-claim-link-${index}`}
+257:                    readOnly
+258:                    value={handoff.url}
+259:                    onFocus={(event) => event.currentTarget.select()}
+260:                    className="font-mono text-xs"
+261:                  />
+262:                  <Button
+263:                    type="button"
+264:                    onClick={() => void copyHandoffLink(handoff.url)}
+265:                    className="min-h-11 shrink-0"
+266:                  >
+267:                    {t('copyClaimLink')}
+268:                  </Button>
+269:                </div>
+270:              </div>
+271:            ))}
+272:          </section>
+273:        ) : (
+274:        <div className="space-y-4">
+275:          {divisions.length > 1 && <div>
+276:            <label htmlFor="add-athlete-division" className="mb-1 block text-sm font-medium">{t('division')}</label>
+277:            <select id="add-athlete-division" value={divisionId} onChange={(event) => {
+278:              const nextDivisionId = event.target.value;
+279:              const nextDivision = divisions.find((division) => division.id === nextDivisionId);
+280:              const nextMatchType = nextDivision?.matchType ?? tournament.matchType ?? 'SINGLES';
+281:              const nextRosterCounts = getAddAthleteRosterCounts(tournament, nextMatchType);
+282:              setDivisionId(nextDivisionId);
+283:              setSelectedIds([]);
+284:              setPlayers(createPlayers(nextRosterCounts.requiredPlayerCount));
+285:            }} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm">
+286:              {divisions.map((division) => <option key={division.id} value={division.id}>{division.name}</option>)}
+287:            </select>
+288:          </div>}
+289:          <div role="group" aria-label={t('source')} className="flex flex-wrap gap-2">
+290:            {SOURCES.map((option) => <button key={option} type="button" aria-pressed={source === option} onClick={() => switchSource(option)} className={`min-h-11 rounded-md border px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${source === option ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>{t(`source${option}`)}</button>)}
+291:          </div>
+292:          {source !== 'DIRECT' ? <>
+293:            <label className="relative block">
+294:              <span className="sr-only">{t('search')}</span>
+295:              <Search aria-hidden="true" className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+296:              <Input aria-label={t('search')} value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder={t('search')} />
+297:            </label>
+298:            {isTeamSport && requiredPlayerCount > 0 && (
+299:              <p className="text-xs text-slate-500">{t('teamSelectionHint', { required: requiredPlayerCount, reserves: maxReserveCount })}</p>
+300:            )}
+301:            <div aria-live="polite" aria-busy={pageLoading} className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-slate-200 p-2">
+302:              {pageLoading && rows.length === 0 ? (
+303:                <p className="p-4 text-center text-sm text-slate-500"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />{t('loading')}</p>
+304:              ) : candidateError && rows.length === 0 ? (
+305:                <div role="alert" className="p-4 text-center text-sm text-rose-700"><p>{t('loadCandidatesFailed')}</p><Button type="button" variant="outline" size="sm" className="mt-3 min-h-11" disabled={pageLoading} onClick={() => void loadCandidates()}>{t('retry')}</Button></div>
+306:              ) : rows.length === 0 ? (
+307:                <p className="p-4 text-center text-sm text-slate-500">{t('empty')}</p>
+308:              ) : rows.map((candidate) => {
+309:                const selectionIndex = selectedIds.indexOf(candidate.userId);
+310:                const selectedRole = selectionIndex >= 0
+311:                  ? rosterRoleForIndex(selectionIndex, isTeamSport, requiredPlayerCount)
+312:                  : null;
+313:                return (
+314:                  <label key={candidate.userId} className="flex cursor-pointer items-center gap-3 rounded-md p-2 hover:bg-slate-50">
+315:                    <input type="checkbox" checked={selectionIndex >= 0} disabled={selectionIndex < 0 && selectedIds.length >= maxPlayerCount} onChange={() => setSelectedIds((current) => current.includes(candidate.userId) ? current.filter((id) => id !== candidate.userId) : [...current, candidate.userId])} />
+316:                    {candidate.avatarUrl ? <img src={candidate.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span aria-hidden="true" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">{candidate.displayName.trim().split(/\s+/).map((part) => part[0]).slice(-2).join('').toUpperCase()}</span>}
+317:                    <span className="text-sm font-medium">{candidate.displayName}</span>
+318:                    {selectedRole && <span className="ml-auto text-xs font-medium text-slate-600">{t(roleTranslationKey(selectedRole))}</span>}
+319:                  </label>
+320:                );
+321:              })}
+322:              {candidateError && rows.length > 0 && <div role="alert" className="flex items-center justify-between gap-2 p-2 text-sm text-rose-700"><span>{t('loadCandidatesFailed')}</span><Button type="button" variant="outline" size="sm" className="min-h-11" disabled={pageLoading} onClick={() => void loadCandidates(nextCursor ?? undefined, Boolean(nextCursor))}>{t('retry')}</Button></div>}
+323:              {nextCursor && <Button type="button" variant="outline" size="sm" disabled={pageLoading} onClick={() => void loadCandidates(nextCursor, true)} className="min-h-11 w-full">{pageLoading ? t('loadingMore') : t('nextPage')}</Button>}
+324:            </div>
+325:            <p className="text-xs text-slate-500">{isTeamSport
+326:              ? t('selectedTeamCount', { selected: selectedIds.length, required: requiredPlayerCount, reserves: maxReserveCount })
+327:              : t('selectedCount', { selected: selectedIds.length, required: requiredPlayerCount })}</p>
+328:          </> : <>
+329:            {players.map((player, index) => {
+330:              const role = rosterRoleForIndex(index, isTeamSport, requiredPlayerCount);
+331:              return (
+332:                <div key={index} className="rounded-md border border-slate-200 p-3">
+333:                  <p className="mb-2 text-xs font-semibold text-slate-600">{t(roleTranslationKey(role))}</p>
+334:                  <div className="grid gap-3 sm:grid-cols-3">
+335:                    <div><label htmlFor={`add-athlete-name-${index}`} className="mb-1 block text-sm font-medium">{t('name')} <span aria-hidden="true">*</span></label><Input id={`add-athlete-name-${index}`} required value={player.displayName} onChange={(event) => setPlayers((current) => current.map((item, i) => i === index ? { ...item, displayName: event.target.value } : item))} /></div>
+336:                    <div><label htmlFor={`add-athlete-email-${index}`} className="mb-1 block text-sm font-medium">{t('email')}</label><Input id={`add-athlete-email-${index}`} type="email" value={player.email} onChange={(event) => setPlayers((current) => current.map((item, i) => i === index ? { ...item, email: event.target.value } : item))} /></div>
+337:                    <div><label htmlFor={`add-athlete-phone-${index}`} className="mb-1 block text-sm font-medium">{t('phone')}</label><Input id={`add-athlete-phone-${index}`} type="tel" value={player.phone} onChange={(event) => setPlayers((current) => current.map((item, i) => i === index ? { ...item, phone: event.target.value } : item))} /></div>
+338:                  </div>
+339:                </div>
+340:              );
+341:            })}
+342:            <div className="flex flex-wrap gap-2">
+343:              {requiredPlayerCount > 0 && players.length > requiredPlayerCount && <Button type="button" variant="outline" onClick={() => setPlayers((current) => current.length > requiredPlayerCount ? current.slice(0, -1) : current)} className="min-h-11">{t('removePlayer')}</Button>}
+344:              {players.length < maxPlayerCount && (
+345:                <Button type="button" variant="outline" onClick={() => setPlayers((current) => current.length < maxPlayerCount ? [...current, { displayName: '', email: '', phone: '' }] : current)} className="min-h-11">{isTeamSport ? t('addReserve') : t('addPlayer')}</Button>
+346:              )}
+347:            </div>
+348:          </>}
+349:          <div><label htmlFor="add-athlete-team-name" className="mb-1 block text-sm font-medium">{t('teamName')}</label><Input id="add-athlete-team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} /></div>
+350:          <div><label htmlFor="add-athlete-organizer-note" className="mb-1 block text-sm font-medium">{t('organizerNote')}</label><Textarea id="add-athlete-organizer-note" maxLength={280} rows={3} value={organizerNote} onChange={(event) => setOrganizerNote(event.target.value)} /><p className="mt-1 text-right text-xs text-slate-500">{organizerNote.length}/280</p></div>
+351:          {submitError && <p role="alert" aria-live="polite" className="text-sm text-rose-700">{submitError}</p>}
+352:          <p role="status" aria-live="polite" className="sr-only">{submitting ? t('submitting') : pageLoading ? t('loading') : ''}</p>
+353:        </div>
+354:        )}
+355:        <ModalFooter>
+356:          {handoffLinks.length > 0 ? (
+357:            <Button
+358:              type="button"
+359:              onClick={() => {
+360:                setHandoffLinks([]);
+361:                onOpenChange(false);
+362:              }}
+363:            >
+364:              {t('finishHandoff')}
+365:            </Button>
+366:          ) : (
+367:            <>
+368:              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>{t('cancel')}</Button>
+…
+379:            </>
+380:          )}
+381:        </ModalFooter>
+382:      </ModalContent>
+383:    </Modal>
+384:  );
+
+[Showing lines 223-368 of 385. Use :369 to continue]
+
+### region 6 (read, ~514 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx#8CFC]
+1103:                  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200/80 pb-3">
+1104:                    <div>
+1105:                      <div className="flex items-center gap-2">
+…
+1107:                        <h3 className="text-base font-bold text-slate-900">{selectedDisplayName}</h3>
+1108:                      </div>
+1109:                      <p className="mt-1 text-xs text-slate-500">{selectedDivisionName || registrationTranslate('unassignedDivision')} · {formatDate(selectedParticipant.registeredAt)}</p>
+1110:                    </div>
+1111:                    <div className="flex flex-wrap gap-2 text-xs font-bold">
+1112:                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">{getParticipantStatusLabel(selectedParticipant.teamStatus, participantStatusLabels)}</span>
+1113:                      {selectedParticipantFee > 0 && (
+1114:                        <span className={`rounded-full border px-2.5 py-1 ${selectedParticipant.isPaid ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+1115:                          {selectedParticipant.isPaid ? registrationTranslate('paidStatusDetail') : registrationTranslate('unpaidStatusDetail')}
+1116:                        </span>
+1117:                      )}
+1118:                    </div>
+1119:                  </div>
+1120:
+1121:                  {/* Danh sách thành viên (Hiển thị rõ ràng Leader / Người đăng ký & Partner) */}
+1122:                  <div className="mt-3 space-y-2">
+1123:                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+1124:                      {selectedIsPair ? registrationTranslate('pairMembersHeading') : registrationTranslate('membersHeading')}
+1125:                    </p>
+…
+1181:                  </div>
+
+[Showing lines 1107-1125 of 1505. Use :1126 to continue]
+
+### region 7 (read, ~1477 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#473E]
+1:import { expect, test } from '@playwright/test';
+2:import { fulfillApi, openManage, tournamentId } from './support/organizer-manage';
+3:
+4:const divisionId = 'synthetic-wide-division';
+5:
+6:test('organizer keeps a one-time guest handoff link available until finishing', async ({ page }) => {
+7:  let addRequest: Record<string, unknown> | undefined;
+8:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+9:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+10:  });
+11:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+12:    addRequest = route.request().postDataJSON();
+13:    await fulfillApi(route, {
+14:      data: {
+15:        participant: { id: 'new-participant' },
+16:        claims: [{ guestId: 'guest-1', delivery: 'HANDOFF', claimToken: 'one-time-secret' }],
+17:      },
+18:    }, 201);
+19:  });
+20:  await openManage(page, { tab: 'registration' });
+21:
+22:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+23:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+24:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+25:  await dialog.getByLabel('Tên VĐV').fill('Guest Athlete');
+26:  await dialog.getByLabel('Ghi chú ban tổ chức').fill('Arrives late');
+27:  await dialog.getByRole('button', { name: 'Thêm vào giải' }).click();
+28:
+29:  await expect.poll(() => addRequest).toEqual({
+30:    source: 'DIRECT',
+31:    divisionId,
+32:    players: [{ displayName: 'Guest Athlete', role: 'MAIN' }],
+33:    organizerNote: 'Arrives late',
+34:  });
+35:  const handoffUrl =
+36:    `${new URL(page.url()).origin}/tournaments/${tournamentId}/guest-claim/guest-1#token=one-time-secret`;
+37:  const claimLink = dialog.getByLabel('Liên kết nhận suất một lần 1');
+38:  await expect(claimLink).toHaveValue(handoffUrl);
+39:  expect(new URL(handoffUrl).search).toBe('');
+40:
+41:  await page.keyboard.press('Escape');
+42:  await expect(dialog).toBeVisible();
+43:  await expect(claimLink).toHaveValue(handoffUrl);
+44:  await dialog.getByRole('button', { name: 'Đã chia sẻ xong' }).click();
+45:  await expect(dialog).toBeHidden();
+46:});
+47:
+48:test('organizer can add a directly entered athlete without a division', async ({ page }) => {
+49:  let addRequest: Record<string, unknown> | undefined;
+50:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+51:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+52:  });
+53:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+54:    addRequest = route.request().postDataJSON();
+55:    await fulfillApi(route, {
+56:      data: { participant: { id: 'single-athlete-participant' }, claims: [] },
+57:    }, 201);
+58:  });
+59:  await openManage(page, { tab: 'registration', divisions: [] });
+60:
+61:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+62:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+63:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+64:  await dialog.getByLabel('Tên VĐV').fill('No-division athlete');
+65:  await expect(dialog.getByRole('button', { name: 'Thêm vào danh sách' })).toBeEnabled();
+66:  await dialog.getByRole('button', { name: 'Thêm vào danh sách' }).click();
+67:
+68:  await expect.poll(() => addRequest).toEqual({
+69:    source: 'DIRECT',
+70:    players: [{ displayName: 'No-division athlete', role: 'MAIN' }],
+71:  });
+72:});
+73:
+74:test('organizer can add a football squad with required starters and optional reserves', async ({ page }) => {
+75:  let addRequest: Record<string, unknown> | undefined;
+76:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+77:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+78:  });
+79:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+80:    addRequest = route.request().postDataJSON();
+81:    await fulfillApi(route, { data: { participant: { id: 'football-participant' }, claims: [] } }, 201);
+82:  });
+83:  await openManage(page, {
+84:    tab: 'registration',
+85:    tournamentConfig: { teamSize: 5, maxReserve: 2, maxTeamSize: 6 },
+86:  });
+87:
+88:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+89:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+90:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+…
+114:});
+…
+211:test('shows a neutral error and clears a rejected claim token', async ({ page }) => {
+212:  const claimToken = 'rejected-one-time-secret';
+213:  await openManage(page);
+214:  await page.route(`**/api/v1/tournaments/${tournamentId}/guest-rosters/guest-1/claim`, async (route) => {
+215:    await fulfillApi(route, { message: 'email mismatch' }, 403);
+216:  });
+217:  await page.goto(
+218:    `/tournaments/${tournamentId}/guest-claim/guest-1#token=${claimToken}`,
+219:    { waitUntil: 'domcontentloaded' },
+220:  );
+221:
+222:  await expect(
+223:    page.getByRole('heading', { name: 'Không thể nhận vị trí thi đấu' }),
+224:  ).toBeVisible();
+225:  await expect(page.getByRole('alert')).toContainText('Liên kết không hợp lệ');
+226:  expect(new URL(page.url()).hash).toBe('');
+227:  expect(new URL(page.url()).search).not.toContain(claimToken);
+228:});
+229:
+230:test('does not show payment status without a positive fee snapshot', async ({ page }) => {
+231:  await openManage(page, { tab: 'registration' });
+232:  await page.getByRole('button', { name: 'Wide overlay entrant', exact: true }).click();
+233:
+234:  const detail = page.getByRole('dialog');
+235:  await expect(detail.getByText('Đã thanh toán', { exact: true })).toHaveCount(0);
+…
+237:});
+
+### region 8 (read, ~1038 tok)
+
+Note: interpreted as 2 paths: web/messages/vi.json:5368-5392, web/messages/en.json:5355-5380
+
+[web/messages/vi.json#C030]
+5346:  "AddAthlete": {
+…
+5367:    "name": "Tên VĐV",
+5368:    "email": "Email (không bắt buộc)",
+5369:    "phone": "Điện thoại (không bắt buộc)",
+5370:    "addPlayer": "Thêm người chơi",
+5371:    "addReserve": "Thêm VĐV dự bị",
+5372:    "removePlayer": "Xóa người chơi cuối",
+5373:    "teamName": "Tên đội hoặc cặp (không bắt buộc)",
+5374:    "organizerNote": "Ghi chú của BTC (không bắt buộc, tối đa 280 ký tự)",
+5375:    "claimTokenHandoff": "Liên kết dùng một lần này chứa mã bí mật để nhận VĐV. Chỉ chia sẻ với đúng VĐV được mời; người có mã có thể thử nhận vị trí này.",
+5376:    "handoffTitle": "Chia sẻ liên kết nhận suất một lần",
+5377:    "claimLinkLabel": "Liên kết nhận suất một lần {number}",
+5378:    "copyClaimLink": "Sao chép liên kết",
+5379:    "claimLinkCopied": "Đã sao chép liên kết nhận suất.",
+5380:    "copyLinkFailed": "Không thể sao chép. Hãy chọn và sao chép liên kết hiển thị.",
+5381:    "finishHandoff": "Đã chia sẻ xong",
+5382:    "addSuccess": "Đã thêm VĐV vào danh sách.",
+5383:    "addFailed": "Không thể thêm VĐV. Vui lòng thử lại.",
+5384:    "cancel": "Hủy",
+5385:    "submit": "Thêm vào danh sách",
+5386:    "submitting": "Đang thêm…"
+5387:  },
+5388:  "GuestClaim": {
+5389:    "loading": "Đang kiểm tra trạng thái đăng nhập…",
+5390:    "processing": "Đang nhận vị trí trong danh sách giải đấu…",
+5391:    "loginTitle": "Đăng nhập để nhận vị trí thi đấu",
+5392:    "loginDescription": "Hãy đăng nhập bằng tài khoản đã xác minh sẽ sở hữu vị trí này.",
+5393:    "fragmentReminder": "Giữ trang này mở trong khi đăng nhập ở tab mới. Sau đó quay lại đây và tải lại trang để dùng liên kết một lần đang nằm trong fragment.",
+5394:    "login": "Đăng nhập",
+5395:    "verificationRequired": "Hãy xác minh tài khoản trước khi nhận vị trí thi đấu. Liên kết dùng một lần vẫn còn trên trang này.",
+…
+5402:  },
+
+[Showing lines 5367-5395 of 9497. Use :5396 to continue]
+
+[web/messages/en.json#A089]
+5354:    "search": "Search by name",
+5355:    "loading": "Loading candidates…",
+5356:    "loadingMore": "Loading…",
+5357:    "loadCandidatesFailed": "Could not load candidates. Try again.",
+5358:    "retry": "Retry",
+5359:    "empty": "No candidates available.",
+5360:    "selectedCount": "{selected} of {required} athletes selected",
+5361:    "selectedTeamCount": "{selected} selected · {required} starters required · up to {reserves} substitutes",
+5362:    "teamSelectionHint": "Select {required} starters first. You may add up to {reserves} substitutes afterward.",
+5363:    "roleMain": "Main player",
+5364:    "rolePartner": "Partner",
+5365:    "roleReserve": "Substitute",
+5366:    "nextPage": "Load more",
+5367:    "name": "Athlete name",
+5368:    "email": "Email (optional)",
+5369:    "phone": "Phone (optional)",
+5370:    "addPlayer": "Add player",
+5371:    "addReserve": "Add substitute",
+5372:    "removePlayer": "Remove last player",
+5373:    "teamName": "Team or pair name (optional)",
+5374:    "organizerNote": "Organizer note (optional, up to 280 characters)",
+5375:    "claimTokenHandoff": "This one-time link contains a secret claim token. Share it only with the intended athlete; anyone who has it may attempt to claim the slot.",
+5376:    "handoffTitle": "Share the athlete's one-time claim link",
+5377:    "claimLinkLabel": "One-time claim link {number}",
+5378:    "copyClaimLink": "Copy link",
+5379:    "claimLinkCopied": "Claim link copied.",
+5380:    "copyLinkFailed": "Could not copy the link. Select and copy it manually.",
+5381:    "finishHandoff": "Finish sharing",
+5382:    "addSuccess": "Athlete added to the roster.",
+5383:    "addFailed": "Could not add athlete. Please try again.",
+
+[Showing lines 5354-5383 of 9493. Use :5384 to continue]
+
+### region 9 (edit, ~79 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#CE10]
+21:
+22:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+23:  const dialog = page.getByRole('dialog');
+24:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+25:  await dialog.getByLabel('Tên VĐV').fill('Guest Athlete');
+
+### region 10 (bash, ~844 tok)
+
+FAIL src/modules/tournaments/services/tournament-capacity.service.spec.ts
+  ● batched capacity reads › reads every division in one aggregate pass
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      495 |     expect(snapshots['division-2'].occupiedTeamSlots).toBe(1);
+      496 |     // Two owner queries + one aggregate, never one per division.
+    > 497 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      498 |   });
+      499 |
+      500 |   it('reads a page of tournaments in one aggregate pass', async () => {
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:497:22)
+
+  ● batched capacity reads › reads a page of tournaments in one aggregate pass
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      532 |     expect(snapshots['tournament-1'].isFull).toBe(false);
+      533 |     expect(snapshots['tournament-2'].isFull).toBe(true);
+    > 534 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      535 |   });
+      536 | });
+      537 |
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:534:22)
+
+  ● readEffectiveCapacity › keeps the division limit when the division sets one
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      822 |     expect(capacity.maxTeamSlots).toBe(4);
+      823 |     expect(capacity.occupiedTeamSlots).toBe(1);
+    > 824 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      825 |   });
+      826 |
+      827 |   it('falls back to the tournament limit with tournament-wide occupancy', async () => {
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:824:22)
+
+  ● readEffectiveCapacity › leaves the division uncapped when neither scope sets a limit
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 3
+    Received number of calls: 4
+
+      911 |     // The division owner, its parent (which sets no limit either), then the
+      912 |     // division's own occupancy — still no per-division fan-out.
+    > 913 |     expect(dbSelect).toHaveBeenCalledTimes(3);
+          |                      ^
+      914 |   });
+      915 | });
+      916 |
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:913:22)
+
+Test Suites: 1 failed, 7 passed, 8 total
+Tests:       4 failed, 138 passed, 142 total
+Snapshots:   0 total
+Time:        2.366 s, estimated 7 s
+Ran all test suites matching src/modules/matches/matches.repository.ranking-consent.spec.ts|src/modules/rankings/ranking-consent-gate.spec.ts|src/modules/rankings/recalculate-elo-consent.spec.ts|src/modules/tournaments/services/tournament-participant-admin.service.spec.ts|src/modules/tournaments/services/tournament-capacity.service.spec.ts|src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts|src/modules/tournaments/services/ranking-consent.service.spec.ts|src/modules/tournaments/tournaments-lite-pairing.spec.ts.
+[raw output: artifact://123]
+
+
+Wall time: 2.83 seconds
+
+Command exited with code 1
+
+### region 11 (read, ~1380 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+84:@Injectable()
+85:export class TournamentCapacityService {
+…
+94:
+95:  /** Batched occupancy for every division; avoids one read per division. */
+96:  async getDivisionCapacities(
+97:    tournamentId: string,
+98:    options?: { executor?: AppDbOrTx },
+99:  ): Promise<CapacityByScopeId> {
+100:    return readDivisionCapacities(options?.executor ?? this.db, tournamentId);
+101:  }
+102:
+103:  async getTournamentCapacity(
+104:    tournamentId: string,
+105:    options?: { executor?: AppDbOrTx },
+106:  ): Promise<TournamentCapacitySnapshot> {
+107:    return readTournamentCapacity(options?.executor ?? this.db, tournamentId);
+108:  }
+109:
+110:  /** Batched occupancy for a page of tournaments; avoids one read per item. */
+111:  async getTournamentCapacities(
+112:    tournamentIds: readonly string[],
+113:    options?: { executor?: AppDbOrTx },
+114:  ): Promise<CapacityByScopeId> {
+115:    return readTournamentCapacities(
+116:      options?.executor ?? this.db,
+117:      tournamentIds,
+118:    );
+119:  }
+120:}
+121:
+122:const EMPTY_CAPACITY: TournamentCapacitySnapshot = {
+123:  occupiedTeamSlots: 0,
+124:  occupiedMemberSlots: 0,
+125:  maxTeamSlots: null,
+126:  isFull: false,
+127:};
+128:
+129:/** A row that owns a capacity limit, plus the config that picks the unit. */
+130:interface CapacityOwnerRow {
+131:  id: string;
+132:  tournamentId: string | null;
+133:  matchType: string | null;
+134:  maxParticipants: number | null;
+135:  tournamentConfig: unknown;
+136:}
+137:
+138:/**
+139: * Serialize a capacity claim on the rows that own the limit.
+140: *
+141: * Two concurrent claims would otherwise both read the same free slot and both
+142: * write, overfilling the division. Lock order is always tournament -> division
+143: * and callers take these locks before any participant row, so two capacity
+144: * paths can never deadlock against each other.
+145: */
+146:export async function lockCapacityOwner(
+147:  executor: AppDbOrTx,
+148:  scope: { tournamentId: string; divisionId?: string | null },
+149:): Promise<void> {
+150:  await executor
+151:    .select({ id: schema.tournaments.id })
+152:    .from(schema.tournaments)
+153:    .where(eq(schema.tournaments.id, scope.tournamentId))
+154:    .for('update')
+155:    .limit(1);
+156:
+157:  if (!scope.divisionId) return;
+158:
+159:  await executor
+160:    .select({ id: schema.tournamentDivisions.id })
+161:    .from(schema.tournamentDivisions)
+162:    .where(eq(schema.tournamentDivisions.id, scope.divisionId))
+163:    .for('update')
+164:    .limit(1);
+165:}
+166:
+167:async function selectDivisionOwners(
+168:  executor: AppDbOrTx,
+169:  scope: {
+170:    divisionIds?: readonly string[];
+171:    divisionId?: string;
+172:    tournamentId?: string;
+173:  },
+174:): Promise<CapacityOwnerRow[]> {
+175:  return await executor
+176:    .select({
+177:      id: schema.tournamentDivisions.id,
+178:      tournamentId: schema.tournamentDivisions.tournamentId,
+179:      matchType: schema.tournamentDivisions.matchType,
+180:      maxParticipants: schema.tournamentDivisions.maxParticipants,
+181:      tournamentConfig: schema.tournaments.tournamentConfig,
+182:    })
+183:    .from(schema.tournamentDivisions)
+184:    .innerJoin(
+185:      schema.tournaments,
+186:      eq(schema.tournaments.id, schema.tournamentDivisions.tournamentId),
+187:    )
+188:    .where(
+189:      scope.divisionIds !== undefined
+190:        ? inArray(schema.tournamentDivisions.id, [...scope.divisionIds])
+191:        : scope.divisionId
+192:          ? eq(schema.tournamentDivisions.id, scope.divisionId)
+193:          : eq(
+194:              schema.tournamentDivisions.tournamentId,
+195:              scope.tournamentId ?? '',
+196:            ),
+197:    );
+198:}
+199:
+200:/**
+201: * Division occupancy read inside an existing transaction or on the pool.
+202: *
+203: * Single and batch reads share {@link readCapacitiesForDivisionOwners} so a
+204: * division can never project one capacity here and another there.
+205: */
+206:export async function readDivisionCapacity(
+207:  executor: AppDbOrTx,
+208:  divisionId: string,
+209:): Promise<TournamentCapacitySnapshot> {
+210:  const [division] = await selectDivisionOwners(executor, { divisionId });
+211:  if (!division) return EMPTY_CAPACITY;
+212:
+213:  const snapshots = await readCapacitiesForDivisionOwners(executor, [division]);
+214:  return snapshots[divisionId] ?? EMPTY_CAPACITY;
+215:}
+216:
+217:/**
+218: * Occupancy for every division of a tournament in a fixed number of queries, so
+219: * a public projection never fans out into one capacity read per division.
+220: */
+221:export async function readDivisionCapacities(
+222:  executor: AppDbOrTx,
+223:  tournamentId: string,
+224:): Promise<CapacityByScopeId> {
+225:  return readCapacitiesForDivisionOwners(
+226:    executor,
+227:    await selectDivisionOwners(executor, { tournamentId }),
+228:  );
+229:}
+230:
+231:/**
+232: * Occupancy for an explicit set of divisions. Read models that already hold
+233: * division rows (catalog cards, community posts) use this so they never fan
+234: * out into one capacity read per division.
+235: */
+236:export async function readCapacitiesForDivisions(
+237:  executor: AppDbOrTx,
+238:  divisionIds: readonly string[],
+239:): Promise<CapacityByScopeId> {
+240:  const ids = [...new Set(divisionIds.filter(Boolean))];
+241:  if (ids.length === 0) return {};
+242:
+243:  return readCapacitiesForDivisionOwners(
+…
+246:  );
+247:}
+
+[Showing lines 94-243 of 616. Use :244 to continue]
+
+### region 12 (read, ~1242 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.spec.ts#571D]
+468:describe('batched capacity reads', () => {
+469:  it('reads every division in one aggregate pass', async () => {
+470:    const db = createDb({
+471:      divisions: [
+472:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+473:        { id: 'division-2', matchType: 'SINGLES', maxParticipants: 8 },
+474:      ],
+475:      participants: [
+476:        {
+477:          scopeId: 'division-1',
+478:          teamStatus: 'PENDING_APPROVAL',
+479:          rosterMemberCount: 1,
+480:          customResponses: null,
+481:        },
+482:        {
+483:          scopeId: 'division-2',
+484:          teamStatus: 'COMPLETE',
+485:          rosterMemberCount: 1,
+486:          customResponses: null,
+487:        },
+488:      ],
+489:    });
+490:    const dbSelect = (db as unknown as { select: jest.Mock }).select;
+491:
+492:    const snapshots = await service(db).getDivisionCapacities('tournament-1');
+493:
+494:    expect(snapshots['division-1'].occupiedTeamSlots).toBe(0.5);
+495:    expect(snapshots['division-2'].occupiedTeamSlots).toBe(1);
+496:    // Two owner queries + one aggregate, never one per division.
+497:    expect(dbSelect).toHaveBeenCalledTimes(2);
+498:  });
+499:
+500:  it('reads a page of tournaments in one aggregate pass', async () => {
+501:    const db = createDb({
+502:      tournaments: [
+503:        {
+504:          id: 'tournament-1',
+505:          matchType: 'DOUBLES',
+506:          maxParticipants: 4,
+507:        },
+508:        { id: 'tournament-2', matchType: 'DOUBLES', maxParticipants: 2 },
+509:      ],
+510:      participants: [
+511:        {
+512:          scopeId: 'tournament-1',
+513:          teamStatus: 'PENDING_APPROVAL',
+514:          rosterMemberCount: 1,
+515:          customResponses: null,
+516:        },
+517:        ...Array.from({ length: 4 }, () => ({
+518:          scopeId: 'tournament-2',
+519:          teamStatus: 'COMPLETE',
+520:          rosterMemberCount: 1,
+521:          customResponses: null,
+522:        })),
+523:      ],
+524:    });
+525:    const dbSelect = (db as unknown as { select: jest.Mock }).select;
+526:
+527:    const snapshots = await service(db).getTournamentCapacities([
+528:      'tournament-1',
+529:      'tournament-2',
+530:    ]);
+531:
+532:    expect(snapshots['tournament-1'].isFull).toBe(false);
+533:    expect(snapshots['tournament-2'].isFull).toBe(true);
+534:    expect(dbSelect).toHaveBeenCalledTimes(2);
+535:  });
+536:});
+537:
+538:describe('effective division capacity projections', () => {
+539:  it('inherits the parent limit and parent-wide occupancy when local cap is absent', async () => {
+540:    const db = createDb({
+…
+575:    });
+…
+596:  });
+597:});
+…
+785:describe('readEffectiveCapacity', () => {
+786:  it('keeps the division limit when the division sets one', async () => {
+…
+789:    const db = createDb({
+…
+798:      tournaments: [
+799:        {
+800:          id: 'tournament-1',
+801:          matchType: 'DOUBLES',
+802:          maxParticipants: 2,
+803:          tournamentConfig: null,
+804:        },
+805:      ],
+806:      participants: [
+807:        {
+808:          scopeId: 'division-1',
+809:          teamStatus: 'COMPLETE',
+810:          rosterMemberCount: 2,
+811:          customResponses: null,
+812:        },
+813:      ],
+814:    });
+815:    const dbSelect = (db as unknown as { select: jest.Mock }).select;
+816:
+817:    const capacity = await readEffectiveCapacity(db, {
+818:      tournamentId: 'tournament-1',
+819:      divisionId: 'division-1',
+820:    });
+821:
+822:    expect(capacity.maxTeamSlots).toBe(4);
+823:    expect(capacity.occupiedTeamSlots).toBe(1);
+824:    expect(dbSelect).toHaveBeenCalledTimes(2);
+825:  });
+826:
+827:  it('falls back to the tournament limit with tournament-wide occupancy', async () => {
+828:    const db = createDb({
+829:      divisions: [
+830:        {
+…
+835:        },
+836:      ],
+…
+863:    });
+…
+873:  });
+…
+875:  it('leaves the division uncapped when neither scope sets a limit', async () => {
+876:    const db = createDb({
+…
+885:      tournaments: [
+886:        {
+…
+890:          tournamentConfig: null,
+891:        },
+892:      ],
+893:      participants: [
+894:        {
+895:          scopeId: 'division-1',
+896:          teamStatus: 'COMPLETE',
+897:          rosterMemberCount: 2,
+898:          customResponses: null,
+899:        },
+900:      ],
+901:    });
+902:    const dbSelect = (db as unknown as { select: jest.Mock }).select;
+903:
+904:    const capacity = await readEffectiveCapacity(db, {
+905:      tournamentId: 'tournament-1',
+906:      divisionId: 'division-1',
+907:    });
+908:
+909:    expect(capacity.maxTeamSlots).toBeNull();
+910:    expect(capacity.occupiedTeamSlots).toBe(1);
+911:    // The division owner, its parent (which sets no limit either), then the
+912:    // division's own occupancy — still no per-division fan-out.
+913:    expect(dbSelect).toHaveBeenCalledTimes(3);
+914:  });
+915:});
+
+### region 13 (edit, ~400 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.spec.ts#9DBB]
+467:
+468:describe('batched capacity reads', () => {
+469:  it('reads every division without per-division fan-out', async () => {
+470:    const db = createDb({
+471:      divisions: [
+
+474:      ],
+
+489:    });
+
+494:    expect(snapshots['division-1'].occupiedTeamSlots).toBe(0.5);
+495:    expect(snapshots['division-2'].occupiedTeamSlots).toBe(1);
+496:    // One owner query and separate participant and guest aggregates; no per-division fan-out.
+497:    expect(dbSelect).toHaveBeenCalledTimes(3);
+498:  });
+499:
+500:  it('reads a page of tournaments without per-item fan-out', async () => {
+501:    const db = createDb({
+502:      tournaments: [
+
+509:      ],
+
+524:    });
+
+532:    expect(snapshots['tournament-1'].isFull).toBe(false);
+533:    expect(snapshots['tournament-2'].isFull).toBe(true);
+534:    expect(dbSelect).toHaveBeenCalledTimes(3);
+535:  });
+536:});
+
+785:describe('readEffectiveCapacity', () => {
+786:  it('keeps the division limit when the division sets one', async () => {
+
+822:    expect(capacity.maxTeamSlots).toBe(4);
+823:    expect(capacity.occupiedTeamSlots).toBe(1);
+824:    expect(dbSelect).toHaveBeenCalledTimes(3);
+825:  });
+826:
+
+875:  it('leaves the division uncapped when neither scope sets a limit', async () => {
+
+909:    expect(capacity.maxTeamSlots).toBeNull();
+910:    expect(capacity.occupiedTeamSlots).toBe(1);
+911:    // Two owner queries and separate participant and guest aggregates; no per-division fan-out.
+912:    expect(dbSelect).toHaveBeenCalledTimes(4);
+913:  });
+914:});
+
+### region 14 (bash, ~62 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       34 passed, 34 total
+Snapshots:   0 total
+Time:        0.935 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/tournament-capacity.service.spec.ts.
+
+
+Wall time: 1.38 seconds
+
+### region 15 (write, ~1255 tok)
+
+{"pattern":"rankingConsent","root":"/home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/src/app/(public)","files":5,"total":40,"shown":40,"capped":false,"hits_capped":false,"next":"--at='communities/[id]/components/CommunityTournamentRosterWidget.tsx:79'","suppressed_string":15,"tier_parsed":5,"tier_unclassified":0,"unindexed_hits":0,"unindexed_files_scanned":0,"order":"SOURCE files before test/bench files before docs, then path and line","hits":[{"file":"communities/[id]/components/CommunityTournamentRosterWidget.tsx","line":79,"in":"CommunityTournamentRosterWidget"},{"file":"communities/[id]/components/CommunityTournamentRosterWidget.tsx","line":279,"in":"handleJoin"},{"file":"communities/[id]/components/CommunityTournamentRosterWidget.tsx","line":279,"in":"handleJoin"},{"file":"communities/[id]/components/CommunityTournamentRosterWidget.tsx","line":283,"in":"handleJoin"},{"file":"communities/[id]/components/CommunityTournamentRosterWidget.tsx","line":461,"in":"CommunityTournamentRosterWidget"},{"file":"tournaments/[id]/components/RegisterModal.tsx","line":30,"in":"RegisterModal"},{"file":"tournaments/[id]/components/RegisterModal.tsx","line":48,"in":"handleRegisterSubmit"},{"file":"tournaments/[id]/components/RegisterModal.tsx","line":50,"in":"handleRegisterSubmit"},{"file":"tournaments/[id]/components/RegisterModal.tsx","line":50,"in":"handleRegisterSubmit"},{"file":"tournaments/[id]/components/RegisterModal.tsx","line":134,"in":"RegisterModal"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":42,"in":"Props"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":134,"in":"DoublesRegistrationFlow"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":437,"in":"handleCreateTeam"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":437,"in":"handleCreateTeam"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":477,"in":"handleCreateTeam"},{"file":"tournaments/[id]/register/components/DoublesRegistrationFlow.tsx","line":881,"in":"DoublesRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":30,"in":"Props"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":32,"in":"Props"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":33,"in":"Props"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":37,"in":"Props"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":43,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":43,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":43,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":153,"in":"submit"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":153,"in":"submit"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":168,"in":"submit"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":242,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":246,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":251,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":252,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/components/TeamRegistrationFlow.tsx","line":252,"in":"TeamRegistrationFlow"},{"file":"tournaments/[id]/register/page.tsx","line":197,"in":"TournamentRegisterPage"},{"file":"tournaments/[id]/register/page.tsx","line":564,"in":"onSubmitSingles"},{"file":"tournaments/[id]/register/page.tsx","line":564,"in":"onSubmitSingles"},{"file":"tournaments/[id]/register/page.tsx","line":569,"in":"onSubmitSingles"},{"file":"tournaments/[id]/register/page.tsx","line":1186,"in":"TournamentRegisterPage"},{"file":"tournaments/[id]/register/page.tsx","line":1186,"in":"TournamentRegisterPage"},{"file":"tournaments/[id]/register/page.tsx","line":1188,"in":"TournamentRegisterPage"},{"file":"tournaments/[id]/register/page.tsx","line":1189,"in":"TournamentRegisterPage"},{"file":"tournaments/[id]/register/page.tsx","line":1350,"in":"TournamentRegisterPage"}],"enclosing":[{"n":"CommunityTournamentRosterWidget","callers":1,"cx":109},{"n":"handleJoin","callers":0,"cx":24},{"n":"RegisterModal","callers":1,"cx":21},{"n":"handleRegisterSubmit","callers":0,"cx":15},{"n":"Props","callers":0,"defs":2},{"n":"DoublesRegistrationFlow","callers":1,"cx":253},{"n":"handleCreateTeam","callers":0,"cx":35},{"n":"TeamRegistrationFlow","callers":1,"cx":81},{"n":"submit","callers":0,"cx":18},{"n":"TournamentRegisterPage","callers":0,"cx":259},{"n":"onSubmitSingles","callers":0,"cx":29}]}
+
+### region 16 (read, ~1023 tok)
+
+[web/src/app/(public)/communities/[id]/components/CommunityTournamentRosterWidget.tsx#31E0]
+72:  const { user } = useAuthStore();
+73:
+74:  const [tournament, setTournament] = useState<Tournament | null>(null);
+75:  const [selectedDivisionId, setSelectedDivisionId] = useState('');
+76:  const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
+77:  const [loading, setLoading] = useState<boolean>(true);
+78:  const [isJoining, setIsJoining] = useState<boolean>(false);
+79:  const [rankingConsent, setRankingConsent] = useState(false);
+80:  const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
+81:  const [currentPage, setCurrentPage] = useState<number>(1);
+82:  const [selectedUserToWithdraw, setSelectedUserToWithdraw] = useState<TournamentParticipant | null>(null);
+83:  const [communityLogo, setCommunityLogo] = useState<string | null>(null);
+84:  const [community, setCommunity] = useState<Community | null>(null);
+85:  const [membershipStatus, setMembershipStatus] = useState<string | null>(null);
+86:  const [isJoinCommunityOpen, setIsJoinCommunityOpen] = useState(false);
+…
+259:    if (isAtTeamCapacity) {
+…
+262:    }
+263:
+264:    if (activeDivisions.length > 1 && !selectedDivisionId) {
+265:      toast.error(commonTranslate('selectDivisionForRegistration'));
+266:      return;
+267:    }
+268:    try {
+269:      setIsJoining(true);
+270:      if (effectiveInviteCode) {
+271:        await tournamentsApi.joinLite(
+272:          effectiveInviteCode,
+273:          selectedDivisionId || undefined,
+274:        );
+275:      } else {
+276:        await tournamentsApi.register(tournamentId, {
+277:          teamName: user.fullName || 'VĐV',
+278:          tournamentDivisionId: selectedDivisionId || undefined,
+279:          ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+280:        });
+281:      }
+282:      toast.success(isVi ? 'Đã xác nhận tham gia giải đấu!' : 'Joined tournament successfully!');
+283:      if (effectiveInviteCode && tournament?.isRanked && rankingConsent) {
+284:        try {
+285:          await tournamentsApi.confirmMyRankingConsent(tournamentId);
+286:          toast.success(registrationTranslate('rankingConsentConfirmedToast'));
+287:        } catch (consentError) {
+288:          toast.error(getErrorMessage(consentError, registrationTranslate('rankingConsentFailed')));
+289:        }
+290:      }
+291:      await fetchTournamentAndParticipants();
+292:    } catch (err: unknown) {
+…
+303:    }
+…
+438:        {activeDivisions.length > 1 && (
+439:          <label className="mb-4 block max-w-md">
+…
+443:            <select
+…
+449:              {activeDivisions.map((division) => (
+450:                <option key={division.id} value={division.id}>
+451:                  {division.name || division.matchType || division.id}
+452:                </option>
+453:              ))}
+454:            </select>
+455:          </label>
+456:        )}
+457:        {user && tournament?.isRanked && !isUserRegistered && (
+458:          <label className="mb-4 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sm text-slate-700">
+459:            <input
+460:              type="checkbox"
+461:              checked={rankingConsent}
+462:              disabled={isJoining}
+463:              onChange={(event) => setRankingConsent(event.target.checked)}
+464:              className="mt-1 h-4 w-4 accent-sky-600"
+465:            />
+466:            <span>
+467:              {registrationTranslate('rankingConsentPrefix')}
+468:              <span className="mt-1 block text-xs text-slate-500">
+469:                {registrationTranslate('rankedContentCondition')}
+470:              </span>
+471:            </span>
+472:          </label>
+473:        )}
+474:        {/* Grid Slots (4 columns per page) */}
+475:        <div className="grid grid-cols-4 gap-y-6 gap-x-2 sm:gap-x-4 justify-items-center py-2 min-h-[170px]">
+476:          {pageSlotIndices.map((slotIndex) => {
+477:            const participant = participants[slotIndex];
+478:
+…
+566:          })}
+567:        </div>
+
+### region 17 (read, ~880 tok)
+
+[web/src/app/(public)/tournaments/[id]/components/RegisterModal.tsx#06CD]
+25:  const { user, isAuthenticated } = useAuthStore();
+26:  const router = useRouter();
+27:  const translate = useTranslations('Common');
+28:  const [isSubmitting, setIsSubmitting] = useState(false);
+29:  const [partnerEmailOrPhone, setPartnerEmailOrPhone] = useState('');
+30:  const [rankingConsent, setRankingConsent] = useState(false);
+31:
+32:  const isDoubles = matchType === 'DOUBLES' || matchType === 'MIXED_DOUBLES';
+33:
+34:  if (!isOpen) return null;
+35:
+36:  const handleRegisterSubmit = async (e: React.FormEvent) => {
+37:    e.preventDefault();
+38:    if (!isAuthenticated || !user) {
+39:      toast.error(translate('loginToRegister'));
+40:      window.location.assign(`/login?redirect=/tournaments/${tournamentId}`);
+41:      return;
+42:    }
+43:
+44:
+45:    try {
+46:      setIsSubmitting(true);
+47:      const teamName = user?.fullName || translate('player');
+48:      const payload: { teamName: string; partnerEmailOrPhone?: string; tournamentDivisionId?: string; rankingConsent?: true } = {
+49:        teamName,
+50:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+51:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+52:      };
+53:      if (isDoubles && partnerEmailOrPhone.trim()) {
+54:        payload.partnerEmailOrPhone = partnerEmailOrPhone.trim();
+55:      }
+56:
+57:      const res = await tournamentsApi.register(tournamentId, payload);
+58:      const participantId = res?.data?.participant?.id;
+59:      const payableEntryFee = Number(res?.data?.entryFee ?? entryFee);
+60:      const paymentEligible = res?.data?.paymentEligible === true;
+…
+75:    } catch (error) {
+…
+79:    }
+80:  };
+…
+99:          <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-4">
+…
+108:            {isDoubles && (
+109:              <div className="space-y-1.5">
+…
+118:                <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-md border border-amber-200 leading-snug">
+…
+120:                </p>
+121:              </div>
+122:            )}
+123:            
+124:            <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-lg">
+125:              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+126:                {translate('registrationTermsNotice')}
+127:              </p>
+128:            </div>
+129:
+130:            {isRanked && (
+131:              <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
+132:                <input
+133:                  type="checkbox"
+134:                  checked={rankingConsent}
+135:                  onChange={(event) => setRankingConsent(event.target.checked)}
+136:                  className="mt-1 h-4 w-4 accent-sky-600"
+137:                />
+138:                <span>{translate('rankingConsentLabel')}</span>
+139:              </label>
+140:            )}
+141:
+142:            <div className="flex justify-end gap-3 mt-4">
+143:              <Button type="button" variant="outline" onClick={onClose} className="border-slate-200 text-slate-600">
+144:                {translate('cancel')}
+145:              </Button>
+146:              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+147:                {isSubmitting ? translate('processing') : translate('confirmRegistration')}
+148:              </Button>
+149:            </div>
+150:          </form>
+
+### region 18 (read, ~1625 tok)
+
+[web/src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx#71EA]
+125:
+126:  // Partner search states
+127:  const [partnerQuery, setPartnerQuery] = useState('');
+128:  const [searchedPartner, setSearchedPartner] = useState<UserProfile | null>(null);
+129:  const [isSearchingPartner, setIsSearchingPartner] = useState(false);
+130:  const [partnerSearchError, setPartnerSearchError] = useState('');
+131:  // The invite/QR branch remains available after selecting self pairing;
+132:  // organizer pairing is the default choice for a new registration.
+133:  const [inviteLater, setInviteLater] = useState(true);
+134:  const [rankingConsent, setRankingConsent] = useState(false);
+135:  const [timeLeft, setTimeLeft] = useState<string>('');
+136:  const [isCheckingInitial, setIsCheckingInitial] = useState(true);
+137:  const [registrationLookupFailed, setRegistrationLookupFailed] = useState(false);
+138:
+139:  const redirectToLogin = useCallback(() => {
+140:    const params = new URLSearchParams();
+141:    if (inviteCode) params.set('invite', inviteCode);
+142:    if (divisionId) params.set('divisionId', divisionId);
+143:    const registrationQuery = params.toString();
+144:    const registrationPath = `/tournaments/${tournamentId}/register${registrationQuery ? `?${registrationQuery}` : ''}`;
+145:    router.push(`/login?redirect=${encodeURIComponent(registrationPath)}`);
+146:  }, [divisionId, inviteCode, router, tournamentId]);
+147:
+148:  const loadRegistration = useCallback(async () => {
+149:    setIsCheckingInitial(true);
+150:    setRegistrationLookupFailed(false);
+151:    try {
+152:      // One active application is allowed per tournament; a stale division filter can hide it after reload.
+153:      const res = await tournamentsApi.getMyRegistration(tournamentId);
+154:      if (!res.data?.registered) {
+155:        setParticipant(null);
+…
+159:      }
+…
+189:    } catch (err) {
+…
+197:    }
+198:  }, [
+…
+203:  ]);
+…
+399:  const handleCreateTeam = async (e: React.FormEvent) => {
+…
+425:
+426:    try {
+427:      setIsSubmitting(true);
+428:      const partnerEmailOrPhone = isOrganizerPairing
+429:        ? undefined
+430:        : inviteLater ? undefined : (searchedPartner?.email || searchedPartner?.phoneNumber || partnerQuery);
+431:      const res = await tournamentsApi.register(tournamentId, {
+432:        ...(!isOrganizerPairing && cleanTeamName ? { teamName: cleanTeamName } : {}),
+433:        inviteCode,
+434:        partnerEmailOrPhone,
+435:        doublesPairingMode: pairingMode,
+436:        tournamentDivisionId: divisionId,
+437:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+438:        customResponses: submittedCustomResponses,
+439:      });
+440:
+441:      if (res.data) {
+442:        const part = normalizeRegistrationParticipant(res.data.participant, res.data.teamInviteLink, res.data.paymentEligible);
+443:        if (!part) {
+444:          toast.error(doublesTranslate('validRegistrationData'));
+445:          return;
+446:        }
+447:        setParticipant(part);
+448:        setPairingModeFromParticipant(part);
+449:        const shouldShowPersistentStatus = isOrganizerPairing && (
+450:          isParticipantPendingApproval(part.teamStatus) ||
+451:          isParticipantPendingPartner(part.teamStatus)
+452:        );
+453:        if (!shouldShowPersistentStatus) {
+454:          toast.success(
+455:            isParticipantPendingApproval(part.teamStatus)
+456:              ? doublesTranslate('approvalSubmitted')
+457:              : isParticipantPendingPartner(part.teamStatus)
+458:                ? isOrganizerPairing
+459:                  ? doublesTranslate('organizerPairingSubmitted')
+460:                  : partnerEmailOrPhone
+461:                    ? doublesTranslate('notificationSentTitle')
+462:                    : registrationTranslate('teamCreatedInviteNextStep')
+463:                : isParticipantReadyForNextStep(part.teamStatus)
+464:                  ? doublesTranslate('doublesRegistered')
+465:                  : isParticipantWaitlisted(part.teamStatus)
+466:                    ? doublesTranslate('waitlistedRegistrationTitle')
+467:                    : registrationTranslate('teamCreatedInviteNextStep'),
+468:          );
+469:        }
+470:        if (isOrganizerPairing) {
+471:          setStep(2);
+472:        } else if (isParticipantReadyForNextStep(part.teamStatus)) {
+473:          setStep(3);
+474:        } else {
+475:          setStep(2);
+476:        }
+477:        onRegistrationChanged?.(part, Boolean(tournament?.isRanked && rankingConsent));
+478:      }
+479:    } catch (err) {
+480:      if (isAxiosError(err) && err.response?.status === 401) {
+481:        redirectToLogin();
+482:        return;
+483:      }
+484:      toast.error(getErrorMessage(err));
+485:    } finally {
+486:      submitLockRef.current = false;
+487:      setIsSubmitting(false);
+488:    }
+489:  };
+490:
+…
+807:            {!isOrganizerPairing && !inviteLater && (
+808:              <div className="space-y-3 border-t border-slate-200 pt-4">
+…
+811:                {searchedPartner ? (
+…
+837:                ) : (
+…
+839:                  <div className="space-y-2.5">
+…
+865:                    
+866:                    {partnerSearchError && (
+867:                      <p className="text-xs text-rose-600 font-semibold leading-normal flex items-start gap-1">
+868:                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-500 mt-0.5" />
+869:                        <span>{partnerSearchError}</span>
+870:                      </p>
+871:                    )}
+872:                  </div>
+873:                )}
+874:              </div>
+875:            )}
+876:
+877:            {tournament?.isRanked && (
+878:              <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
+879:                <input
+880:                  type="checkbox"
+881:                  checked={rankingConsent}
+882:                  onChange={(event) => setRankingConsent(event.target.checked)}
+883:                  className="mt-1 h-4 w-4 accent-sky-600"
+884:                />
+885:                <span>
+886:                  {registrationTranslate('rankingConsentPrefix')}
+887:                  <span className="mt-1 block text-xs text-slate-500">{registrationTranslate('rankedContentCondition')}</span>
+888:                </span>
+889:              </label>
+890:            )}
+891:
+892:            {/* Fee summary block */}
+
+### region 19 (read, ~1423 tok)
+
+[web/src/app/(public)/tournaments/[id]/register/components/TeamRegistrationFlow.tsx#6474]
+16:interface Props {
+…
+38:  /** Hạn chót hiệu lực của nội dung đã qua — xem DoublesRegistrationFlow. */
+39:  registrationExpired?: boolean;
+40:}
+41:
+42:export default function TeamRegistrationFlow({
+43:  tournamentId, inviteCode, divisionId, categoryId, currentUserId, participantId, participantTeamId, rosterLockedAt, teamSize, maxTeamSize, maxReserve = 0, registrationMode, isRanked = false, rankingConsent = false, onRankingConsentChange, rankingConsentLabel, rankingConsentCondition, customResponses, onCustomResponsesChange, registrationFields,
+44:  onRegistrationChanged,
+45:  registrationExpired = false,
+46:}: Props) {
+47:  const router = useRouter();
+48:  const translate = useTranslations('TeamRegistration');
+49:  const registrationTranslate = useTranslations('TournamentRegistration');
+50:  const [teams, setTeams] = useState<FootballTeam[]>([]);
+51:  const [selectedId, setSelectedId] = useState('');
+52:  const [newName, setNewName] = useState('');
+53:  const [loading, setLoading] = useState(true);
+54:  const [saving, setSaving] = useState(false);
+55:  const [teamMembers, setTeamMembers] = useState<NonNullable<FootballTeam['members']>>([]);
+…
+122:  const submit = async () => {
+…
+134:    try {
+135:      if (participantId) {
+136:        await tournamentsApi.updateFootballRoster(tournamentId, participantId, {
+137:          memberIds: selectedMemberIds,
+138:          reserveMemberIds: selectedReserveIds,
+139:        });
+140:        toast.success(selectedMemberIds.length < teamSize ? translate('draftRosterSaved') : translate('rosterUpdated'));
+141:        await onRegistrationChanged?.();
+142:        router.refresh();
+143:        return;
+144:      }
+145:      const res = await tournamentsApi.register(tournamentId, {
+146:        teamName: team.name,
+147:        footballTeamId: team.id,
+148:        memberIds: selectedMemberIds,
+149:        reserveMemberIds: selectedReserveIds,
+150:        inviteCode,
+151:        divisionId,
+152:        tournamentDivisionId: divisionId,
+153:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+154:        customResponses: submittedCustomResponses,
+155:      });
+156:      const createdParticipantId = res.data?.participant?.id;
+157:      if (createdParticipantId && res.data?.paymentEligible === true) {
+158:        router.push(`/payments/checkout?participantId=${createdParticipantId}&tournamentId=${tournamentId}&divisionId=${divisionId || ''}`);
+159:      } else {
+160:        const isDraft = selectedMemberIds.length < teamSize;
+161:        toast.success(
+162:          isDraft
+163:            ? translate('draftRegistrationSaved')
+164:            : registrationMode === 'APPROVAL'
+165:              ? translate('approvalSubmitted')
+166:            : translate('registrationSuccess'),
+167:        );
+168:        await onRegistrationChanged?.(isRanked && rankingConsent);
+169:        router.refresh();
+170:      }
+171:    } catch (error) { toast.error(getErrorMessage(error)); }
+172:    finally { setSaving(false); }
+173:  };
+174:
+175:  return (
+176:    <div className="space-y-5 animate-in fade-in duration-300">
+177:      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+178:        <p className="flex items-center gap-2 text-sm font-bold text-emerald-900"><ShieldCheck className="h-4 w-4" /> {translate('registerByTeam')}</p>
+179:        <p className="mt-1 text-xs font-semibold text-emerald-700">{translate('teamFormationLimits', { teamSize, maxReserve, cap })}</p>
+180:      </div>
+…
+196:      {loading ? <div className="flex items-center justify-center py-8 text-sm text-slate-400"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {translate('loadingTeams')}</div> : (
+197:        <>
+…
+215:          {teamMembers.length > 0 && (
+216:            <div className="rounded-lg border border-slate-200 bg-white p-3">
+…
+219:              <div className="grid gap-2 sm:grid-cols-2">
+220:                {teamMembers.map((member) => {
+…
+235:                })}
+236:              </div>
+237:              <p className="mt-3 text-xs font-semibold text-slate-500">{translate('selectedSummary', { main: selectedMemberIds.length, reserve: selectedReserveIds.length, maxReserve })}</p>
+238:            </div>
+239:          )}
+240:        </>
+241:      )}
+242:      {!participantId && isRanked && rankingConsentLabel && (
+243:        <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sm text-slate-700">
+244:          <input
+245:            type="checkbox"
+246:            checked={rankingConsent}
+247:            onChange={(event) => onRankingConsentChange?.(event.target.checked)}
+248:            className="mt-1 h-4 w-4 accent-sky-600"
+249:          />
+250:          <span>
+251:            {rankingConsentLabel}
+252:            {rankingConsentCondition && <span className="mt-1 block text-xs text-slate-500">{rankingConsentCondition}</span>}
+253:          </span>
+254:        </label>
+255:      )}
+256:      <Button type="button" onClick={submit} disabled={registrationExpired || saving || loading || rosterLoading || Boolean(rosterStatus?.entry?.status === 'LOCKED' || rosterLockedAt) || !selectedId || selectedMemberIds.length === 0 || selectedReserveIds.length > maxReserve} className="w-full bg-emerald-600 hover:bg-emerald-700">{saving || rosterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {participantId ? translate('updateRoster') : selectedMemberIds.length < teamSize ? translate('saveDraft') : translate('registerSelectedTeam')}</Button>
+257:    </div>
+258:  );
+259:}
+
+### region 20 (read, ~1154 tok)
+
+[web/src/app/(public)/tournaments/[id]/register/page.tsx#C9DA]
+550:
+551:    const submittedCustomResponses = normalizeRegistrationResponses(customResponses);
+552:    const customError = validateRegistrationResponses(registrationFields, submittedCustomResponses, registrationTranslate);
+553:    if (customError) {
+554:      toast.error(customError);
+555:      return;
+556:    }
+557:
+558:    try {
+559:      setIsSubmitting(true);
+560:      const cleanData = {
+561:        teamName: trimAndNormalizeSpaces(data.teamName) || user?.fullName || registrationTranslate('athleteFallback'),
+562:        inviteCode: inviteCode || undefined,
+563:        tournamentDivisionId: selectedDivisionId || undefined,
+564:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+565:        customResponses: submittedCustomResponses,
+566:      };
+567:
+568:      const res = await tournamentsApi.register(id, cleanData);
+569:      if (tournament?.isRanked && rankingConsent) setMyRankingConsentAt(new Date().toISOString());
+570:      const participantId = res?.data?.participant?.id;
+571:      const paymentEligible = res?.data?.paymentEligible === true;
+572:
+573:      toast.success(translate('registrationSuccess'))
+574:
+575:            if (paymentEligible && participantId) {
+576:
+577:        const params = new URLSearchParams({
+578:          tournamentId: id,
+579:          participantId,
+580:        });
+…
+588:      } else {
+…
+597:      }
+598:    } catch (err) {
+…
+602:    }
+…
+1175:                    registrationExpired={registrationExpired}
+1176:                    categoryId={selectedDivision?.categoryId}
+1177:                    currentUserId={user?.id}
+1178:                    participantId={participant?.id}
+1179:                    participantTeamId={participant?.footballTeamId}
+1180:                    rosterLockedAt={participant?.rosterLockedAt}
+1181:                    teamSize={effectiveFootballTeamSize}
+1182:                    maxTeamSize={tournament?.tournamentConfig?.maxTeamSize}
+1183:                    maxReserve={tournament?.tournamentConfig?.maxReserve ?? 0}
+1184:                    registrationMode={tournament?.tournamentConfig?.registrationMode}
+1185:                    isRanked={Boolean(tournament?.isRanked)}
+1186:                    rankingConsent={rankingConsent}
+1187:                    onRankingConsentChange={setRankingConsent}
+1188:                    rankingConsentLabel={registrationTranslate('rankingConsentPrefix')}
+1189:                    rankingConsentCondition={registrationTranslate('rankedContentCondition')}
+1190:                    customResponses={customResponses}
+1191:                    onCustomResponsesChange={setCustomResponses}
+1192:                    registrationFields={registrationFields}
+1193:                    onRegistrationChanged={(consentGiven) => {
+1194:                      if (consentGiven) setMyRankingConsentAt(new Date().toISOString());
+1195:                      return fetchTournament();
+1196:                    }}
+…
+1336:                    <div>
+1337:                      <h2 className="text-lg font-bold text-slate-950 flex items-center gap-2">
+1338:                        <Users className="w-5 h-5 text-blue-600" /> {translate('registerSingles')}
+1339:                      </h2>
+1340:                      <p className="text-slate-500 text-xs mt-1">
+1341:                        {translate('enterCompetitionName')}
+1342:                      </p>
+1343:                    </div>
+1344:
+1345:                    <form onSubmit={handleSubmit(onSubmitSingles)} className="space-y-5">
+1346:                      {tournament?.isRanked && (
+1347:                        <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sm text-slate-700">
+1348:                          <input
+1349:                            type="checkbox"
+1350:                            checked={rankingConsent}
+1351:                            onChange={(event) => setRankingConsent(event.target.checked)}
+1352:                            className="mt-1 h-4 w-4 accent-sky-600"
+1353:                          />
+1354:                          <span>
+1355:                            {registrationTranslate('rankingConsentPrefix')}
+1356:                            <span className="mt-1 block text-xs text-slate-500">
+1357:                              {registrationTranslate('rankedContentCondition')}
+1358:                            </span>
+1359:                          </span>
+1360:                        </label>
+1361:                      )}
+…
+1490:                    </form>
+
+### region 21 (edit, ~104 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#7F03]
+24:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+25:  await dialog.getByLabel('Tên VĐV').fill('Guest Athlete');
+26:  await dialog.getByLabel(/Ghi chú của BTC/).fill('Arrives late');
+27:  await dialog.getByRole('button', { name: 'Thêm vào danh sách' }).click();
+28:
+29:  await expect.poll(() => addRequest).toEqual({
+
+34:  });
+
+### region 22 (read, ~1022 tok)
+
+[web/test/e2e/support/organizer-manage.ts#1370]
+1:import type { Page, Route } from '@playwright/test';
+2:import { createApiFixtureCorsHeaders } from './api-fixture-cors';
+3:
+4:export const tournamentId = 'synthetic-wide-overlay-tournament';
+5:
+6:const organizer = {
+7:  id: 'synthetic-wide-organizer',
+8:  email: 'wide-organizer@example.test',
+9:  fullName: 'Wide Overlay Organizer',
+10:  phoneNumber: '0900000009',
+11:  roles: ['ORGANIZER'],
+12:  gender: 'MALE',
+13:  isEmailVerified: true,
+14:  profile: { fullName: 'Wide Overlay Organizer', phoneNumber: '0900000009' },
+15:};
+16:
+17:const tournament = {
+18:  id: tournamentId,
+19:  name: 'Synthetic wide overlay tournament',
+20:  status: 'PUBLISHED',
+21:  matchType: 'SINGLES',
+22:  genderRestriction: 'MALE',
+23:  entryFee: 0,
+24:  maxParticipants: 32,
+25:  isRegistrationLocked: false,
+26:  category: { name: 'Badminton', slug: 'badminton' },
+27:  tournamentConfig: { registrationMode: 'APPROVAL' },
+28:};
+29:
+30:export const divisionFixture = {
+31:  id: 'synthetic-wide-division',
+32:  name: 'Synthetic wide division',
+33:  matchType: 'SINGLES',
+34:  genderRestriction: 'MALE',
+35:  entryFee: 0,
+36:  maxParticipants: 32,
+37:  bracketType: 'ROUND_ROBIN',
+38:  _count: { participants: 1 },
+39:};
+40:
+41:/**
+42: * A knockout with two rounds. Without this the bracket renders its empty state,
+43: * so no layout, magnify button or round navigation can actually be exercised.
+44: * Opt-in through `openManage(page, { withBracket: true })`.
+45: */
+46:export const bracketFixture = {
+47:  stages: [
+48:    {
+49:      id: 'bracket-stage-ko',
+50:      name: 'Vòng loại trực tiếp',
+51:      type: 'SINGLE_ELIMINATION',
+52:      order: 1,
+53:      groups: [
+54:        {
+55:          id: 'bracket-group-ko',
+56:          name: 'Vòng loại trực tiếp',
+57:          matches: [
+58:            {
+59:              id: 'ko-r1-m1',
+60:              roundNumber: 1,
+61:              leg: null,
+62:              matchOrder: 1,
+63:              bracketBranch: 'A',
+64:              status: 'COMPLETED',
+65:              isBye: false,
+66:              participant1: { id: 'p1', teamName: 'Đội Bão', seed: 1, members: [{ userId: 'u1', fullName: 'Bão' }] },
+67:              participant2: { id: 'p2', teamName: 'Đội Gió', seed: 2, members: [{ userId: 'u2', fullName: 'Gió' }] },
+68:              participant1Id: 'p1',
+69:              participant2Id: 'p2',
+70:              winnerId: 'p1',
+71:              p1SetsWon: 2,
+72:              p2SetsWon: 0,
+73:              groupId: 'bracket-group-ko',
+74:            },
+75:            {
+76:              id: 'ko-r1-m2',
+77:              roundNumber: 1,
+78:              leg: null,
+79:              matchOrder: 2,
+80:              bracketBranch: 'B',
+81:              status: 'PENDING',
+82:              isBye: false,
+83:              participant1: { id: 'p3', teamName: 'Đội Mưa', seed: 3, members: [{ userId: 'u3', fullName: 'Mưa' }] },
+84:              participant2: { id: 'p4', teamName: 'Đội Sấm', seed: 4, members: [{ userId: 'u4', fullName: 'Sấm' }] },
+85:              participant1Id: 'p3',
+86:              participant2Id: 'p4',
+87:              winnerId: null,
+88:              p1SetsWon: 0,
+89:              p2SetsWon: 0,
+90:              groupId: 'bracket-group-ko',
+91:            },
+92:            {
+93:              id: 'ko-r2-m1',
+94:              roundNumber: 2,
+95:              leg: null,
+96:              matchOrder: 1,
+97:              bracketBranch: 'A',
+98:              status: 'PENDING',
+99:              isBye: false,
+100:              participant1: null,
+101:              participant2: null,
+102:              participant1Id: null,
+103:              participant2Id: null,
+104:              participant1Placeholder: 'Chờ xác định',
+105:              participant2Placeholder: 'Chờ xác định',
+106:              winnerId: null,
+107:              p1SetsWon: 0,
+108:              p2SetsWon: 0,
+…
+110:            },
+111:          ],
+112:        },
+113:      ],
+114:    },
+115:  ],
+116:};
+
+[Showing lines 1-108 of 201. Use :109 to continue]
+
+### region 23 (read, ~438 tok)
+
+[web/test/e2e/support/organizer-manage.ts#1370]
+46:export const bracketFixture = {
+…
+116:};
+117:
+118:
+119:const participant = {
+120:  id: 'synthetic-wide-participant',
+121:  tournamentId,
+122:  tournamentDivisionId: divisionFixture.id,
+123:  teamName: 'Wide overlay entrant',
+124:  teamStatus: 'COMPLETE',
+125:  isPaid: true,
+126:  registeredAt: '2026-10-01T10:00:00.000Z',
+127:  members: [{ userId: 'synthetic-wide-player', fullName: 'Wide overlay entrant', role: 'PLAYER' }],
+128:};
+129:
+130:export async function fulfillApi(route: Route, payload: unknown, status = 200) {
+131:  const requestHeaders = route.request().headers();
+132:  const headers = createApiFixtureCorsHeaders(requestHeaders, 'http://127.0.0.1:3001');
+133:
+134:  if (route.request().method() === 'OPTIONS') {
+135:    await route.fulfill({ status: 204, headers });
+136:    return;
+137:  }
+138:
+139:  await route.fulfill({ status, headers, json: payload });
+140:}
+141:
+142:export async function openManage(
+143:  page: Page,
+144:  options: {
+145:    divisions?: Array<typeof divisionFixture>;
+146:    tab?: string;
+147:    matchType?: 'SINGLES' | 'DOUBLES';
+148:    withBracket?: boolean;
+149:    tournamentConfig?: {
+150:      teamSize?: 5 | 7 | 11;
+151:      maxReserve?: number;
+152:      maxTeamSize?: number;
+153:    };
+154:  } = {},
+155:) {
+156:  const matchType = options.matchType ?? 'SINGLES';
+157:  const divisions = options.divisions ?? [{ ...divisionFixture, matchType }];
+158:  const withBracket = options.withBracket ?? false;
+159:  const currentTournament = {
+160:    ...tournament,
+161:    matchType,
+162:    tournamentConfig: { ...tournament.tournamentConfig, ...options.tournamentConfig },
+163:  };
+…
+201:}
+
+[Showing lines 116-163 of 201. Use :164 to continue]
+
+### region 24 (read, ~399 tok)
+
+[web/test/e2e/support/organizer-manage.ts#1370]
+142:export async function openManage(
+…
+155:) {
+…
+159:  const currentTournament = {
+…
+163:  };
+164:
+165:  await page.addInitScript((user) => {
+166:    localStorage.setItem('auth-storage', JSON.stringify({
+167:      state: { user, isAuthenticated: true },
+168:      version: 0,
+169:    }));
+170:  }, organizer);
+171:
+172:  await page.route('**/api/v1/**', async (route) => {
+173:    const pathname = new URL(route.request().url()).pathname;
+174:
+175:    if (pathname.endsWith('/users/profile')) {
+176:      await fulfillApi(route, { data: organizer });
+177:      return;
+178:    }
+179:    if (pathname === `/api/v1/tournaments/${tournamentId}`) {
+180:      await fulfillApi(route, { data: currentTournament });
+181:      return;
+182:    }
+183:    if (pathname === `/api/v1/tournaments/${tournamentId}/divisions`) {
+184:      await fulfillApi(route, { data: divisions });
+185:      return;
+186:    }
+187:    if (pathname === `/api/v1/tournaments/${tournamentId}/bracket`) {
+188:      await fulfillApi(route, { data: withBracket ? bracketFixture : { stages: [] } });
+189:      return;
+190:    }
+191:    if (pathname === `/api/v1/tournaments/${tournamentId}/manage/participants`) {
+192:      await fulfillApi(route, { data: divisions.length === 0 ? [] : [participant] });
+193:      return;
+194:    }
+195:
+196:    await fulfillApi(route, { data: [] });
+197:  });
+198:
+199:  const tab = options.tab ? `?tab=${options.tab}` : '';
+200:  await page.goto(`/organizer/tournaments/${tournamentId}/manage${tab}`, { waitUntil: 'domcontentloaded' });
+201:}
+
+### region 25 (read, ~883 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx#8CFC]
+224:  const [isMockDataModalOpen, setIsMockDataModalOpen] = React.useState(false);
+225:  const [isWildcardModalOpen, setIsWildcardModalOpen] = React.useState(false);
+226:  const [selectedParticipant, setSelectedParticipant] = React.useState<TournamentParticipant | null>(null);
+227:  // Fee paid is organizer-owned truth, so the row is editable directly. Only
+228:  // clearing a mark that came from a real system payment moves money, and that
+229:  // one is confirmed first.
+230:  const [feePaymentBusyId, setFeePaymentBusyId] = React.useState<string | null>(null);
+231:  const [feePaymentPrompt, setFeePaymentPrompt] = React.useState<TournamentParticipant | null>(null);
+232:  const registrationFormFields = React.useMemo(
+233:    () => readRegistrationFormConfig(tournament.tournamentConfig?.registrationForm, divisions.map((division) => division.id)).fields,
+234:    [tournament.tournamentConfig?.registrationForm, divisions],
+235:  );
+236:  const selectedDivisionName = selectedParticipant
+237:    ? divisions.find((division) => division.id === selectedParticipant.tournamentDivisionId)?.name || ''
+238:    : '';
+239:  const selectedDivision = selectedParticipant
+240:    ? divisions.find((division) => division.id === selectedParticipant.tournamentDivisionId)
+241:    : undefined;
+242:  const selectedIsPair = Boolean(
+243:    selectedParticipant &&
+244:      (selectedDivision?.matchType === 'DOUBLES' || selectedDivision?.matchType === 'MIXED_DOUBLES' || selectedParticipant.members.length > 1),
+245:  );
+246:  const selectedLeader = selectedParticipant?.members.find((member) => member.role === 'MAIN') ?? selectedParticipant?.members[0];
+247:  const selectedDisplayName = selectedParticipant
+248:    ? selectedIsPair && selectedParticipant.members.length > 1 && selectedParticipant.teamName === selectedLeader?.fullName
+249:      ? selectedParticipant.members.map((member) => member.fullName).filter(Boolean).join(' & ')
+250:      : selectedParticipant.teamName
+251:    : '';
+252:  const selectedParticipantFee = Number(selectedParticipant?.entryFeeAtRegistration ?? 0);
+253:  const locale = useLocale();
+254:  const displayTranslate = useTranslations('TournamentDisplay');
+255:  const registrationTranslate = useTranslations('OrganizerRegistration');
+256:  const emailRegistrationTranslate = useTranslations('tournament.registration');
+257:  const exportTranslate = useTranslations('tournament.export');
+258:  const participantStatusLabels = {
+259:    participantComplete: displayTranslate('participantComplete'),
+260:    participantPendingPartner: displayTranslate('participantPendingPartner'),
+261:    participantPendingApproval: displayTranslate('participantPendingApproval'),
+262:    participantWaitlisted: displayTranslate('participantWaitlisted'),
+263:    participantRejected: displayTranslate('participantRejected'),
+264:    participantWithdrawn: displayTranslate('participantWithdrawn'),
+265:    participantKicked: displayTranslate('participantKicked'),
+266:    participantDisqualified: displayTranslate('participantDisqualified'),
+267:    participantNoShow: displayTranslate('participantNoShow'),
+268:    participantReplaced: displayTranslate('participantReplaced'),
+269:    unknownParticipant: displayTranslate('unknownParticipant'),
+270:  };
+271:  const search = participantSearch;
+272:  const setSearch = setParticipantSearch;
+273:  const filter = participantFilter;
+
+[Showing lines 224-273 of 1505. Use :274 to continue]

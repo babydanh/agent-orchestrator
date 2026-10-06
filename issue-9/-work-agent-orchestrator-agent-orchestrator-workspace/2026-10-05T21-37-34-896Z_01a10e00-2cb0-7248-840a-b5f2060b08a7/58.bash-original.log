@@ -1,0 +1,50 @@
+## main...origin/main
+?? ./
+## omp/issue-9
+ M src/database/schema/tournaments.schema.ts
+ M src/modules/rankings/ranking-consent-gate.spec.ts
+ M src/modules/rankings/rankings.service.ts
+ M src/modules/rankings/recalculate-elo-consent.spec.ts
+ M src/modules/tournaments/repositories/tournament-registration.repository.ts
+ M src/modules/tournaments/services/ranking-consent.service.spec.ts
+ M src/modules/tournaments/services/ranking-consent.service.ts
+ M src/modules/tournaments/services/tournament-capacity.service.spec.ts
+ M src/modules/tournaments/services/tournament-capacity.service.ts
+ M src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+ M src/modules/tournaments/services/tournament-participant-admin.service.ts
+ M src/modules/tournaments/tournaments.controller.ts
+ M src/modules/tournaments/tournaments.service.ts
+?? .ripwire_quality_baseline
+?? src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql
+?? src/modules/tournaments/dto/add-athlete-candidates.dto.ts
+?? src/modules/tournaments/dto/add-athletes.dto.ts
+?? src/modules/tournaments/dto/claim-guest-roster.dto.ts
+?? src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts
+## omp/issue-9
+ M messages/en.json
+ M messages/vi.json
+ M src/app/(public)/communities/[id]/components/CommunityTournamentRosterWidget.tsx
+ M src/app/(public)/tournaments/[id]/components/RegisterModal.tsx
+ M src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx
+ M src/app/(public)/tournaments/[id]/register/components/TeamRegistrationFlow.tsx
+ M src/app/(public)/tournaments/[id]/register/page.tsx
+ M src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx
+ M src/features/tournaments/api.ts
+ M src/types/tournament.ts
+?? .ripwire_quality_baseline
+?? changes/organizer-add-athlete-consent-20261005/
+?? src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx
+?? test/e2e/organizer-add-athlete.spec.ts
+## omp/issue-9
+ M lib/core/router/app_router.dart
+ M lib/data/repositories/api/api_tournament_repository.dart
+ M lib/domain/repositories/tournament_repository.dart
+ M lib/features/register/screens/doubles_registration_screen.dart
+ M lib/features/register/screens/football_team_register_screen.dart
+ M lib/features/register/screens/tournament_register_screen.dart
+ M lib/l10n/app_en.arb
+ M lib/l10n/app_localizations.dart
+ M lib/l10n/app_localizations_en.dart
+ M lib/l10n/app_localizations_vi.dart
+ M lib/l10n/app_vi.arb
+?? .ripwire_quality_baseline

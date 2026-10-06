@@ -1,0 +1,3264 @@
+### region 1 (read, ~1802 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#009B]
+1840:
+1841:    const uniqueMatchIds = new Set<string>();
+1842:    const matchesToRecalculate: typeof subsequentMatches = [];
+1843:    for (const m of subsequentMatches) {
+1844:      if (!uniqueMatchIds.has(m.match.id)) {
+1845:        uniqueMatchIds.add(m.match.id);
+1846:        matchesToRecalculate.push(m);
+1847:      }
+1848:    }
+1849:
+1850:    const affectedPlayers = new Set<string>(playerIds);
+1851:    const playerStates = new Map<
+1852:      string,
+1853:      {
+1854:        elo: number;
+1855:        matchesPlayed: number;
+1856:        matchesWon: number;
+1857:        winStreak: number;
+1858:        shieldActive: boolean;
+1859:        peakElo: number;
+1860:      }
+1861:    >();
+1862:
+1863:    const getPlayerState = async (userId: string, completedAt: Date) => {
+1864:      if (playerStates.has(userId)) {
+1865:        return playerStates.get(userId)!;
+1866:      }
+1867:
+1868:      const [lastLog] = await tx
+1869:        .select()
+1870:        .from(schema.eloHistoryLogs)
+1871:        .where(
+1872:          and(
+1873:            eq(schema.eloHistoryLogs.userId, userId),
+1874:            eq(schema.eloHistoryLogs.categoryId, categoryId),
+1875:            lt(schema.eloHistoryLogs.createdAt, completedAt),
+1876:          ),
+1877:        )
+1878:        .orderBy(desc(schema.eloHistoryLogs.createdAt))
+1879:        .limit(1);
+1880:
+1881:      const startingElo = lastLog?.newElo ?? 1000;
+1882:
+1883:      const playedRes = await tx
+1884:        .select({ count: sql<number>`count(*)` })
+1885:        .from(schema.matches)
+1886:        .innerJoin(
+1887:          schema.tournamentGroups,
+1888:          eq(schema.matches.groupId, schema.tournamentGroups.id),
+1889:        )
+1890:        .innerJoin(
+1891:          schema.tournamentStages,
+1892:          eq(schema.tournamentGroups.stageId, schema.tournamentStages.id),
+1893:        )
+1894:        .innerJoin(
+1895:          schema.tournaments,
+1896:          eq(schema.tournamentStages.tournamentId, schema.tournaments.id),
+1897:        )
+1898:        .innerJoin(
+1899:          schema.tournamentRosters,
+1900:          or(
+1901:            eq(
+1902:              schema.matches.participant1Id,
+1903:              schema.tournamentRosters.participantId,
+1904:            ),
+1905:            eq(
+1906:              schema.matches.participant2Id,
+1907:              schema.tournamentRosters.participantId,
+1908:            ),
+1909:          ),
+1910:        )
+1911:        .where(
+1912:          and(
+1913:            eq(schema.tournamentRosters.userId, userId),
+1914:            eq(schema.tournaments.categoryId, categoryId),
+1915:            eq(schema.tournaments.matchType, matchType),
+1916:            eq(schema.matches.status, 'COMPLETED'),
+1917:            lt(schema.matches.completedAt, completedAt),
+1918:          ),
+1919:        );
+1920:      const matchesPlayed = Number(playedRes[0]?.count || 0);
+1921:
+1922:      const wonRes = await tx
+1923:        .select({ count: sql<number>`count(*)` })
+1924:        .from(schema.matches)
+1925:        .innerJoin(
+1926:          schema.tournamentGroups,
+1927:          eq(schema.matches.groupId, schema.tournamentGroups.id),
+1928:        )
+1929:        .innerJoin(
+1930:          schema.tournamentStages,
+1931:          eq(schema.tournamentGroups.stageId, schema.tournamentStages.id),
+1932:        )
+1933:        .innerJoin(
+1934:          schema.tournaments,
+1935:          eq(schema.tournamentStages.tournamentId, schema.tournaments.id),
+1936:        )
+1937:        .innerJoin(
+1938:          schema.tournamentRosters,
+1939:          eq(schema.matches.winnerId, schema.tournamentRosters.participantId),
+1940:        )
+1941:        .where(
+1942:          and(
+1943:            eq(schema.tournamentRosters.userId, userId),
+1944:            eq(schema.tournaments.categoryId, categoryId),
+1945:            eq(schema.tournaments.matchType, matchType),
+1946:            eq(schema.matches.status, 'COMPLETED'),
+1947:            lt(schema.matches.completedAt, completedAt),
+1948:          ),
+1949:        );
+1950:      const matchesWon = Number(wonRes[0]?.count || 0);
+1951:
+1952:      const priorMatches = await tx
+1953:        .select({
+1954:          winnerId: schema.matches.winnerId,
+1955:          p1Id: schema.matches.participant1Id,
+1956:          p2Id: schema.matches.participant2Id,
+1957:          participantId: schema.tournamentRosters.participantId,
+1958:        })
+1959:        .from(schema.matches)
+1960:        .innerJoin(
+1961:          schema.tournamentGroups,
+1962:          eq(schema.matches.groupId, schema.tournamentGroups.id),
+1963:        )
+1964:        .innerJoin(
+1965:          schema.tournamentStages,
+1966:          eq(schema.tournamentGroups.stageId, schema.tournamentStages.id),
+1967:        )
+1968:        .innerJoin(
+1969:          schema.tournaments,
+1970:          eq(schema.tournamentStages.tournamentId, schema.tournaments.id),
+1971:        )
+1972:        .innerJoin(
+1973:          schema.tournamentRosters,
+1974:          or(
+1975:            eq(
+1976:              schema.matches.participant1Id,
+1977:              schema.tournamentRosters.participantId,
+1978:            ),
+1979:            eq(
+1980:              schema.matches.participant2Id,
+1981:              schema.tournamentRosters.participantId,
+1982:            ),
+1983:          ),
+1984:        )
+1985:        .where(
+1986:          and(
+1987:            eq(schema.tournamentRosters.userId, userId),
+1988:            eq(schema.tournaments.categoryId, categoryId),
+1989:            eq(schema.tournaments.matchType, matchType),
+1990:            eq(schema.matches.status, 'COMPLETED'),
+1991:            lt(schema.matches.completedAt, completedAt),
+1992:          ),
+1993:        )
+1994:        .orderBy(desc(schema.matches.completedAt));
+1995:
+1996:      let winStreak = 0;
+1997:      for (const pm of priorMatches) {
+1998:        if (pm.winnerId === pm.participantId) {
+1999:          winStreak++;
+2000:        } else {
+2001:          break;
+2002:        }
+2003:      }
+2004:
+2005:      let shieldActive = false;
+2006:      if (lastLog) {
+2007:        const prev = lastLog.previousElo;
+2008:        const curr = lastLog.newElo;
+2009:        const boundaries = [1100, 1200, 1300, 1500, 1700, 1800];
+2010:        for (const boundary of boundaries) {
+2011:          if (prev < boundary && curr >= boundary) {
+2012:            shieldActive = true;
+2013:          }
+2014:        }
+2015:      }
+2016:
+2017:      const state = {
+2018:        elo: startingElo,
+2019:        matchesPlayed,
+2020:        matchesWon,
+2021:        winStreak,
+2022:        shieldActive,
+2023:        peakElo: startingElo,
+2024:      };
+2025:      playerStates.set(userId, state);
+2026:      return state;
+2027:    };
+2028:
+2029:    for (const item of matchesToRecalculate) {
+2030:      const match = item.match;
+2031:      const completedAt = match.completedAt || match.updatedAt;
+2032:
+2033:      const p1Id = match.participant1Id;
+2034:      const p2Id = match.participant2Id;
+2035:      if (!p1Id || !p2Id || !match.winnerId) continue;
+2036:
+2037:      const winnerParticipantId = match.winnerId;
+2038:
+…
+2215:    }
+
+[Showing lines 1840-2038 of 2773. Use :2039 to continue]
+
+### region 2 (read, ~2204 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#009B]
+1792:  async recalculateEloChain(
+…
+1798:  ) {
+…
+2029:    for (const item of matchesToRecalculate) {
+…
+2034:      const p2Id = match.participant2Id;
+2035:      if (!p1Id || !p2Id || !match.winnerId) continue;
+2036:
+2037:      const winnerParticipantId = match.winnerId;
+2038:
+2039:      const winnerRosters = await tx
+2040:        .select({
+2041:          userId: schema.tournamentRosters.userId,
+2042:          rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+2043:        })
+2044:        .from(schema.tournamentRosters)
+2045:        .where(eq(schema.tournamentRosters.participantId, winnerParticipantId));
+2046:
+2047:      const loserParticipantId = winnerParticipantId === p1Id ? p2Id : p1Id;
+2048:      const loserRosters = await tx
+2049:        .select({
+2050:          userId: schema.tournamentRosters.userId,
+2051:          rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+2052:        })
+2053:        .from(schema.tournamentRosters)
+2054:        .where(eq(schema.tournamentRosters.participantId, loserParticipantId));
+2055:
+2056:      // Consent gate, reusing the roster rows this loop already loads. A separate
+2057:      // lookup per match would turn a batch recalculation into 2N round-trips.
+2058:      // Same rule as hasEligibleRankingConsent: EVERY user must have confirmed
+2059:      // before the match completed, otherwise the delete + reinsert further down
+2060:      // writes elo_history_logs for players who never agreed — which is exactly
+2061:      // how this function used to void the enqueue and apply gates.
+2062:      // Checked per side, not on the combined array: a participant with NO roster
+2063:      // row (Excel import, no account — userId is NOT NULL so the row cannot exist)
+2064:      // contributes nothing to the union, and testing the union would read that as
+2065:      // "everyone consented". hasEligibleRankingConsent checks per participant for
+2066:      // the same reason; the two must not drift apart.
+2067:      const completedAtMs = completedAt?.getTime();
+2068:      const sideConsented = (rows: typeof winnerRosters) =>
+2069:        completedAtMs !== undefined &&
+2070:        rows.length > 0 &&
+2071:        rows.every(
+2072:          (r) =>
+2073:            r.rankingConsentAt !== null &&
+2074:            r.rankingConsentAt.getTime() <= completedAtMs,
+2075:        );
+2076:
+2077:      if (!sideConsented(winnerRosters) || !sideConsented(loserRosters)) {
+2078:        continue;
+2079:      }
+2080:
+2081:      const winnerUserIds: string[] = winnerRosters.map((r) => r.userId);
+2082:      const loserUserIds: string[] = loserRosters.map((r) => r.userId);
+2083:
+2084:      const isMatchAffected = [...winnerUserIds, ...loserUserIds].some((uid) =>
+2085:        affectedPlayers.has(uid),
+2086:      );
+2087:      if (!isMatchAffected) continue;
+2088:
+2089:      for (const uid of [...winnerUserIds, ...loserUserIds]) {
+2090:        await getPlayerState(uid, completedAt);
+2091:      }
+2092:
+2093:      const winnerStates = winnerUserIds.map((uid) => playerStates.get(uid)!);
+2094:      const loserStates = loserUserIds.map((uid) => playerStates.get(uid)!);
+2095:
+2096:      const avgWinnerElo =
+2097:        winnerStates.reduce((sum, s) => sum + s.elo, 0) / winnerStates.length;
+2098:      const avgLoserElo =
+2099:        loserStates.reduce((sum, s) => sum + s.elo, 0) / loserStates.length;
+2100:
+2101:      // Tính scoreRatio từ scoreDetails của match (nếu có)
+2102:      const matchScoreRatio = match.scoreDetails
+2103:        ? this.extractScoreRatio(
+2104:            match.scoreDetails as Record<string, unknown> | null | undefined,
+2105:            winnerParticipantId,
+2106:            match.participant1Id,
+2107:          )
+2108:        : undefined;
+2109:
+2110:      for (let i = 0; i < winnerUserIds.length; i++) {
+2111:        const uid = winnerUserIds[i];
+2112:        const state = winnerStates[i];
+2113:
+2114:        const result = this.eloEngineService.calculateElo(
+2115:          state.elo,
+2116:          avgLoserElo,
+2117:          true,
+2118:          state.matchesPlayed,
+2119:          state.winStreak,
+2120:          matchScoreRatio,
+2121:        );
+2122:
+2123:        const boundaries = [1100, 1200, 1300, 1500, 1700, 1800];
+2124:        let isWinnerShieldActive = state.shieldActive;
+2125:        for (const boundary of boundaries) {
+2126:          if (state.elo < boundary && result.newElo >= boundary) {
+2127:            isWinnerShieldActive = true;
+2128:          }
+2129:        }
+2130:
+2131:        await tx
+2132:          .delete(schema.eloHistoryLogs)
+2133:          .where(
+2134:            and(
+2135:              eq(schema.eloHistoryLogs.matchId, match.id),
+2136:              eq(schema.eloHistoryLogs.userId, uid),
+2137:            ),
+2138:          );
+2139:
+2140:        await tx.insert(schema.eloHistoryLogs).values({
+2141:          userId: uid,
+2142:          categoryId,
+2143:          matchId: match.id,
+2144:          reason: 'MATCH_WIN',
+2145:          previousElo: state.elo,
+2146:          newElo: result.newElo,
+2147:          changedPoints: result.changedPoints,
+2148:          createdAt: completedAt,
+2149:        });
+2150:
+2151:        state.elo = result.newElo;
+2152:        state.matchesPlayed += 1;
+2153:        state.matchesWon += 1;
+2154:        state.winStreak = result.newWinStreak;
+2155:        state.shieldActive = isWinnerShieldActive;
+2156:        state.peakElo = Math.max(state.peakElo, result.newElo);
+2157:
+2158:        affectedPlayers.add(uid);
+2159:      }
+2160:
+2161:      for (let i = 0; i < loserUserIds.length; i++) {
+2162:        const uid = loserUserIds[i];
+2163:        const state = loserStates[i];
+2164:
+2165:        const result = this.eloEngineService.calculateElo(
+2166:          state.elo,
+2167:          avgWinnerElo,
+2168:          false,
+2169:          state.matchesPlayed,
+2170:          state.winStreak,
+2171:          matchScoreRatio,
+2172:        );
+2173:
+2174:        const boundaries = [1100, 1200, 1300, 1500, 1700, 1800];
+2175:        let finalLoserElo = result.newElo;
+2176:        let isLoserShieldActive = state.shieldActive;
+2177:        for (const boundary of boundaries) {
+2178:          if (state.elo >= boundary && result.newElo < boundary) {
+2179:            if (state.shieldActive) {
+2180:              finalLoserElo = boundary;
+2181:              isLoserShieldActive = false;
+2182:              break;
+2183:            }
+2184:          }
+2185:        }
+2186:
+2187:        await tx
+2188:          .delete(schema.eloHistoryLogs)
+2189:          .where(
+2190:            and(
+2191:              eq(schema.eloHistoryLogs.matchId, match.id),
+2192:              eq(schema.eloHistoryLogs.userId, uid),
+2193:            ),
+2194:          );
+2195:
+2196:        await tx.insert(schema.eloHistoryLogs).values({
+2197:          userId: uid,
+2198:          categoryId,
+2199:          matchId: match.id,
+2200:          reason: 'MATCH_LOSS',
+2201:          previousElo: state.elo,
+2202:          newElo: finalLoserElo,
+2203:          changedPoints: finalLoserElo - state.elo,
+2204:          createdAt: completedAt,
+2205:        });
+2206:
+2207:        state.elo = finalLoserElo;
+2208:        state.matchesPlayed += 1;
+2209:        state.winStreak = 0;
+2210:        state.shieldActive = isLoserShieldActive;
+2211:        state.peakElo = Math.max(state.peakElo, finalLoserElo);
+2212:
+2213:        affectedPlayers.add(uid);
+2214:      }
+2215:    }
+2216:
+2217:    for (const [uid, state] of playerStates.entries()) {
+2218:      await tx
+2219:        .update(schema.userRanks)
+2220:        .set({
+2221:          eloPoints: state.elo,
+2222:          matchesPlayed: state.matchesPlayed,
+2223:          matchesWon: state.matchesWon,
+2224:          winStreak: state.winStreak,
+2225:          shieldActive: state.shieldActive,
+2226:          peakElo: state.peakElo,
+2227:          updatedAt: new Date(),
+2228:        })
+2229:        .where(
+2230:          and(
+2231:            eq(schema.userRanks.userId, uid),
+2232:            eq(schema.userRanks.categoryId, categoryId),
+2233:            eq(schema.userRanks.matchType, matchType),
+2234:            isNull(schema.userRanks.communityId),
+2235:          ),
+2236:        );
+2237:
+2238:      await this.recalculateUserRankTier(tx, uid, categoryId, matchType);
+2239:    }
+2240:    await this.invalidateLeaderboardCache(categoryId);
+2241:  }
+2242:
+2243:  /**
+2244:   * Safe version of recalculateEloChain — tự tạo transaction riêng, không blocking.
+2245:   * Dùng khi cần recalculate mà không có sẵn transaction từ caller.
+2246:   * Skill: BE Skill 6 (Domain Logic) — chống O(N²) blocking
+2247:   */
+2248:  async recalculateEloChainSafe(
+…
+2253:  ) {
+…
+2263:  }
+
+[Showing lines 2034-2248 of 2773. Use :2249 to continue]
+
+### region 3 (read, ~1555 tok)
+
+[backend/src/modules/matches/matches.repository.ts#67BD]
+1959:    // would let one team-mate's confirmation hand every other user their score.
+1960:    //
+1961:    // The roster predicate must stay exactly `.where(eq(participantId, X))` — no
+1962:    // status filter. Adding `status = 'ACTIVE'` would give a REMOVED/INVITED row
+1963:    // a NULL consent forever and silently kill ELO for the whole participant.
+1964:    //
+1965:    // A participant with NO roster row (Excel import, no account) must fail:
+1966:    // `[].every()` is true, so an empty roster would otherwise pass the gate and
+1967:    // such entrants — who have no account to confirm — would be scored anyway.
+1968:    //
+1969:    // All-or-nothing is deliberate: scoring only the consenting side would let a
+1970:    // player farm rating by facing opponents who never confirmed.
+1971:    const consentRosterRows = participantIds.length
+1972:      ? await tx
+1973:          .select({
+1974:            participantId: schema.tournamentRosters.participantId,
+1975:            rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+1976:          })
+1977:          .from(schema.tournamentRosters)
+1978:          .where(inArray(schema.tournamentRosters.participantId, participantIds))
+1979:      : [];
+1980:    const allParticipantsConsented =
+1981:      participantIds.length > 0 &&
+1982:      consentRosterRows.length > 0 &&
+1983:      participantIds.every((participantId) => {
+1984:        const rows = consentRosterRows.filter(
+1985:          (row) => row.participantId === participantId,
+1986:        );
+1987:        return (
+1988:          rows.length > 0 && rows.every((row) => row.rankingConsentAt !== null)
+1989:        );
+1990:      });
+1991:
+1992:    const footballTeamRows = participantIds.length
+1993:      ? await tx
+1994:          .select({
+1995:            footballTeamId: schema.tournamentParticipants.footballTeamId,
+1996:          })
+1997:          .from(schema.tournamentParticipants)
+1998:          .where(inArray(schema.tournamentParticipants.id, participantIds))
+1999:      : [];
+2000:    const isFootballTeamMatch =
+2001:      footballTeamRows.length === participantIds.length &&
+2002:      footballTeamRows.length === 2 &&
+2003:      footballTeamRows.every((row) => Boolean(row.footballTeamId));
+2004:
+2005:    // Football group-stage draws have no winner, but still produce a team-ELO
+2006:    // event. Individual/pair ELO keeps the historical winner-only contract.
+2007:    if (
+2008:      eloTournament?.isRanked &&
+2009:      (winnerId || isFootballTeamMatch) &&
+2010:      allParticipantsConsented &&
+2011:      !hasMockParticipant
+2012:    ) {
+2013:      await tx
+2014:        .insert(schema.matchEloOutbox)
+2015:        .values({
+2016:          matchId: id,
+2017:          status: 'PENDING',
+2018:          attempts: 0,
+2019:          nextAttemptAt: new Date(),
+2020:        })
+2021:        .onConflictDoNothing({ target: schema.matchEloOutbox.matchId });
+2022:    }
+2023:
+2024:    // 2. Two-legged knockout (bóng đá): chỉ advance khi CẢ2 leg COMPLETED.
+2025:    //    Tính aggregate = tổng bàn thắng 2 lượt; hòa tổng → luân lưu (penaltyShootout).
+2026:    let effectiveWinnerId = winnerId;
+2027:    // Use the row returned by the completion UPDATE. `existing` is a
+2028:    // pre-completion snapshot and therefore cannot establish this leg's status.
+2029:    if (updated.tieId && updated.leg) {
+2030:      const [otherLeg] = await tx
+2031:        .select()
+2032:        .from(schema.matches)
+2033:        .where(
+2034:          and(
+2035:            eq(schema.matches.tieId, updated.tieId),
+2036:            ne(schema.matches.id, updated.id),
+2037:            isNull(schema.matches.deletedAt),
+2038:          ),
+2039:        )
+2040:        .limit(1);
+2041:
+2042:      const otherDone = otherLeg && otherLeg.status === 'COMPLETED';
+2043:      const thisDone = updated.status === 'COMPLETED';
+2044:      if (otherDone && thisDone && updated.nextMatchId) {
+2045:        // Aggregate by participant identity (the generated second leg may swap
+2046:        // home/away slots), using football goals rather than set counters.
+2047:        const leg1 = updated.leg === 1 ? updated : otherLeg!;
+2048:        const leg2 = updated.leg === 2 ? updated : otherLeg!;
+2049:        const updatedDetails = updated.scoreDetails as Record<
+2050:          string,
+2051:          unknown
+2052:        > | null;
+2053:        const shootout = (updatedDetails?.shootout ??
+2054:          (updatedDetails?.football as Record<string, unknown> | undefined)
+2055:            ?.shootout) as Record<string, unknown> | undefined;
+2056:        const shootoutWinnerId =
+2057:          typeof shootout?.winnerId === 'string' ? shootout.winnerId : null;
+2058:        effectiveWinnerId = aggregateFootballTwoLegs(
+2059:          leg1,
+2060:          leg2,
+2061:          shootoutWinnerId,
+2062:        ).winnerId;
+2063:      }
+2064:    } else if (!effectiveWinnerId && updated.tieId && updated.nextMatchId) {
+2065:      // Knockout hòa + penaltyShootout: dùng shootout từ scoreDetails
+2066:      const updatedDetails = updated.scoreDetails as Record<
+2067:        string,
+2068:        unknown
+2069:      > | null;
+2070:      const shootout = (updatedDetails?.shootout ??
+2071:        (updatedDetails?.football as Record<string, unknown> | undefined)
+2072:          ?.shootout) as Record<string, unknown> | undefined;
+2073:      effectiveWinnerId = (shootout?.winnerId as string | undefined) ?? null;
+2074:    }
+2075:
+2076:    // 2b. Auto-advance Winner (skip khi hòa chưa phân định — winnerId null)
+2077:    if (effectiveWinnerId && existing.nextMatchId) {
+2078:      const [nextMatch] = await tx
+2079:        .select()
+2080:        .from(schema.matches)
+2081:        .where(eq(schema.matches.id, existing.nextMatchId))
+2082:        .limit(1);
+2083:
+2084:      if (nextMatch) {
+2085:        const targetSlot = resolveWinnerTargetSlot({
+2086:          sourceBranch: existing.bracketBranch,
+2087:          sourceRoundNumber: existing.roundNumber,
+2088:          sourceMatchOrder: existing.matchOrder,
+…
+2090:        });
+…
+2104:      }
+2105:    }
+
+[Showing lines 1959-2088 of 2925. Use :2089 to continue]
+
+### region 4 (read, ~2415 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#8232]
+1:import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+2:import { and, eq, isNull } from 'drizzle-orm';
+3:import { PG_CONNECTION } from '../../../database/database.module';
+4:import type { AppDb } from '../../../database/db.types';
+5:import * as schema from '../../../database/schema';
+6:import { MailService } from '../../../providers/mail/mail.service';
+7:
+8:/**
+9: * Thông báo XÁC NHẬN (không phải lời mời) cho người tham gia.
+10: *
+11: * Mail KHÔNG mang token: bấm xác nhận phải đi qua endpoint đã đăng nhập, nên không
+12: * có bí mật nào nằm trong link để lộ. Link chỉ đưa người chơi tới trang giải để bấm.
+13: *
+14: * Tự động nhắc tối đa 3 lần rồi dừng — bấm tay từ phía ban tổ chức là thao tác
+15: * không còn thiết.
+16: */
+17:export const CONSENT_MAX_NOTIFICATIONS = 3;
+18:
+19:/** Số giờ chờ trước mỗi lần nhắc, tính từ lần gửi gần nhất. */
+20:export const CONSENT_REMINDER_DELAYS_HOURS = [24, 72] as const;
+21:
+22:@Injectable()
+23:export class RankingConsentService {
+24:  private readonly logger = new Logger(RankingConsentService.name);
+25:
+26:  constructor(
+27:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+28:    @Optional() private readonly mailService?: MailService,
+29:  ) {}
+30:
+31:  private get frontendUrl(): string {
+32:    return (
+33:      process.env.FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3001'
+34:    );
+35:  }
+36:
+37:  /** Gửi ngay cho một roster row cụ thể (dùng khi vừa thêm người). */
+38:  async sendConfirmationRequest(rosterId: string): Promise<boolean> {
+39:    return this.dispatch(rosterId, 'Xác nhận tham gia giải đấu');
+40:  }
+41:
+42:  /** Nhắc lại cho những ai đã quá hạn mà chưa xác nhận. */
+43:  async sendDueReminders(): Promise<number> {
+44:    const now = Date.now();
+45:
+46:    // Rows whose notifiedAt is still NULL are included on purpose. dispatch stamps
+47:    // that column only after a successful send, so filtering NULLs out would mean a
+48:    // single temporary mail outage silently ends all reminders — the player never
+49:    // hears again and never learns their matches go unscored. That is exactly the
+50:    // silent-exclusion failure this feature exists to prevent.
+51:    const due = await this.db
+52:      .select({
+53:        id: schema.tournamentRosters.id,
+54:        attempts: schema.tournamentRosters.consentNotifiedCount,
+55:        notifiedAt: schema.tournamentRosters.consentNotifiedAt,
+56:        joinedAt: schema.tournamentRosters.joinedAt,
+57:      })
+58:      .from(schema.tournamentRosters)
+59:      .innerJoin(
+60:        schema.tournamentParticipants,
+61:        eq(
+62:          schema.tournamentParticipants.id,
+63:          schema.tournamentRosters.participantId,
+64:        ),
+65:      )
+66:      .innerJoin(
+67:        schema.tournaments,
+68:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+69:      )
+70:      .where(
+71:        and(
+72:          isNull(schema.tournamentRosters.rankingConsentAt),
+73:          // A tournament that does not rank scores nothing, so asking its players to
+74:          // consent would be noise.
+75:          eq(schema.tournaments.isRanked, true),
+76:        ),
+77:      );
+78:
+79:    let sent = 0;
+80:    for (const row of due) {
+81:      // Three sends in total: the one at add time plus two reminders. Past the cap
+82:      // the row is left alone — nobody gets nagged forever.
+83:      if (row.attempts >= CONSENT_MAX_NOTIFICATIONS) continue;
+84:
+85:      // attempts === 0 means the first send never landed, so the clock runs from
+86:      // when the player joined instead of from a send that does not exist.
+87:      const anchor = row.notifiedAt ?? row.joinedAt;
+88:      if (!anchor) continue;
+89:
+90:      // attempts counts DELIVERED sends, and the send at add time already made it 1.
+91:      // So the first reminder is attempts === 1 → delays[0] = 24h. Indexing by
+92:      // `attempts` would jump straight to 72h and leave delays[0] as dead code.
+93:      // attempts === 0 means nothing was delivered yet, so the 24h delay runs from
+94:      // joinedAt instead.
+95:      const delayHours =
+96:        CONSENT_REMINDER_DELAYS_HOURS[
+97:          Math.min(
+98:            Math.max(row.attempts - 1, 0),
+99:            CONSENT_REMINDER_DELAYS_HOURS.length - 1,
+100:          )
+101:        ];
+102:      const elapsedHours = (now - new Date(anchor).getTime()) / 3_600_000;
+103:      if (elapsedHours < delayHours) continue;
+104:
+105:      if (await this.dispatch(row.id, 'Nhắc xác nhận tham gia giải đấu')) {
+106:        sent += 1;
+107:      }
+108:    }
+109:    return sent;
+110:  }
+111:
+112:  /**
+113:   * Gửi 1 mail và ghi nhận số lần đã gửi.
+114:   *
+115:   * Chỉ tăng bộ đếm khi gửi THÀNH CÔNG — nếu không, một hệ thống mail hỏng sẽ đốt
+116:   * hết 3 lượt nhắc rồi im lặng, biến "chưa gửi được" thành "đã bỏ qua".
+117:   */
+118:  private async dispatch(rosterId: string, subject: string): Promise<boolean> {
+119:    if (!this.mailService) return false;
+120:
+121:    const rows = await this.db
+122:      .select({
+123:        userEmail: schema.users.email,
+124:        participantName: schema.tournamentParticipants.teamName,
+125:        tournamentName: schema.tournaments.name,
+126:        tournamentId: schema.tournaments.id,
+127:        attempts: schema.tournamentRosters.consentNotifiedCount,
+128:        consentedAt: schema.tournamentRosters.rankingConsentAt,
+129:      })
+130:      .from(schema.tournamentRosters)
+131:      .innerJoin(
+132:        schema.users,
+133:        eq(schema.users.id, schema.tournamentRosters.userId),
+134:      )
+135:      .innerJoin(
+136:        schema.tournamentParticipants,
+137:        eq(schema.tournamentParticipants.id, schema.tournamentRosters.participantId),
+138:      )
+139:      .innerJoin(
+140:        schema.tournaments,
+141:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+142:      )
+143:      .where(eq(schema.tournamentRosters.id, rosterId))
+144:      .limit(1);
+145:
+146:    const row = rows[0];
+147:    if (!row?.userEmail || row.consentedAt) return false;
+148:
+149:    const link = `${this.frontendUrl}/tournaments/${row.tournamentId}`;
+150:    const isReminder = row.attempts > 0;
+151:
+152:    try {
+153:      const ok = await this.mailService.sendMail(
+154:        row.userEmail,
+155:        `[Sporto] ${subject}: ${row.tournamentName}`,
+156:        this.buildHtml({
+157:          participantName: row.participantName,
+158:          tournamentName: row.tournamentName,
+159:          link,
+160:          isReminder,
+161:        }),
+162:      );
+163:      if (!ok) return false;
+164:    } catch (err) {
+165:      this.logger.warn(
+166:        `Gửi mail xác nhận thất bại cho roster ${rosterId}: ${
+167:          err instanceof Error ? err.message : String(err)
+168:        }`,
+169:      );
+170:      return false;
+171:    }
+172:
+173:    await this.db
+174:      .update(schema.tournamentRosters)
+175:      .set({
+176:        consentNotifiedAt: new Date(),
+177:        consentNotifiedCount: row.attempts + 1,
+178:      })
+179:      .where(eq(schema.tournamentRosters.id, rosterId));
+180:
+181:    return true;
+182:  }
+183:
+184:  private buildHtml(args: {
+185:    participantName: string | null;
+186:    tournamentName: string;
+187:    link: string;
+188:    isReminder: boolean;
+189:  }): string {
+190:    const heading = args.isReminder
+191:      ? 'Bạn chưa xác nhận tham gia'
+192:      : 'Bạn được thêm vào một giải đấu';
+193:    return `
+194:      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 560px;">
+195:        <div style="background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;">
+196:          <h1 style="color: #ffffff; font-size: 18px; margin: 0;">${heading}</h1>
+197:        </div>
+198:        <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+199:          <p style="font-size: 14px; color: #0f172a; margin: 0 0 16px;">
+200:            Xin chào ${args.participantName ?? 'bạn'},
+201:          </p>
+202:          <p style="font-size: 14px; color: #334155; margin: 0 0 16px;">
+203:            Ban tổ chức đã thêm bạn vào giải
+204:            <strong>${args.tournamentName}</strong>.
+205:          </p>
+206:          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;">
+207:            <p style="font-size: 14px; color: #78350f; margin: 0;">
+208:              Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+209:              <br />
+210:              Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+211:              tính — các trận đã đấu trước đó không tính.
+212:            </p>
+213:          </div>
+214:          <a href="${args.link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+215:            Đăng nhập để xác nhận
+216:          </a>
+217:          <p style="font-size: 13px; color: #64748b; margin: 20px 0 0;">
+218:            Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+219:          </p>
+220:        </div>
+221:      </div>
+222:    `;
+223:  }
+224:}
+
+### region 5 (read, ~1185 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#EDFC]
+19:describe('RankingConsentService.sendDueReminders', () => {
+20:  const hoursAgo = (h: number) => new Date(NOW.getTime() - h * HOUR);
+21:
+22:  /**
+23:   * Resolves by call order: the first select is the candidate scan, every later
+24:   * select is a dispatch looking up its own roster detail row.
+25:   */
+26:  const createDb = (candidates: unknown[]) => {
+27:    let call = 0;
+28:    const chain: Record<string, unknown> = {};
+29:    const self = () => chain;
+30:    chain.select = jest.fn(self);
+31:    chain.from = jest.fn(self);
+32:    chain.innerJoin = jest.fn(self);
+33:    chain.where = jest.fn(self);
+34:    chain.limit = jest.fn(self);
+35:    chain.update = jest.fn(self);
+36:    chain.set = jest.fn(self);
+37:    chain.then = (resolve: (value: unknown) => unknown) =>
+38:      Promise.resolve().then(() => {
+39:        const value = call === 0 ? candidates : [detailRow()];
+40:        call += 1;
+41:        resolve(value);
+42:      });
+43:    return chain;
+44:  };
+45:
+46:  const build = (candidates: unknown[], sendOk = true) => {
+47:    const db = createDb(candidates);
+48:    const mailService = { sendMail: jest.fn().mockResolvedValue(sendOk) };
+49:    const service = new RankingConsentService(
+50:      db as never,
+51:      mailService as never,
+52:    );
+53:    return { service, mailService };
+54:  };
+55:
+56:  beforeEach(() => {
+57:    jest.useFakeTimers().setSystemTime(NOW);
+58:  });
+59:
+60:  afterEach(() => {
+61:    jest.useRealTimers();
+62:  });
+63:
+64:  it('retries a send that never landed, anchoring on the join time', async () => {
+65:    // The reason notifiedAt NULL rows stay in scope: one mail outage must not
+66:    // permanently silence the reminders, or the player never learns their
+67:    // matches will go unscored.
+68:    const { service, mailService } = build([
+69:      { id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(25) },
+70:    ]);
+71:
+72:    await expect(service.sendDueReminders()).resolves.toBe(1);
+73:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+74:  });
+75:
+76:  it('waits when the first reminder is not due yet', async () => {
+77:    const { service, mailService } = build([
+78:      { id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(10) },
+79:    ]);
+80:
+81:    await expect(service.sendDueReminders()).resolves.toBe(0);
+82:    expect(mailService.sendMail).not.toHaveBeenCalled();
+83:  });
+84:
+85:  it('sends the first reminder 24h after the send at add time', async () => {
+86:    // attempts === 1 means exactly one send landed — the one at add time — so the
+87:    // first reminder is due 24h after THAT send, not 72h.
+88:    const { service, mailService } = build([
+89:      {
+90:        id: 'r1',
+91:        attempts: 1,
+92:        notifiedAt: hoursAgo(30),
+93:        joinedAt: hoursAgo(100),
+94:      },
+95:    ]);
+96:
+97:    await expect(service.sendDueReminders()).resolves.toBe(1);
+98:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+99:  });
+100:
+101:  it('waits before the second reminder', async () => {
+102:    // Two sends landed, so the 72h delay runs from the second one.
+103:    const { service, mailService } = build([
+104:      {
+105:        id: 'r1',
+106:        attempts: 2,
+107:        notifiedAt: hoursAgo(30),
+108:        joinedAt: hoursAgo(100),
+109:      },
+110:    ]);
+111:
+112:    await expect(service.sendDueReminders()).resolves.toBe(0);
+113:    expect(mailService.sendMail).not.toHaveBeenCalled();
+114:  });
+115:
+116:  it('sends the second reminder once 72h have passed', async () => {
+117:    const { service, mailService } = build([
+118:      {
+119:        id: 'r1',
+120:        attempts: 2,
+121:        notifiedAt: hoursAgo(73),
+122:        joinedAt: hoursAgo(200),
+123:      },
+124:    ]);
+125:
+126:    await expect(service.sendDueReminders()).resolves.toBe(1);
+127:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+128:  });
+129:
+130:  it('stops at the notification cap so nobody is nagged forever', async () => {
+131:    const { service, mailService } = build([
+132:      {
+133:        id: 'r1',
+134:        attempts: CONSENT_MAX_NOTIFICATIONS,
+135:        notifiedAt: hoursAgo(200),
+136:        joinedAt: hoursAgo(400),
+137:      },
+138:    ]);
+139:
+140:    await expect(service.sendDueReminders()).resolves.toBe(0);
+141:    expect(mailService.sendMail).not.toHaveBeenCalled();
+142:  });
+143:
+144:  it('does not count a failed send as a delivered one', async () => {
+145:    const { service } = build(
+146:      [{ id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(25) }],
+147:      false,
+148:    );
+149:
+150:    await expect(service.sendDueReminders()).resolves.toBe(0);
+151:  });
+152:});
+
+### region 6 (read, ~973 tok)
+
+[web/src/features/tournaments/api.ts#F8D7]
+786:export type AddAthleteSource = "FRIENDS" | "CLUB" | "DIRECT";
+787:
+788:export interface AddAthleteCandidate {
+789:  userId: string;
+790:  displayName: string;
+791:  avatarUrl: string | null;
+792:  source: "FRIENDS" | "CLUB";
+793:}
+794:
+795:export interface AddAthleteCandidatesResponse {
+796:  rows: AddAthleteCandidate[];
+797:  nextCursor: string | null;
+798:}
+799:
+800:export type AddAthletePlayerInput =
+801:  | { userId: string; role?: "MAIN" | "PARTNER" }
+802:  | { displayName: string; email?: string; phone?: string; role?: "MAIN" | "PARTNER" };
+803:
+804:export interface AddAthletesRequest {
+805:  source: AddAthleteSource;
+806:  divisionId?: string;
+807:  teamName?: string;
+808:  players: AddAthletePlayerInput[];
+809:  organizerNote?: string;
+810:}
+811:
+812:export interface AddAthletesResponse {
+813:  participant: TournamentParticipant;
+814:  entryFeeAtRegistration?: number | null;
+815:  organizerNote?: string | null;
+816:  isPresent?: boolean | null;
+817:  claim?: { status?: string; claimToken?: string | null } | null;
+818:}
+…
+841:  getMyManagementTournaments: (params?: {
+…
+845:    status?: "COMPLETED";
+846:  }) =>
+847:    api.get<ApiResponse<OrganizerTournamentListItem[]>>(
+848:      "/tournaments/my/management",
+849:      { params },
+850:    ),
+851:  getMyWorkspace: (params?: { includeRefereeMatches?: boolean }) =>
+852:    api.get<ApiResponse<TournamentWorkspace>>("/tournaments/workspace/me", {
+853:      params,
+854:    }),
+855:  getTournamentById: (id: string, params?: Record<string, unknown>) =>
+856:    api.get<ApiResponse<Tournament>>(`/tournaments/${id}`, { params }),
+857:  getTournamentVenues: (id: string) =>
+858:    api.get<ApiResponse<TournamentVenueWithCourts[]>>(
+859:      `/tournaments/${id}/venues`,
+860:    ),
+861:  createTournamentVenue: (
+862:    id: string,
+863:    data: {
+864:      name: string;
+865:      locationAddress: string;
+866:      venueId?: string;
+867:      isDefault?: boolean;
+868:      initialCourtCount?: number;
+869:      courtPrefix?: string;
+870:    },
+871:  ) =>
+872:    api.post<ApiResponse<TournamentVenueWithCourts>>(
+873:      `/tournaments/${id}/venues`,
+874:      data,
+875:    ),
+876:  updateTournamentVenue: (
+877:    id: string,
+878:    venueId: string,
+879:    data: { name?: string; locationAddress?: string },
+880:  ) =>
+881:    api.patch<ApiResponse<TournamentVenueWithCourts>>(
+882:      `/tournaments/${id}/venues/${venueId}`,
+883:      data,
+884:    ),
+885:  setDefaultTournamentVenue: (id: string, venueId: string) =>
+886:    api.patch<ApiResponse<{ success: boolean; defaultVenueId: string }>>(
+887:      `/tournaments/${id}/venues/${venueId}/default`,
+888:    ),
+889:  deleteTournamentVenue: (id: string, venueId: string) =>
+890:    api.delete<
+891:      ApiResponse<{
+892:        success: boolean;
+893:        remainingVenueIds: string[];
+894:        defaultVenueId: string | null;
+895:      }>
+896:    >(`/tournaments/${id}/venues/${venueId}`),
+897:  addVenueCourtDirect: (
+898:    id: string,
+899:    venueId: string,
+900:    data: { courtName: string; status?: "AVAILABLE" | "MAINTENANCE" },
+901:  ) =>
+902:    api.post<ApiResponse<TournamentCourt>>(
+903:      `/tournaments/${id}/venues/${venueId}/courts`,
+904:      data,
+905:    ),
+906:  addVenueCourtsBatchDirect: (
+907:    id: string,
+908:    venueId: string,
+909:    data: { courtCount: number; namePrefix?: string },
+910:  ) =>
+911:    api.post<ApiResponse<TournamentCourt[]>>(
+912:      `/tournaments/${id}/venues/${venueId}/courts/batch`,
+913:      data,
+914:    ),
+915:  removeVenueCourtDirect: (id: string, venueId: string, courtId: string) =>
+916:    api.delete<ApiResponse<TournamentCourt>>(
+917:      `/tournaments/${id}/venues/${venueId}/courts/${courtId}`,
+918:    ),
+919:  saveTournamentVenue: (
+920:    id: string,
+…
+922:  ) =>
+…
+925:    >(`/tournaments/${id}/venue`, data),
+
+### region 7 (read, ~1998 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx#B2C3]
+1:'use client';
+2:
+3:import React from 'react';
+4:import { useLocale, useTranslations } from 'next-intl';
+5:import { Button } from '@/components/ui/Button';
+6:import { Input } from '@/components/ui/Input';
+7:import { Textarea } from '@/components/ui/Textarea';
+8:import { Modal, ModalContent, ModalHeader, ModalTitle } from '@/components/ui/Modal';
+9:import ConfirmModal from '@/components/ui/ConfirmModal';
+10:import {
+11:  RefreshCw,
+12:  Loader2,
+13:  Plus,
+14:  Trash2,
+15:  UserPlus,
+16:  CheckCircle,
+17:  Check,
+18:  X,
+19:  Lock,
+20:  Users,
+21:  Search,
+22:  Mail,
+23:  Phone,
+24:  Shuffle,
+25:  GripVertical,
+26:  FileSpreadsheet,
+27:  Download,
+28:  Upload,
+29:  ChevronDown,
+30:  SlidersHorizontal,
+31:  MoreVertical,
+32:  Clock,
+33:  AlertCircle,
+34:  XCircle,
+35:} from 'lucide-react';
+36:import {
+37:  DropdownMenu,
+38:  DropdownMenuTrigger,
+39:  DropdownMenuContent,
+40:  DropdownMenuItem,
+41:} from '@/components/ui/DropdownMenu';
+42:import { Tournament, TournamentParticipant } from '@/types/tournament';
+43:import type { LiteGeneratePairsResponse, LiteParticipant } from '@/types/tournament';
+44:import {
+45:  Division,
+46:  IMPORT_SOURCES,
+47:  tournamentsApi,
+48:  type ImportSource,
+49:} from '@/features/tournaments/api';
+50:import { formatDate } from '@/utils/format';
+51:import { cn } from '@/utils/cn';
+52:import { downloadParticipantsTemplateExcel } from '@/utils/exportTournament';
+53:import { RosterImportModal } from './roster-import/RosterImportModal';
+54:import { useTournamentWorkbookExport } from './useTournamentWorkbookExport';
+55:import { MockDataModal } from './MockDataModal';
+56:import { PairingParticipantsModal, type RandomPairingOutcome } from './PairingParticipantsModal';
+57:import {
+58:  getParticipantStatusClassName,
+59:  getParticipantStatusLabel,
+60:  isParticipantApproved,
+61:  isParticipantPendingApproval,
+62:  isParticipantPendingPartner,
+63:} from '@/utils/tournament-display';
+64:import {
+65:  isTournamentDraft,
+66:  isTournamentPendingApproval,
+67:  isTournamentRegistrationClosed,
+68:  isTournamentRegistrationOpen,
+69:} from '@/utils/tournament-status';
+70:import { readRegistrationFormConfig } from '@/features/tournaments/registration-form';
+71:import toast from 'react-hot-toast';
+72:
+73:interface RegistrationProfileAvatarProps {
+74:  name?: string | null;
+75:  avatarUrl?: string | null;
+76:  size?: 'sm' | 'md';
+77:}
+78:
+79:function formatRegistrationAnswer(value: unknown): string {
+80:  if (Array.isArray(value)) {
+81:    return value.filter((item): item is string | number => typeof item === 'string' || typeof item === 'number').join(', ');
+82:  }
+83:  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+84:  if (value && typeof value === 'object') return JSON.stringify(value);
+85:  return '';
+86:}
+87:
+88:function RegistrationProfileAvatar({ name, avatarUrl, size = 'sm' }: RegistrationProfileAvatarProps) {
+89:  const initials = (name || '?')
+90:    .trim()
+91:    .split(/\s+/)
+92:    .filter(Boolean)
+93:    .slice(-2)
+94:    .map((part) => part[0]?.toUpperCase() ?? '')
+95:    .join('') || '?';
+96:  const sizeClass = size === 'md' ? 'h-11 w-11 text-sm' : 'h-8 w-8 text-xs';
+97:
+98:  return avatarUrl ? (
+99:    // eslint-disable-next-line @next/next/no-img-element
+100:    <img
+101:      src={avatarUrl}
+102:      alt={name || 'Profile'}
+103:      className={cn('shrink-0 rounded-full object-cover ring-1 ring-slate-200', sizeClass)}
+104:    />
+105:  ) : (
+106:    <span className={cn('inline-flex shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700 ring-1 ring-blue-200', sizeClass)}>
+107:      {initials}
+108:    </span>
+109:  );
+110:}
+111:
+112:export type RegistrationParticipantFilter = 'ALL' | 'PENDING' | 'COMPLETE' | 'UNPAID' | 'REJECTED';
+113:
+114:interface RegistrationTabProps {
+115:  tournament: Tournament;
+116:  mockNamesText: string;
+117:  setMockNamesText: (val: string) => void;
+118:  isSeedingMock: boolean;
+119:  isClearingMock: boolean;
+120:  wildcardEmailOrPhone: string;
+121:  setWildcardEmailOrPhone: (val: string) => void;
+122:  wildcardPartnerEmailOrPhone: string;
+123:  setWildcardPartnerEmailOrPhone: (val: string) => void;
+124:  wildcardTeamName: string;
+125:  setWildcardTeamName: (val: string) => void;
+126:  isAssigningWildcard: boolean;
+127:  participants: TournamentParticipant[];
+128:  participantListLoadState: 'loading' | 'ready' | 'error';
+129:  activeParticipantActionId: string | null;
+130:  divisions: Division[];
+131:  selectedDivisionId: string;
+132:  setSelectedDivisionId: (val: string) => void;
+133:  publishFeeAmount: number;
+134:  handlePublish: () => void;
+135:  handleOpenLockModal: () => void;
+136:  handleApproveParticipant: (participantId: string) => Promise<void>;
+137:  handleRejectParticipant: (participantId: string) => Promise<void>;
+138:  handleKickParticipant?: (participantId: string, reason?: string) => Promise<void>;
+139:  handleSeedMockData: () => void;
+140:  handleClearMockData: () => void;
+141:  handleAssignWildcard: () => void;
+142:  handleRemoveWildcard?: (participantId: string) => Promise<void>;
+143:  // ELO Constraints
+144:  eloEnabled: boolean;
+145:  setEloEnabled: (val: boolean) => void;
+146:  eloMin: number;
+147:  setEloMin: (val: number) => void;
+148:  eloMax: number;
+149:  setEloMax: (val: number) => void;
+150:  eloMaxCombined: number;
+151:  setEloMaxCombined: (val: number) => void;
+152:  eloMaxGap: number;
+153:  setEloMaxGap: (val: number) => void;
+154:  // Seeding
+155:  seedingMethod: 'ELO' | 'RANDOM' | 'MANUAL';
+156:  setSeedingMethod: (val: 'ELO' | 'RANDOM' | 'MANUAL') => void;
+157:  isAutoSeeding: boolean;
+158:  handleAutoSeed: () => Promise<void>;
+159:  handleSwapSeeds: (participantId1: string, participantId2: string) => Promise<void>;
+160:  handleReorderSeeds?: (reorderedSeeds: { participantId: string; seed: number }[]) => Promise<void>;
+161:  refetchDivisionData?: () => Promise<unknown> | void;
+162:  // The roster list is lifted to the manage page: the wide overlay unmounts this
+163:  // tab on close, so a local draft would be lost every time the organizer returns.
+164:  participantSearch: string;
+165:  setParticipantSearch: (value: string) => void;
+166:  participantFilter: RegistrationParticipantFilter;
+167:  setParticipantFilter: (value: RegistrationParticipantFilter) => void;
+168:}
+169:
+170:
+171:
+172:export function RegistrationTab({
+173:  tournament,
+174:  mockNamesText,
+175:  setMockNamesText,
+176:  isSeedingMock,
+177:  isClearingMock,
+178:  wildcardEmailOrPhone,
+179:  setWildcardEmailOrPhone,
+180:  wildcardPartnerEmailOrPhone,
+181:  setWildcardPartnerEmailOrPhone,
+182:  wildcardTeamName,
+183:  setWildcardTeamName,
+184:  isAssigningWildcard,
+185:  participants,
+186:  participantListLoadState,
+187:  activeParticipantActionId,
+188:  divisions,
+189:  selectedDivisionId,
+190:  setSelectedDivisionId,
+191:  publishFeeAmount,
+192:  handlePublish,
+193:  handleOpenLockModal,
+194:  handleApproveParticipant,
+195:  handleRejectParticipant,
+196:  handleSeedMockData,
+197:  handleClearMockData,
+198:  handleAssignWildcard,
+199:  eloEnabled,
+200:  setEloEnabled,
+201:  eloMin,
+202:  setEloMin,
+203:  eloMax,
+204:  setEloMax,
+205:  eloMaxCombined,
+206:  setEloMaxCombined,
+207:  eloMaxGap,
+208:  setEloMaxGap,
+209:  seedingMethod,
+210:  setSeedingMethod,
+211:  isAutoSeeding,
+212:  handleAutoSeed,
+213:  handleSwapSeeds,
+214:  handleReorderSeeds,
+215:  refetchDivisionData,
+216:  participantSearch,
+217:  setParticipantSearch,
+218:  participantFilter,
+219:  setParticipantFilter,
+220:}: RegistrationTabProps) {
+221:  const [isRosterImportOpen, setIsRosterImportOpen] = React.useState(false);
+222:  const [isMockDataModalOpen, setIsMockDataModalOpen] = React.useState(false);
+223:  const [isWildcardModalOpen, setIsWildcardModalOpen] = React.useState(false);
+…
+1473:}
+
+[Showing lines 1-223 of 1473. Use :224 to continue]
+
+### region 8 (bash, ~222 tok)
+
+FAIL src/modules/rankings/ranking-consent-gate.spec.ts
+  ● RankingConsentGate › rejects a participant with an unclaimed guest roster slot
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      192 |     );
+      193 |
+    > 194 |     await expect(gate(service)).resolves.toBe(false);
+          |                                          ^
+      195 |   });
+      196 | });
+      197 |
+
+      at Object.toBe (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2140:20)
+      at Object.<anonymous> (modules/rankings/ranking-consent-gate.spec.ts:194:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        1.483 s
+Ran all test suites matching src/modules/rankings/ranking-consent-gate.spec.ts.
+
+
+Wall time: 1.96 seconds
+
+Command exited with code 1
+
+### region 9 (read, ~2167 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#4602]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  jsonb,
+7:  numeric,
+8:  boolean,
+9:  timestamp,
+10:  integer,
+11:  check,
+12:  date,
+13:  index,
+14:  uniqueIndex,
+15:} from 'drizzle-orm/pg-core';
+16:import { sql } from 'drizzle-orm';
+17:import { users } from './users.schema';
+18:import { communities } from './communities.schema';
+19:import { categories } from './categories.schema';
+20:import { tournamentVenues } from './venues.schema';
+21:import { tournamentDivisions } from './tournament_divisions.schema';
+22:
+23:export const parentTournaments = pgTable('parent_tournaments', {
+24:  id: uuid('id').primaryKey().defaultRandom(),
+25:  name: varchar('name', { length: 255 }).notNull(),
+26:  description: text('description'),
+27:  bannerUrl: text('banner_url'),
+28:  logoUrl: text('logo_url'),
+29:  sports: jsonb('sports').$type<string[]>().default([]).notNull(),
+30:  createdBy: uuid('created_by')
+31:    .references(() => users.id, { onDelete: 'restrict' })
+32:    .notNull(),
+33:  createdAt: timestamp('created_at', { withTimezone: true })
+34:    .defaultNow()
+35:    .notNull(),
+36:  updatedAt: timestamp('updated_at', { withTimezone: true })
+37:    .defaultNow()
+38:    .notNull(),
+39:  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+40:});
+…
+172:export const tournamentGroups = pgTable('tournament_groups', {
+…
+180:}, (table) => ({
+181:  idxGroupsStageId: index('idx_groups_stage_id').on(table.stageId),
+182:}));
+183:
+184:export const tournamentParticipants = pgTable('tournament_participants', {
+185:  id: uuid('id').primaryKey().defaultRandom(),
+186:  tournamentId: uuid('tournament_id')
+187:    .references(() => tournaments.id, { onDelete: 'cascade' })
+188:    .notNull(),
+189:  tournamentDivisionId: uuid('tournament_division_id').references(
+190:    () => tournamentDivisions.id,
+191:    { onDelete: 'cascade' },
+192:  ),
+193:  groupId: uuid('group_id').references(() => tournamentGroups.id, {
+194:    onDelete: 'set null',
+195:  }),
+196:  registeredBy: uuid('registered_by')
+197:    .references(() => users.id, { onDelete: 'restrict' })
+198:    .notNull(),
+199:  teamName: varchar('team_name', { length: 255 }).notNull(),
+200:  // FK is applied by the standalone migration to avoid a runtime schema import cycle.
+201:  footballTeamId: uuid('football_team_id'),
+202:  footballTeamLogoUrl: varchar('football_team_logo_url', { length: 1000 }),
+203:  seed: integer('seed'),
+204:  points: integer('points').default(0).notNull(),
+205:  rankingConsent: boolean('ranking_consent').default(false).notNull(),
+206:  customResponses: jsonb('custom_responses'),
+207:  isPaid: boolean('is_paid').default(false).notNull(),
+208:  // Organizer's own day-of-event mark. Carries no meaning anywhere else: it does
+209:  // not gate roster approval, does not affect ELO, and does not block playing.
+210:  isPresent: boolean('is_present').default(false).notNull(),
+211:  // Effective registration fee captured when this participant is created.
+212:  // This is distinct from isPaid: zero means free at registration, while
+213:  // isPaid=true after a paid flow means the payment was captured.
+214:  entryFeeAtRegistration: numeric('entry_fee_at_registration', {
+215:    precision: 12,
+216:    scale: 2,
+217:  }).default('0.00').notNull(),
+218:  teamInviteToken: varchar('team_invite_token', { length: 50 }).unique(),
+219:  teamStatus: varchar('team_status', { length: 50 }).default('PENDING').notNull(),
+220:  partnerUserId: uuid('partner_user_id').references(() => users.id, { onDelete: 'restrict' }),
+221:  partnerInviteExpiresAt: timestamp('partner_invite_expires_at', { withTimezone: true }),
+222:  isMock: boolean('is_mock').default(false).notNull(),
+223:  isWildcard: boolean('is_wildcard').default(false).notNull(),
+224:  registeredAt: timestamp('registered_at', { withTimezone: true })
+225:    .defaultNow()
+226:    .notNull(),
+227:  rosterLockedAt: timestamp('roster_locked_at', { withTimezone: true }),
+228:}, (table) => ({
+229:  idxParticipantsTournamentStatus: index('idx_participants_tournament_status').on(
+230:    table.tournamentId,
+231:    table.teamStatus,
+232:  ),
+233:  idxParticipantsTournamentId: index('idx_participants_tournament_id').on(
+234:    table.tournamentId,
+235:  ),
+236:  idxParticipantsDivisionStatus: index(
+237:    'idx_participants_division_status',
+238:  ).on(table.tournamentDivisionId, table.teamStatus),
+239:}));
+240:
+241:export const tournamentRosters = pgTable('tournament_rosters', {
+242:  id: uuid('id').primaryKey().defaultRandom(),
+243:  participantId: uuid('participant_id')
+244:    .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+245:    .notNull(),
+246:  userId: uuid('user_id')
+247:    .references(() => users.id, { onDelete: 'restrict' })
+248:    .notNull(),
+249:  role: varchar('role', { length: 50 }).default('MAIN').notNull(),
+250:  // Team sport: status mời — INVITED (chưa accept) / ACTIVE / REMOVED
+251:  status: varchar('status', { length: 20 }).default('ACTIVE').notNull(),
+252:  // When THIS user agreed to have their results ranked in THIS tournament.
+253:  //
+254:  // Lives here, not on tournament_participants, because ELO is applied per
+255:  // tournament_rosters.userId: a team participant can carry several users
+256:  // (MAIN + RESERVE), so a single per-participant timestamp cannot tell whose
+257:  // consent it is — one user confirming would hand every team-mate their score.
+258:  //
+259:  // NULL means not confirmed. Distinct from tournament_participants.ranking_consent,
+260:  // which is only a copy of the tournament's isRanked flag.
+261:  //
+262:  // Business rule: a match counts only when matches.completedAt >= this instant.
+263:  // Matches played before confirming stay permanently unscored, so nobody can be
+264:  // force-enrolled and then have old results land against them.
+265:  rankingConsentAt: timestamp('ranking_consent_at', { withTimezone: true }),
+266:  joinedAt: timestamp('joined_at', { withTimezone: true })
+267:    .defaultNow()
+268:    .notNull(),
+269:  // When the confirmation mail was last queued, and how many times it has been
+270:  // sent. Self-reminders (1-3, then stop) are scheduled from these — without them
+271:  // the scheduler cannot tell "never notified" from "notified and ignored", and
+272:  // the organizer's "awaiting confirmation" view becomes unverifiable.
+273:  consentNotifiedAt: timestamp('consent_notified_at', { withTimezone: true }),
+274:  consentNotifiedCount: integer('consent_notified_count').default(0).notNull(),
+275:}, (table) => ({
+276:  idxRostersParticipantUserUnique: uniqueIndex(
+277:    'tournament_rosters_participant_user_unique_idx',
+278:  ).on(table.participantId, table.userId),
+279:}));
+280:
+281:export const tournamentReferees = pgTable('tournament_referees', {
+282:  id: uuid('id').primaryKey().defaultRandom(),
+283:  tournamentId: uuid('tournament_id').references(() => tournaments.id, { onDelete: 'cascade' }).notNull(),
+284:  userId: uuid('user_id').references(() => users.id, { onDelete: 'restrict' }).notNull(),
+285:  assignedBy: uuid('assigned_by').references(() => users.id, { onDelete: 'set null' }),
+286:  status: varchar('status', { length: 50 }).default('INVITED').notNull(), // 'INVITED' | 'ACCEPTED' | 'DECLINED'
+287:  assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
+288:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+289:});
+290:
+291:export const tournamentStaff = pgTable('tournament_staff', {
+292:  id: uuid('id').primaryKey().defaultRandom(),
+293:  tournamentId: uuid('tournament_id')
+294:    .references(() => tournaments.id, { onDelete: 'cascade' })
+295:    .notNull(),
+296:  userId: uuid('user_id')
+297:    .references(() => users.id, { onDelete: 'restrict' })
+298:    .notNull(),
+299:  role: varchar('role', { length: 50 }).notNull(),
+300:  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+301:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+302:});
+303:
+304:export const tournamentFollows = pgTable('tournament_follows', {
+305:  id: uuid('id').primaryKey().defaultRandom(),
+306:  tournamentId: uuid('tournament_id')
+307:    .references(() => tournaments.id, { onDelete: 'cascade' })
+308:    .notNull(),
+309:  userId: uuid('user_id')
+310:    .references(() => users.id, { onDelete: 'cascade' })
+311:    .notNull(),
+312:  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+313:}, (table) => ({
+314:  uniqueFollow: uniqueIndex('tournament_follows_unique_idx').on(table.tournamentId, table.userId),
+315:}));
+
+### region 10 (read, ~482 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#009B]
+1791:
+1792:  async recalculateEloChain(
+1793:    tx: Transaction,
+1794:    playerIds: string[],
+1795:    fromTime: Date,
+1796:    categoryId: string,
+1797:    matchType: string,
+1798:  ) {
+1799:    const subsequentMatches = await tx
+1800:      .select({
+1801:        match: schema.matches,
+1802:        stage: schema.tournamentStages,
+1803:        tournament: schema.tournaments,
+1804:      })
+1805:      .from(schema.matches)
+1806:      .innerJoin(
+1807:        schema.tournamentGroups,
+1808:        eq(schema.matches.groupId, schema.tournamentGroups.id),
+1809:      )
+1810:      .innerJoin(
+1811:        schema.tournamentStages,
+1812:        eq(schema.tournamentGroups.stageId, schema.tournamentStages.id),
+1813:      )
+1814:      .innerJoin(
+1815:        schema.tournaments,
+1816:        eq(schema.tournamentStages.tournamentId, schema.tournaments.id),
+1817:      )
+1818:      .innerJoin(
+1819:        schema.tournamentRosters,
+1820:        or(
+1821:          eq(
+1822:            schema.matches.participant1Id,
+1823:            schema.tournamentRosters.participantId,
+1824:          ),
+1825:          eq(
+1826:            schema.matches.participant2Id,
+1827:            schema.tournamentRosters.participantId,
+1828:          ),
+1829:        ),
+1830:      )
+1831:      .where(
+1832:        and(
+1833:          eq(schema.tournaments.categoryId, categoryId),
+1834:          eq(schema.tournaments.matchType, matchType),
+1835:          eq(schema.matches.status, 'COMPLETED'),
+1836:          gte(schema.matches.completedAt, fromTime),
+1837:        ),
+1838:      )
+1839:      .orderBy(asc(schema.matches.completedAt));
+1840:
+1841:    const uniqueMatchIds = new Set<string>();
+1842:    const matchesToRecalculate: typeof subsequentMatches = [];
+1843:    for (const m of subsequentMatches) {
+…
+1848:    }
+…
+2241:  }
+
+[Showing lines 1791-1843 of 2773. Use :1844 to continue]
+
+### region 11 (read, ~1563 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#3597]
+1:import { RankingsService } from './rankings.service';
+2:
+3:/**
+4: * V7: a match only counts toward the ranking board when EVERY user carried on the
+5: * roster had confirmed BEFORE the match completed.
+6: *
+7: * These exercise the real gate decision rather than inspecting source text: the
+8: * rule is a comparison between two instants across a per-user row set, and a
+9: * textual assertion could pass while the comparison or the grouping was wrong.
+10: */
+11:describe('RankingConsentGate', () => {
+12:  const MATCH_ID = 'match-1';
+13:  const P1 = 'participant-1';
+14:  const P2 = 'participant-2';
+15:
+16:  const at = (iso: string) => new Date(iso);
+17:  const COMPLETED = '2026-06-01T10:00:00Z';
+18:
+19:  /** drizzle-like chainable stub resolving queued results in order. */
+20:  const createDb = (results: unknown[][]) => {
+21:    const queue = [...results];
+22:    const chain: Record<string, unknown> = {};
+23:    const self = () => chain;
+24:    chain.select = jest.fn(self);
+25:    chain.from = jest.fn(self);
+26:    chain.innerJoin = jest.fn(self);
+27:    chain.leftJoin = jest.fn(self);
+28:    chain.where = jest.fn(self);
+29:    chain.limit = jest.fn(self);
+30:    chain.then = (resolve: (value: unknown) => unknown) =>
+31:      Promise.resolve().then(() => resolve(queue.shift() ?? []));
+32:    return chain;
+33:  };
+34:
+35:  const buildService = (
+36:    rosterRows: unknown[],
+37:    opts: {
+38:      completedAt?: string | null;
+39:      withFootball?: boolean;
+40:      isRanked?: boolean;
+41:      participant1Id?: string | null;
+42:      participant2Id?: string | null;
+43:    } = {},
+44:  ) => {
+45:    const {
+46:      completedAt = COMPLETED,
+47:      withFootball = false,
+48:      isRanked = true,
+49:      participant1Id = P1,
+50:      participant2Id = P2,
+51:    } = opts;
+52:    const db = createDb([
+53:      [
+54:        {
+55:          completedAt: completedAt ? at(completedAt) : null,
+56:          participant1Id,
+57:          participant2Id,
+58:          isRanked,
+59:        },
+60:      ],
+61:      rosterRows,
+62:      [],
+63:    ]);
+64:    const football = withFootball
+65:      ? { processCompletedMatch: jest.fn().mockResolvedValue(undefined) }
+66:      : undefined;
+67:    const service = new RankingsService(
+68:      db as never,
+69:      {} as never,
+70:      {} as never,
+71:      { delByPattern: jest.fn(), get: jest.fn(), set: jest.fn() } as never,
+72:      football as never,
+73:    );
+74:    return { service, football };
+75:  };
+76:
+77:  const gate = (service: RankingsService) =>
+78:    (
+79:      service as unknown as {
+80:        hasEligibleRankingConsent(id: string): Promise<boolean>;
+81:      }
+82:    ).hasEligibleRankingConsent(MATCH_ID);
+83:
+84:  const consented = (participantId: string, iso = '2026-05-01T09:00:00Z') => ({
+85:    participantId,
+86:    rankingConsentAt: at(iso),
+87:  });
+88:
+89:  it('allows a match completed after every roster user confirmed', async () => {
+90:    const { service } = buildService([
+91:      consented(P1, '2026-05-01T09:00:00Z'),
+92:      consented(P2, '2026-05-01T09:30:00Z'),
+93:    ]);
+94:
+95:    await expect(gate(service)).resolves.toBe(true);
+96:  });
+97:
+98:  it('rejects a match completed BEFORE the player confirmed (the V7 rule)', async () => {
+99:    // Consent at 11:00, match finished at 10:00. Counting it would let an
+100:    // organizer force-enrol someone and have old results land against them.
+101:    const { service } = buildService([
+102:      consented(P1, '2026-05-01T09:00:00Z'),
+103:      consented(P2, '2026-06-01T11:00:00Z'),
+104:    ]);
+105:
+106:    await expect(gate(service)).resolves.toBe(false);
+107:  });
+108:
+109:  it('rejects when one user on a shared participant never confirmed', async () => {
+110:    // A doubles team carries several users on one participant. If consent were
+111:    // read off the participant, one confirmation would hand every team-mate their
+112:    // score — this is the hole that per-user consent exists to close.
+113:    const { service } = buildService([
+114:      consented(P1),
+115:      { participantId: P1, rankingConsentAt: null },
+…
+117:    ]);
+…
+120:  });
+…
+139:  it('scores a REMOVED roster row exactly as the ELO award does', async () => {
+…
+143:    const { service } = buildService([
+…
+145:      consented(P2),
+146:      consented(P2, '2026-05-01T09:00:00Z'),
+147:    ]);
+148:
+149:    await expect(gate(service)).resolves.toBe(true);
+150:  });
+151:
+152:  it('skips the football ELO path entirely when consent is missing', async () => {
+153:    // The football branch writes its own ELO and returns early, so a gate placed
+154:    // after it would silently never run for football matches.
+155:    const { service, football } = buildService([], { withFootball: true });
+156:
+157:    await expect(
+158:      service.processMatchResultFromOutbox(MATCH_ID),
+159:    ).resolves.toBeUndefined();
+160:    expect(football!.processCompletedMatch).not.toHaveBeenCalled();
+161:  });
+162:
+163:  it('does not throw when consent is missing, so the row is not retried forever', async () => {
+164:    // elo-outbox.processor.ts marks a row PROCESSED only when the call returns
+165:    // without throwing; throwing would spin the retry/backoff loop indefinitely.
+166:    const { service } = buildService([]);
+167:
+168:    await expect(
+169:      service.processMatchResultFromOutbox(MATCH_ID),
+170:    ).resolves.not.toThrow();
+171:  });
+172:  it('rejects ranked ELO for a non-ranked tournament', async () => {
+173:    const { service } = buildService(
+174:      [consented(P1), consented(P2)],
+175:      { isRanked: false },
+176:    );
+177:
+178:    await expect(gate(service)).resolves.toBe(false);
+179:  });
+180:
+181:  it('rejects matches with an empty side', async () => {
+182:    const { service } = buildService([consented(P1)], {
+183:      participant2Id: null,
+184:    });
+185:
+186:    await expect(gate(service)).resolves.toBe(false);
+187:  });
+188:
+189:  it('rejects a participant with an unclaimed guest roster slot', async () => {
+190:    const { service } = buildService(
+191:      [consented(P1), consented(P2)],
+192:    );
+193:
+194:    await expect(gate(service)).resolves.toBe(false);
+195:  });
+196:});
+
+### region 12 (read, ~974 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#009B]
+2265:  /**
+…
+2273:   * count exactly the pre-confirmation matches V7 forbids.
+2274:   *
+2275:   * Returns false (skip) rather than throwing, so the processor marks the row
+2276:   * PROCESSED instead of retrying forever. A skipped match stays unscored for
+2277:   * good — that is the intended outcome, not a transient failure.
+2278:   */
+2279:  private async hasEligibleRankingConsent(matchId: string): Promise<boolean> {
+2280:    const [match] = await this.db
+2281:      .select({
+2282:        completedAt: schema.matches.completedAt,
+2283:        participant1Id: schema.matches.participant1Id,
+2284:        participant2Id: schema.matches.participant2Id,
+2285:        isRanked: schema.tournaments.isRanked,
+2286:      })
+2287:      .from(schema.matches)
+2288:      .innerJoin(
+2289:        schema.tournaments,
+2290:        eq(schema.tournaments.id, schema.matches.tournamentId),
+2291:      )
+2292:      .where(eq(schema.matches.id, matchId))
+2293:      .limit(1);
+2294:
+2295:    if (
+2296:      !match?.isRanked ||
+2297:      !match.completedAt ||
+2298:      !match.participant1Id ||
+2299:      !match.participant2Id
+2300:    ) {
+2301:      return false;
+2302:    }
+2303:
+2304:    const participantIds = [match.participant1Id, match.participant2Id];
+2305:    const consentRows = await this.db
+2306:      .select({
+2307:        participantId: schema.tournamentRosters.participantId,
+2308:        rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+2309:      })
+2310:      .from(schema.tournamentRosters)
+2311:      .where(inArray(schema.tournamentRosters.participantId, participantIds));
+2312:
+2313:    if (consentRows.length === 0) return false;
+2314:
+2315:    const completedAt = match.completedAt.getTime();
+2316:    return participantIds.every((participantId) => {
+2317:      const rows = consentRows.filter(
+2318:        (row) => row.participantId === participantId,
+2319:      );
+2320:      return (
+2321:        rows.length > 0 &&
+2322:        rows.every(
+2323:          (row) =>
+2324:            row.rankingConsentAt !== null &&
+2325:            row.rankingConsentAt.getTime() <= completedAt,
+2326:        )
+2327:      );
+2328:    });
+2329:  }
+2330:
+2331:  /**
+2332:   * Entry point used by the ELO outbox worker (elo-outbox.processor.ts).
+2333:   * Loads the match + tournament context and calls processMatchResult with the
+2334:   * same arguments the old inline completion path used, so ELO semantics stay
+2335:   * identical while the caller moves out of the completion transaction.
+2336:   * Idempotent by design (advisory lock + unique elo_history_logs index).
+2337:   */
+2338:  async processMatchResultFromOutbox(matchId: string) {
+2339:    // Must run BEFORE the football branch: footballTeamEloService writes its own
+2340:    // ELO and returns early, so a gate placed after it would never see football
+2341:    // matches and V7 would not apply to them at all.
+2342:    if (!(await this.hasEligibleRankingConsent(matchId))) return;
+2343:
+2344:    const footballResult =
+2345:      await this.footballTeamEloService?.processCompletedMatch(matchId);
+2346:    if (footballResult?.handled) return footballResult;
+2347:
+2348:    const [match] = await this.db
+2349:      .select({
+2350:        winnerId: schema.matches.winnerId,
+2351:        participant1Id: schema.matches.participant1Id,
+2352:        participant2Id: schema.matches.participant2Id,
+2353:        tournamentId: schema.matches.tournamentId,
+2354:        stageId: schema.matches.stageId,
+2355:      })
+2356:      .from(schema.matches)
+2357:      .where(eq(schema.matches.id, matchId))
+2358:      .limit(1);
+2359:
+2360:    if (!match) {
+2361:      throw new Error(`Match ${matchId} not found for ELO outbox processing`);
+2362:    }
+2363:    if (!match.winnerId) {
+…
+2365:    }
+…
+2426:  }
+
+[Showing lines 2273-2363 of 2773. Use :2364 to continue]
+
+### region 13 (edit, ~280 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#AAFC]
+11:describe('RankingConsentGate', () => {
+
+35:  const buildService = (
+
+37:    opts: {
+
+41:      participant1Id?: string | null;
+42:      participant2Id?: string | null;
+43:      guestParticipantIds?: string[];
+44:    } = {},
+45:  ) => {
+46:    const {
+
+50:      participant1Id = P1,
+51:      participant2Id = P2,
+52:      guestParticipantIds = [],
+53:    } = opts;
+54:    const db = createDb([
+55:      [
+
+62:      ],
+63:      rosterRows,
+64:      guestParticipantIds.map((participantId) => ({ participantId })),
+65:    ]);
+…
+82:      ],
+83:      rosterRows,
+84:      [],
+85:    ]);
+
+97:  };
+
+Warnings:
+This edit introduced a syntax error near line 37: the file parsed before the patch and no longer does. It was applied exactly as written, so a line number or range endpoint is likely wrong — re-read the touched region and re-issue a correcting edit.
+Warning: backend/src/modules/rankings/ranking-consent-gate.spec.ts no longer parses after this edit. The change was applied; re-read the edited region and fix the syntax, or revert if unintended.
+
+### region 14 (read, ~572 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#AAFC]
+11:describe('RankingConsentGate', () => {
+…
+20:  const createDb = (results: unknown[][]) => {
+…
+31:      Promise.resolve().then(() => resolve(queue.shift() ?? []));
+32:    return chain;
+33:  };
+34:
+35:  const buildService = (
+36:    rosterRows: unknown[],
+37:    opts: {
+38:      completedAt?: string | null;
+39:      withFootball?: boolean;
+40:      isRanked?: boolean;
+41:      participant1Id?: string | null;
+42:      participant2Id?: string | null;
+43:      guestParticipantIds?: string[];
+44:    } = {},
+45:  ) => {
+46:    const {
+47:      completedAt = COMPLETED,
+48:      withFootball = false,
+49:      isRanked = true,
+50:      participant1Id = P1,
+51:      participant2Id = P2,
+52:      guestParticipantIds = [],
+53:    } = opts;
+54:    const db = createDb([
+55:      [
+56:        {
+57:          completedAt: completedAt ? at(completedAt) : null,
+58:          participant1Id,
+59:          participant2Id,
+60:          isRanked,
+61:        },
+62:      ],
+63:      rosterRows,
+64:      guestParticipantIds.map((participantId) => ({ participantId })),
+65:    ]);
+66:  ) => {
+67:    const {
+68:      completedAt = COMPLETED,
+69:      withFootball = false,
+70:      isRanked = true,
+71:      participant1Id = P1,
+72:      participant2Id = P2,
+73:    } = opts;
+74:    const db = createDb([
+75:      [
+76:        {
+77:          completedAt: completedAt ? at(completedAt) : null,
+78:          participant1Id,
+79:          participant2Id,
+80:          isRanked,
+81:        },
+82:      ],
+83:      rosterRows,
+84:      [],
+85:    ]);
+86:    const football = withFootball
+87:      ? { processCompletedMatch: jest.fn().mockResolvedValue(undefined) }
+88:      : undefined;
+89:    const service = new RankingsService(
+90:      db as never,
+91:      {} as never,
+92:      {} as never,
+93:      { delByPattern: jest.fn(), get: jest.fn(), set: jest.fn() } as never,
+94:      football as never,
+95:    );
+96:    return { service, football };
+97:  };
+98:
+99:  const gate = (service: RankingsService) =>
+100:    (
+101:      service as unknown as {
+102:        hasEligibleRankingConsent(id: string): Promise<boolean>;
+103:      }
+104:    ).hasEligibleRankingConsent(MATCH_ID);
+
+[Showing lines 31-103 of 218. Use :104 to continue]
+
+### region 15 (edit, ~92 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#CB50]
+11:describe('RankingConsentGate', () => {
+
+54:    const db = createDb([
+
+64:      guestParticipantIds.map((participantId) => ({ participantId })),
+65:    ]);
+66:    const football = withFootball
+67:      ? { processCompletedMatch: jest.fn().mockResolvedValue(undefined) }
+68:      : undefined;
+
+77:  };
+
+### region 16 (read, ~155 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#CB50]
+11:describe('RankingConsentGate', () => {
+…
+182:
+183:  it('rejects matches with an empty side', async () => {
+184:    const { service } = buildService([consented(P1)], {
+185:      participant2Id: null,
+186:    });
+187:
+188:    await expect(gate(service)).resolves.toBe(false);
+189:  });
+190:
+191:  it('rejects a participant with an unclaimed guest roster slot', async () => {
+192:    const { service } = buildService(
+193:      [consented(P1), consented(P2)],
+194:    );
+195:
+196:    await expect(gate(service)).resolves.toBe(false);
+197:  });
+198:});
+
+### region 17 (edit, ~52 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#4A21]
+192:    const { service } = buildService(
+193:      [consented(P1), consented(P2)],
+194:      { guestParticipantIds: [P1] },
+195:    );
+196:
+
+### region 18 (bash, ~225 tok)
+
+FAIL src/modules/rankings/ranking-consent-gate.spec.ts
+  ● RankingConsentGate › rejects a participant with an unclaimed guest roster slot
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      195 |     );
+      196 |
+    > 197 |     await expect(gate(service)).resolves.toBe(false);
+          |                                          ^
+      198 |   });
+      199 | });
+      200 |
+
+      at Object.toBe (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2140:20)
+      at Object.<anonymous> (modules/rankings/ranking-consent-gate.spec.ts:197:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        0.731 s, estimated 2 s
+Ran all test suites matching src/modules/rankings/ranking-consent-gate.spec.ts.
+
+
+Wall time: 1.17 seconds
+
+Command exited with code 1
+
+### region 19 (read, ~550 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/00-problem-map.md#841C]
+23:## Bằng chứng trạng thái hiện tại
+…
+25:- `backend/src/modules/tournaments/tournaments.controller.ts:1491-1543`: đã có route preview/commit Excel; route mới không thay thế các route này.
+…
+28:- `backend/src/modules/tournaments/repositories/tournament-participant.repository.ts:107-177`: consent hiện chỉ ghi roster row của chính người chơi và idempotent.
+29:- `backend/src/modules/tournaments/tournaments.controller.ts:1641-1662`: route self-consent đã có; phần cần sửa là UI non-blocking và điểm nhập consent sau khi organizer thêm/guest claim, không tạo route trùng.
+30:- `web/src/app/(public)/tournaments/[id]/components/RegisterModal.tsx:36-47` và `DoublesRegistrationFlow.tsx:417-425`: Web chặn đăng ký nếu chưa consent.
+31:- `app/lib/features/register/screens/tournament_register_screen.dart:537-555`: Flutter chặn đăng ký nếu chưa consent; `football_team_register_screen.dart:251-262` gửi `rankingConsent: true`.
+32:- `backend/src/modules/tournaments/services/ranking-consent.service.ts:17-20,42-109`: giới hạn hiện tại 3 notification tổng, delay hiện hữu 24h/72h; không đổi lịch.
+33:- `backend/src/modules/rankings/rankings.service.ts:1787-1834,2034-2073`: replay đã kiểm consent theo từng phía nhưng query không giới hạn `isRanked`.
+34:- `backend/src/modules/rankings/rankings.service.ts:264-306`: `updateMatchElo` kiểm match completed/ranked nhưng chưa kiểm consent.
+35:- `backend/src/database/schema/tournaments.schema.ts:208-217`: `isPresent` và `entryFeeAtRegistration` đã có; participant schema không có organizer note.
+36:
+37:## Ngoài phạm vi
+38:
+39:- Không thay Excel, không gọi hoặc thay luồng wildcard/cấp suất đặc cách.
+40:- Không tự đặt reminder schedule mới, không thêm organizer consent status/resend UI.
+41:- Không thay luật tính ELO chung; `insertAdminEloHistory` tiếp tục ngoài gate giải đấu.
+42:- Không thực thi migration/DB production, không tạo chứng nhận compliance.
+
+[Showing lines 28-41 of 42. Use :42 to continue]
+
+### region 20 (read, ~534 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/00-discovery-brief.md#6DE2]
+7:## Kết quả khảo sát
+…
+9:| # | Phát hiện | Bằng chứng |
+…
+17:| D7 | `confirmRankingConsent` tự ghi timestamp idempotent và route player-facing đã tồn tại; thiếu UI không chặn đăng ký và consent cho người organizer/guest claim. | `tournament-participant.repository.ts:107-177`; `tournaments.controller.ts:1641-1662` (`POST /:id/participants/me/ranking-consent`). |
+18:| D8 | Import service đã có notification success/pending và consent request; luồng mới nên tái dùng builders/services, không tự tạo email consent thứ hai. | `tournament-import.service.ts:58-85,103-127,160-216`. |
+19:| D9 | Reminder hiện chọn mọi roster chưa consent trong giải ranked; chưa lọc roster removed/tournament ended, build HTML dùng dữ liệu động trực tiếp và update counter không atomic multi-instance. | `ranking-consent.service.ts:42-109,118-224`. |
+20:| D10 | ELO apply kiểm `completedAt` và consent từng user; replay có consent check nhưng thiếu `tournament.isRanked`; manual `updateMatchElo` thiếu consent gate. | `rankings.service.ts:1787-1834,2024-2073,2274-2421,264-306`. |
+21:| D11 | `insertAdminEloHistory` là luồng audit/admin khác, không đưa vào gate consent của tournament. | `rankings.service.ts` direct admin path; kiểm tra symbol trước khi sửa. |
+22:| D12 | Web có `ParticipantIdentity` dùng avatar hiện tại; không cần API/avatar mới. Flutter có các màn hình đăng ký đơn/đôi/team nhưng không có organizer registration-tab tương đương được xác nhận trong survey. | `web/src/components/ui/ParticipantIdentity.tsx`; Flutter registration screens. |
+23:
+24:## Lựa chọn
+25:
+26:1. Mở rộng Excel/legacy import — **loại**: trộn hành vi và validation hai flow, làm email khó thật sự optional.
+27:2. Thêm API tournament-scoped riêng cho candidate và commit — **chọn**: server lọc/recheck quan hệ, không đụng spreadsheet/wildcard.
+…
+31:
+
+[Showing lines 17-27 of 41. Use :28 to continue]
+
+### region 21 (read, ~373 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/02-backend-feature-design.md#F498]
+1:# Backend Feature Design — organizer-add-athlete-consent-20261005
+…
+39:## Reminder
+…
+41:- Giữ cấu hình hiện hành `CONSENT_REMINDER_DELAYS_HOURS=[24,72]` và cap hiện có; không thêm interval.
+…
+43:- Escape text nodes và `href` attribute. Serialize dispatch theo roster row giữa instances; counter chỉ tăng khi `sendMail` thành công; failure giải phóng lock và được thử lại theo lịch hiện hữu.
+44:
+45:## ELO
+46:
+47:- Enqueue: chỉ `isRanked=true`, participant hai bên đều có ít nhất một roster user, không có guest slot, mọi `rankingConsentAt != null && <= updated.completedAt`.
+48:- Apply: chạy `hasEligibleRankingConsent` ngay trước cả football và normal ELO; gate rechecks `isRanked`, timestamp, nonempty sides, guest rows.
+49:- Replay: thêm filter `isRanked=true`, consent/guest gate trước bất kỳ delete/insert history; test destructive writes.
+50:- Manual `updateMatchElo`: thêm cùng gate sau validation trạng thái/ranked và trước transaction/rank writes.
+51:- `insertAdminEloHistory` không nằm trong tournament consent gate.
+52:
+53:## Transaction invariants
+54:
+55:Một transaction chứa participant, account rosters, guest slots, capacity and note; bất kỳ validation/source/duplicate failure nào đều rollback toàn bộ. Claim token raw không nằm trong DB/logs; notification chỉ sau commit.
+
+### region 22 (read, ~497 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/05-feature-impact-review.md#75A0]
+5:## Source of truth
+…
+7:- Tournament/manager ownership: `TournamentAccessService.isManager`, same permission boundary as import.
+…
+13:- ELO: enqueue, apply, replay and direct `updateMatchElo` must all verify ranked setting and every roster user consented before `completedAt`; `insertAdminEloHistory` excluded.
+14:
+15:## Phạm vi ảnh hưởng
+16:
+17:| Khu vực | Thay đổi |
+18:|---|---|
+19:| Backend tournaments | New candidate/add/direct/claim routes; reuse existing self-consent route; note and guest repository/DTOs; manager and source eligibility checks |
+20:| Backend schema | `organizer_note` and `tournament_guest_rosters`; migration generated/reviewed, not applied to real DB |
+21:| Backend rankings | Gate direct update and replay against `isRanked`; ensure enqueue uses completion timestamp; preserve admin history |
+22:| Backend scheduler | active roster/tournament filter, safe HTML, cross-instance serialized dispatch, retry/counter assertions |
+23:| Web | Add Athlete dialog beside spreadsheet import; friends/club/direct modes; note/presence/fee snapshot; player consent/claim UI |
+24:| Flutter | Optional player consent and response model/client compatibility; no organizer UI unless existing consumer proves one exists |
+25:| Excel/wildcard | unchanged |
+26:
+27:## Negative cases
+28:
+29:| Case | Required behavior |
+30:|---|---|
+31:| non-manager/unverified caller | 403; no candidate or write |
+32:| friend pending/rejected/soft-deleted at write time | reject; no participant/roster row |
+33:| club member removed or tournament not associated with club | reject |
+34:| user already on active roster | conflict; no duplicate |
+35:| guest direct entry without email | succeeds with one-time claim credential; no synthetic account/email |
+…
+40:| mail failure | retry remains eligible; delivered-send counter unchanged |
+41:
+
+[Showing lines 13-35 of 50. Use :36 to continue]
+
+### region 23 (edit, ~1150 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/00-problem-map.md#5CD0]
+23:## Bằng chứng trạng thái hiện tại
+
+25:- `backend/src/modules/tournaments/tournaments.controller.ts:1491-1543`: đã có route preview/commit Excel; route mới không thay thế các route này.
+
+31:- `app/lib/features/register/screens/tournament_register_screen.dart:537-555`: Flutter chặn đăng ký nếu chưa consent; `football_team_register_screen.dart:251-262` gửi `rankingConsent: true`.
+32:- `backend/src/modules/tournaments/services/ranking-consent.service.ts:17-20,42-109`: giới hạn hiện tại 3 notification tổng, delay hiện hữu 24h/72h; không đổi lịch.
+33:- `backend/src/modules/rankings/rankings.service.ts:1787-1834,2034-2079`: replay kiểm consent theo từng phía nhưng thiếu `isRanked` và guest slot; apply helper tại `:2279-2329` đã kiểm ranked, hai phía không rỗng và timestamp.
+34:- `backend/src/modules/rankings/rankings.service.ts:264-306`: `updateMatchElo` đã gọi `hasEligibleRankingConsent`; mở rộng shared helper cho guest và giữ test đường này, không tạo gate trùng.
+35:- `backend/src/modules/matches/matches.repository.ts:1971-1990`: enqueue hiện chỉ kiểm `rankingConsentAt != null`, chưa so với `updated.completedAt` và chưa thấy guest slots.
+36:- `backend/src/database/schema/tournaments.schema.ts:208-217`: `isPresent` và `entryFeeAtRegistration` đã có; participant schema không có organizer note.
+37:
+
+[web/changes/organizer-add-athlete-consent-20261005/00-discovery-brief.md#387F]
+9:| # | Phát hiện | Bằng chứng |
+
+18:| D8 | Import service đã có notification success/pending và consent request; luồng mới nên tái dùng builders/services, không tự tạo email consent thứ hai. | `tournament-import.service.ts:58-85,103-127,160-216`. |
+19:| D9 | Reminder hiện chọn mọi roster chưa consent trong giải ranked; chưa lọc roster removed/tournament ended, build HTML dùng dữ liệu động trực tiếp và update counter không atomic multi-instance. | `ranking-consent.service.ts:42-109,118-224`. |
+20:| D10 | Apply helper kiểm `isRanked`, hai bên không rỗng và consent `<= completedAt`; `updateMatchElo` đã gọi helper. Enqueue chưa so timestamp/guest; replay thiếu ranked/guest gate. | `rankings.service.ts:2279-2329,264-306,1787-1834,2034-2079`; `matches.repository.ts:1971-1990`. |
+21:| D11 | `insertAdminEloHistory` là luồng audit/admin khác, không đưa vào gate consent của tournament. | `rankings.service.ts` direct admin path; kiểm tra symbol trước khi sửa. |
+22:| D12 | Web có `ParticipantIdentity` dùng avatar hiện tại; không cần API/avatar mới. Flutter có các màn hình đăng ký đơn/đôi/team nhưng không có organizer registration-tab tương đương được xác nhận trong survey. | `web/src/components/ui/ParticipantIdentity.tsx`; Flutter registration screens. |
+
+[web/changes/organizer-add-athlete-consent-20261005/02-backend-feature-design.md#2D98]
+45:## ELO
+46:
+47:- Enqueue: chỉ `isRanked=true`, participant hai bên đều có ít nhất một roster user, không có guest slot, mọi `rankingConsentAt != null && <= updated.completedAt`.
+48:- Apply: giữ `hasEligibleRankingConsent` hiện có, bổ sung guest-slot check trước cả football và normal ELO; gate đã kiểm ranked, timestamp, nonempty sides.
+49:- Replay: thêm filter `isRanked=true`, consent/guest gate trước bất kỳ delete/insert history; test destructive writes.
+50:- Manual `updateMatchElo`: đã gọi shared gate; mở rộng helper để reject guest slot và regression-test trực tiếp method.
+51:- `insertAdminEloHistory` không nằm trong tournament consent gate.
+52:
+
+[web/changes/organizer-add-athlete-consent-20261005/05-feature-impact-review.md#65DD]
+19:| Backend tournaments | New candidate/add/direct/claim routes; reuse existing self-consent route; note and guest repository/DTOs; manager and source eligibility checks |
+20:| Backend schema | `organizer_note` and `tournament_guest_rosters`; migration generated/reviewed, not applied to real DB |
+21:| Backend rankings | Add completion timestamp + guest check to enqueue, guest check to existing apply/manual helper, ranked/guest replay guard; preserve admin history |
+22:| Backend scheduler | active roster/tournament filter, safe HTML, cross-instance serialized dispatch, retry/counter assertions |
+23:| Web | Add Athlete dialog beside spreadsheet import; friends/club/direct modes; note/presence/fee snapshot; player consent/claim UI |
+
+### region 24 (edit, ~196 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#EB54]
+205:  rankingConsent: boolean('ranking_consent').default(false).notNull(),
+206:  customResponses: jsonb('custom_responses'),
+207:  organizerNote: varchar('organizer_note', { length: 280 }),
+208:  isPaid: boolean('is_paid').default(false).notNull(),
+209:  // Organizer's own day-of-event mark. Carries no meaning anywhere else: it does
+
+242:export const tournamentRosters = pgTable('tournament_rosters', {
+
+276:}, (table) => ({
+277:  idxRostersParticipantUserUnique: uniqueIndex(
+
+279:  ).on(table.participantId, table.userId),
+280:}));
+281:export const tournamentGuestRosters = pgTable(
+282:  'tournament_guest_rosters',
+…
+308:  }),
+309:);
+310:
+311:export const tournamentReferees = pgTable('tournament_referees', {
+
+319:});
+
+### region 25 (read, ~420 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#EB54]
+242:export const tournamentRosters = pgTable('tournament_rosters', {
+…
+276:}, (table) => ({
+…
+280:}));
+281:export const tournamentGuestRosters = pgTable(
+282:  'tournament_guest_rosters',
+283:  {
+284:    id: uuid('id').primaryKey().defaultRandom(),
+285:    participantId: uuid('participant_id')
+286:      .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+287:      .notNull(),
+288:    displayName: varchar('display_name', { length: 255 }).notNull(),
+289:    role: varchar('role', { length: 50 }).default('MAIN').notNull(),
+290:    contactEmail: varchar('contact_email', { length: 320 }),
+291:    contactPhone: varchar('contact_phone', { length: 30 }),
+292:    claimTokenHash: varchar('claim_token_hash', { length: 64 })
+293:      .notNull()
+294:      .unique(),
+295:    claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true })
+296:      .notNull(),
+297:    createdAt: timestamp('created_at', { withTimezone: true })
+298:      .defaultNow()
+299:      .notNull(),
+300:  },
+301:  (table) => ({
+302:    idxGuestRostersParticipant: index('tournament_guest_rosters_participant_idx').on(
+303:      table.participantId,
+304:    ),
+305:    idxGuestRostersClaimHash: uniqueIndex(
+306:      'tournament_guest_rosters_claim_hash_unique_idx',
+307:    ).on(table.claimTokenHash),
+308:  }),
+309:);
+310:
+311:export const tournamentReferees = pgTable('tournament_referees', {
+312:  id: uuid('id').primaryKey().defaultRandom(),
+313:  tournamentId: uuid('tournament_id').references(() => tournaments.id, { onDelete: 'cascade' }).notNull(),
+…
+319:});
+
+[Showing lines 280-313 of 345. Use :314 to continue]
+
+### region 26 (read, ~3142 tok)
+
+.
+  - meta/                                                                         1h ago
+    - _journal.json                                                     5.9KB     1h ago
+    - 0038_snapshot.json                                                459.5KB   1h ago
+    - 0025_snapshot.json                                                175.9KB   1h ago
+    - 0026_snapshot.json                                                202.4KB   1h ago
+    - 0027_snapshot.json                                                204.9KB   1h ago
+    - 0028_snapshot.json                                                221.8KB   1h ago
+    - 0030_snapshot.json                                                221.8KB   1h ago
+    - 0031_snapshot.json                                                222.1KB   1h ago
+    - 0037_snapshot.json                                                371.7KB   1h ago
+    - 0014_snapshot.json                                                135.5KB   1h ago
+    - 0015_snapshot.json                                                138.2KB   1h ago
+    - … 22 more
+    - 0013_snapshot.json                                                119.8KB   1h ago
+  - social-pickup-drop-migration.spec.ts                                783B      1h ago
+  - tournament-division-entry-fee-override.spec.ts                      1.3KB     1h ago
+  - 2026-09-29_division_registration_lock.sql                           119B      1h ago
+  - 2026-09-29_enable_unaccent.sql                                      1.6KB     1h ago
+  - 2026-09-29_livestream_camera_court.sql                              1.1KB     1h ago
+  - 2026-10-02_social_location_backfill.sql                             3.0KB     1h ago
+  - 2026-10-02_social_location_prerequisites.sql                        477B      1h ago
+  - 2026-10-02_social_location_venues.sql                               635B      1h ago
+  - 2026-10-05_tournament_participants_presence.sql                     113B      1h ago
+  - 2026-10-05_tournament_rosters_ranking_consent_at.sql                3.1KB     1h ago
+  - binh-duong-wards-migration.spec.ts                                  551B      1h ago
+  - binh-thuan-wards-migration.spec.ts                                  569B      1h ago
+  - football-team-migrations.spec.ts                                    4.3KB     1h ago
+  - gender-normalization-migration.spec.ts                              1.2KB     1h ago
+  - geo-postgis-columns.spec.ts                                         6.1KB     1h ago
+  - 2026-09-10_add_community_comment_reactions.sql                      641B      1h ago
+  - 2026-09-14_add_tournament_division_entry_fee_override.sql           1.4KB     1h ago
+  - 2026-09-16_canonicalize_gender_values.sql                           4.0KB     1h ago
+  - 2026-09-16_cleanup_duplicate_null_gender_ranks.sql                  1.3KB     1h ago
+  - 2026-09-16_seed_pro_athlete_rankings.sql                            16.2KB    1h ago
+  - 2026-09-16_unify_club_session_modes.sql                             1.6KB     1h ago
+  - 2026-09-17_backfill_club_super_lite_sessions.sql                    2.1KB     1h ago
+  - 2026-09-17_harden_friendships_integrity.sql                         1.4KB     1h ago
+  - 2026-09-18_harden_club_session_bracket_link.sql                     1.3KB     1h ago
+  - 2026-09-19_add_club_activity_zalo_outbox.sql                        2.7KB     1h ago
+  - 2026-09-20_add_community_post_fingerprint.sql                       444B      1h ago
+  - 2026-09-20_add_personal_social_pickups.sql                          4.3KB     1h ago
+  - 2026-09-20_add_profile_social_posts.sql                             1.5KB     1h ago
+  - 2026-09-21_add_social_pickup_note_and_approval.sql                  244B      1h ago
+  - 2026-09-21_drop_social_pickup_tables.sql                            367B      1h ago
+  - 2026-09-21_move_club_score_permission_to_match.sql                  997B      1h ago
+  - 2026-09-21_seed-binh-duong-wards.sql                                5.7KB     1h ago
+  - 2026-09-21_seed-binh-thuan-wards.sql                                7.0KB     1h ago
+  - 2026-09-22_add_social_sessions.sql                                  4.4KB     1h ago
+  - 2026-09-23_add_social_session_chat_and_expiry.sql                   1.2KB     1h ago
+  - 2026-09-24_add_social_guest_participants.sql                        1.1KB     1h ago
+  - 2026-09-24_optimize_tournament_match_reads.sql                      340B      1h ago
+  - 2026-09-25_add_social_session_short_code.sql                        462B      1h ago
+  - 2026-09-25_gate_approval_pairing.sql                                1.6KB     1h ago
+  - 2026-09-26_social_session_create_capabilities.sql                   2.3KB     1h ago
+  - 2026-09-27_add_social_session_geolocation.sql                       3.0KB     1h ago
+  - 2026-09-29_add_ward_boundaries_and_session_region.sql               1.7KB     1h ago
+  - 2026-08-13_harden_system_role_assignments.sql                       1.5KB     1h ago
+  - 2026-08-14_add_community_polls.sql                                  2.4KB     1h ago
+  - 2026-08-14_one_sport_per_community.sql                              492B      1h ago
+  - 2026-08-15_add_chat_blocks.sql                                      540B      1h ago
+  - 2026-08-15_add_chat_messages_type_and_metadata.sql                  168B      1h ago
+  - 2026-08-15_add_football_team_domain.sql                             6.7KB     1h ago
+  - 2026-08-15_add_football_team_logo_snapshot.sql                      101B      1h ago
+  - 2026-08-15_add_tournament_roster_lock.sql                           93B       1h ago
+  - 2026-08-15_enhance_club_chat_messenger_features.sql                 2.1KB     1h ago
+  - 2026-08-15_link_football_team_to_participants.sql                   588B      1h ago
+  - 2026-08-16_add_user_device_tokens.sql                               671B      1h ago
+  - 2026-08-16_backfill_football_team_config.sql                        701B      1h ago
+  - 2026-08-17_add_allow_stranger_messages.sql                          514B      1h ago
+  - 2026-08-17_add_chat_cleared_at_and_community_notification_pref.sql  293B      1h ago
+  - 2026-08-18_add_registration_form_responses.sql                      87B       1h ago
+  - 2026-08-20_add_peak_elo_and_rank_columns.sql                        1.4KB     1h ago
+  - 2026-08-22_add_facebook_multicourt_livestream.sql                   4.6KB     1h ago
+  - 2026-08-22_add_tournament_sponsors.sql                              1.9KB     1h ago
+  - 2026-08-23_add_admin_leaderboard_eligibility.sql                    1.0KB     1h ago
+  - 2026-08-23_add_advertisement_category_target.sql                    478B      1h ago
+  - 2026-08-23_enhance_advertisements_schema.sql                        1.4KB     1h ago
+  - 2026-08-24_add_tournament_platform_fee_rule_snapshots.sql           1.1KB     1h ago
+  - 2026-08-25_add_participant_entry_fee_snapshot.sql                   2.5KB     1h ago
+  - 2026-09-07_add_club_match_sessions.sql                              6.6KB     1h ago
+  - 2026-09-08_add_club_match_session_capacity.sql                      315B      1h ago
+  - 2026-09-08_add_club_match_session_recurring.sql                     249B      1h ago
+  - 2026-09-08_add_club_standalone_matches.sql                          2.9KB     1h ago
+  - 2026-09-08_add_community_post_session_link.sql                      253B      1h ago
+  - 2026-09-08b_add_club_match_permissions_and_presets.sql              758B      1h ago
+  - 2026-09-09_add_club_match_digest_claims.sql                         723B      1h ago
+  - 0001_flippant_crusher_hogan.sql                                     803B      1h ago
+  - 0002_military_marauders.sql                                         794B      1h ago
+  - 0003_motionless_vance_astro.sql                                     638B      1h ago
+  - 0004_bored_ozymandias.sql                                           785B      1h ago
+  - 0005_cynical_lionheart.sql                                          129B      1h ago
+  - 0006_thankful_bug.sql                                               1.6KB     1h ago
+  - 0007_next_purifiers.sql                                             2.9KB     1h ago
+  - 0008_smart_menace.sql                                               841B      1h ago
+  - 0009_oval_bill_hollister.sql                                        1.5KB     1h ago
+  - 0010_lovely_agent_zero.sql                                          659B      1h ago
+  - 0011_clean_titania.sql                                              1.9KB     1h ago
+  - 0012_shocking_adam_warlock.sql                                      370B      1h ago
+  - 0013_chief_prowler.sql                                              712B      1h ago
+  - 0014_living_otto_octavius.sql                                       5.1KB     1h ago
+  - 0015_stale_the_professor.sql                                        904B      1h ago
+  - 0016_funny_blur.sql                                                 585B      1h ago
+  - 0017_brave_jackpot.sql                                              2.4KB     1h ago
+  - 0018_curious_phil_sheldon.sql                                       83B       1h ago
+  - 0019_illegal_sentinel.sql                                           79B       1h ago
+  - 0020_colorful_avengers.sql                                          130B      1h ago
+  - 0021_fair_lady_mastermind.sql                                       169B      1h ago
+  - 0022_misty_goblin_queen.sql                                         4.1KB     1h ago
+  - 0023_rainy_naoko.sql                                                923B      1h ago
+  - 0024_add_verification_and_locks.sql                                 669B      1h ago
+  - 0025_plain_morgan_stark.sql                                         524B      1h ago
+  - 0026_parallel_the_hunter.sql                                        10.1KB    1h ago
+  - 0027_fair_nightcrawler.sql                                          902B      1h ago
+  - 0028_funny_fenris.sql                                               7.4KB     1h ago
+  - 0029_add_missing_columns.sql                                        2.5KB     1h ago
+  - 0030_wide_landau.sql                                                71B       1h ago
+  - 0031_deep_fabian_cortez.sql                                         132B      1h ago
+  - 0032_monthly_elo_decay.sql                                          314B      1h ago
+  - 0033_pair_rank_independent_elo.sql                                  468B      1h ago
+  - 0034_archive_completed_tournaments.sql                              771B      1h ago
+  - 0035_payment_evidence_and_receipts.sql                              1.4KB     1h ago
+  - 0036_ranking_consent.sql                                            115B      1h ago
+  - 0037_admin_elo_management.sql                                       4.0KB     1h ago
+  - 0037_cynical_sister_grimm.sql                                       54.9KB    1h ago
+  - 0038_social-session-geolocation.sql                                 1.1KB     1h ago
+  - 2026-06-17_add_gender_to_user_ranks.sql                             948B      1h ago
+  - 2026-08-04_match_integrity_remediation.sql                          3.0KB     1h ago
+  - 2026-08-06_add_partner_invite_expires_at.sql                        598B      1h ago
+  - 2026-08-06_add_partner_user_id.sql                                  250B      1h ago
+  - 2026-08-09_add_tournament_group_round_config.sql                    79B       1h ago
+  - 2026-08-12_add_club_chat_rooms.sql                                  2.4KB     1h ago
+  - 2026-08-12_add_community_member_tags.sql                            364B      1h ago
+  - 2026-08-12_add_community_social_hub.sql                             4.5KB     1h ago
+  - 2026-08-12_add_streak_indexes.sql                                   1.3KB     1h ago
+  - 2026-08-13_add_chat_read_states.sql                                 465B      1h ago
+  - 2026-08-13_add_comment_moderation_reason.sql                        89B       1h ago
+  - 2026-08-13_add_community_tag_presets.sql                            485B      1h ago
+  - 2026-08-13_add_match_leg_tie.sql                                    732B      1h ago
+  - 2026-08-13_add_team_roster_status.sql                               1.0KB     1h ago
+  - 2026-08-13_allow_duplicate_division_formats.sql                     381B      1h ago
+  - 2026-08-13_backfill_lite_tournament_is_lite.sql                     1.4KB     1h ago
+  - 0000_living_lila_cheney.sql                                         29.1KB    1h ago
+
+### region 27 (edit, ~91 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#29A1]
+290:    contactEmail: varchar('contact_email', { length: 320 }),
+291:    contactPhone: varchar('contact_phone', { length: 30 }),
+292:    claimTokenHash: varchar('claim_token_hash', { length: 64 }).notNull(),
+293:    claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true })
+294:      .notNull(),
+
+### region 28 (write, ~49 tok)
+
+[backend/src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql#B942]
+Successfully wrote 829 bytes to backend/src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql
+
+### region 29 (edit, ~148 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#2EF9]
+2305:    const consentRows = await this.db
+
+2311:      .where(inArray(schema.tournamentRosters.participantId, participantIds));
+2312:
+2313:    const guestRows = await this.db
+2314:      .select({ participantId: schema.tournamentGuestRosters.participantId })
+2315:      .from(schema.tournamentGuestRosters)
+2316:      .where(inArray(schema.tournamentGuestRosters.participantId, participantIds));
+2317:    if (consentRows.length === 0 || guestRows.length > 0) return false;
+2318:
+2319:    const completedAt = match.completedAt.getTime();
+
+### region 30 (find, ~124 tok)
+
+1 hit(s) for "Completion repository test that inspects ELO outbox enqueue conditions and consent timestamps" in backend/src/modules/matches/ (τ 0.20), strongest first
+
+backend/src/modules/matches/matches.repository.ts  0.42  575 lines judged, partial
+  backend/src/modules/matches/matches.repository.ts:1646-2220  0.42    async updateStatus(id: string, data: UpdateMatchStatusDto) {
+
+listed 40 · judged 40 · read 20 files (53.8KB) · 6 requests · 25K tokens · $0.0011 · 1.3s wall / 1.8s api
+
+### region 31 (read, ~573 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#79EC]
+1:import { RankingsService } from './rankings.service';
+2:
+3:/**
+4: * recalculateEloChain DELETEs + REINSERTS elo_history_logs per user inside its
+5: * match loop. Without a consent filter, one admin call re-scored every completed
+6: * match — including ones whose players never consented — silently voiding the
+7: * enqueue and apply gates.
+8: *
+9: * These drive the real loop and assert on the destructive call itself. A spy on a
+10: * helper, or a source-text check, could pass while the gate was wired to the wrong
+11: * place or computed from rows the loop never loads.
+12: */
+13:describe('recalculateEloChain consent gate', () => {
+14:  const COMPLETED_AT = new Date('2026-06-01T10:00:00Z');
+15:
+16:  const matchRow = () => ({
+17-24:    match: { … },
+25:    stage: { id: 'stage-1' },
+26:    tournament: { id: 't-1', categoryId: 'cat', matchType: 'KNOCKOUT' },
+27:  });
+28:
+29:  const roster = (userId: string, consentedAt: Date | null) => ({
+30:    userId,
+31:    rankingConsentAt: consentedAt,
+32:  });
+33:
+34:  /** tx stub: resolves queued results in await order, [] once exhausted. */
+35:  const createTx = (results: unknown[][]) => {
+36:    const queue = [...results];
+37:    const deletes: unknown[] = [];
+38:    const chain: Record<string, unknown> = {};
+39:    const self = () => chain;
+40:    chain.select = jest.fn(self);
+41:    chain.from = jest.fn(self);
+42:    chain.innerJoin = jest.fn(self);
+43:    chain.where = jest.fn(self);
+44:    chain.orderBy = jest.fn(self);
+45-48:    chain.delete = jest.fn(() => { … });
+49:    chain.then = (resolve: (value: unknown) => unknown) =>
+50:      Promise.resolve().then(() => resolve(queue.shift() ?? []));
+51:    return { tx: chain, deletes };
+52:  };
+53:
+54-78:  const runRecalculate = (tx: unknown) => { … };
+79:
+80-90:  it('never deletes elo history when a player never consented', async () => { … });
+91:
+92-104:  it('never deletes elo history when consent came after the match completed', async () => { … });
+105:
+106-118:  it('never deletes elo history when a participant carries no roster row', async () => { … });
+119:});
+
+[…62ln elided; re-read needed ranges, e.g. backend/src/modules/rankings/recalculate-elo-consent.spec.ts:17-24,45-48]
+
+### region 32 (read, ~1722 tok)
+
+[backend/src/modules/matches/matches.repository.ts#67BD]
+1878:    if (!updated) {
+1879:      const [current] = await tx
+1880:        .select({
+1881:          status: schema.matches.status,
+1882:          revision: schema.matches.revision,
+1883:        })
+1884:        .from(schema.matches)
+1885:        .where(eq(schema.matches.id, id))
+1886:        .limit(1);
+1887:      if (!current || current.status === 'COMPLETED') return null;
+1888:      return { conflict: true, currentMatch: current } as never;
+1889:    }
+1890:
+1891:    const oldValues = {
+1892:      p1SetsWon: existing.p1SetsWon,
+1893:      p2SetsWon: existing.p2SetsWon,
+1894:      scoreDetails: existing.scoreDetails,
+1895:      winnerId: existing.winnerId,
+1896:      status: existing.status,
+1897:    };
+1898:    const newValues = {
+1899:      p1SetsWon: updated.p1SetsWon,
+1900:      p2SetsWon: updated.p2SetsWon,
+1901:      scoreDetails: updated.scoreDetails,
+1902:      winnerId: updated.winnerId,
+1903:      status: updated.status,
+1904:    };
+1905:    await this.auditService.logUpdate(
+1906:      tx,
+1907:      details.auditUserId ?? null,
+1908:      'matches',
+1909:      id,
+1910:      oldValues,
+1911:      newValues,
+1912:    );
+1913:
+1914:    // 1b. ELO transactional outbox (NOTE-3, T12): enqueue ONLY from the winning
+1915:    // transaction, and ONLY for ranked tournaments. Ranked determination is done
+1916:    // INSIDE the tx (no TOCTOU against a service-level read). UNIQUE(match_id) +
+1917:    // ON CONFLICT DO NOTHING guarantees one row per match ever.
+1918:    const [eloTournament] = await tx
+1919:      .select({ isRanked: schema.tournaments.isRanked })
+1920:      .from(schema.tournaments)
+1921:      .where(eq(schema.tournaments.id, existing.tournamentId))
+1922:      .limit(1);
+1923:
+1924:    const participantIds = [
+1925:      existing.participant1Id,
+1926:      existing.participant2Id,
+1927:    ].filter((participantId): participantId is string =>
+1928:      Boolean(participantId),
+1929:    );
+1930:
+1931:    // Mock fixtures are useful for previewing a bracket, but they must never
+1932:    // create an ELO outbox item.  The processor also guards this path, yet
+1933:    // skipping at enqueue keeps the ranked history clean and avoids needless
+1934:    // background work when a mock bracket is finalized.
+1935:    const mockParticipants = participantIds.length
+1936:      ? await tx
+1937:          .select({ isMock: schema.tournamentParticipants.isMock })
+1938:          .from(schema.tournamentParticipants)
+1939:          .where(inArray(schema.tournamentParticipants.id, participantIds))
+1940:      : [];
+1941:    const mockRosterUsers = participantIds.length
+1942:      ? await tx
+1943:          .select({ isMock: schema.users.isMock })
+1944:          .from(schema.tournamentRosters)
+1945:          .innerJoin(
+1946:            schema.users,
+1947:            eq(schema.tournamentRosters.userId, schema.users.id),
+1948:          )
+1949:          .where(
+1950:            inArray(schema.tournamentRosters.participantId, participantIds),
+1951:          )
+1952:      : [];
+1953:    const hasMockParticipant =
+1954:      mockParticipants.some((participant) => participant.isMock) ||
+1955:      mockRosterUsers.some((roster) => roster.isMock);
+1956:    // Consent lives on tournament_rosters, one row per USER — matching how
+1957:    // processMatchResult applies ELO (rankings.service.ts:600-617 / 628-645 read
+1958:    // tournamentRosters.userId per participant). Reading it off the participant
+1959:    // would let one team-mate's confirmation hand every other user their score.
+1960:    //
+1961:    // The roster predicate must stay exactly `.where(eq(participantId, X))` — no
+1962:    // status filter. Adding `status = 'ACTIVE'` would give a REMOVED/INVITED row
+1963:    // a NULL consent forever and silently kill ELO for the whole participant.
+1964:    //
+1965:    // A participant with NO roster row (Excel import, no account) must fail:
+1966:    // `[].every()` is true, so an empty roster would otherwise pass the gate and
+1967:    // such entrants — who have no account to confirm — would be scored anyway.
+1968:    //
+1969:    // All-or-nothing is deliberate: scoring only the consenting side would let a
+1970:    // player farm rating by facing opponents who never confirmed.
+1971:    const consentRosterRows = participantIds.length
+1972:      ? await tx
+1973:          .select({
+1974:            participantId: schema.tournamentRosters.participantId,
+1975:            rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+1976:          })
+1977:          .from(schema.tournamentRosters)
+1978:          .where(inArray(schema.tournamentRosters.participantId, participantIds))
+1979:      : [];
+1980:    const allParticipantsConsented =
+1981:      participantIds.length > 0 &&
+1982:      consentRosterRows.length > 0 &&
+1983:      participantIds.every((participantId) => {
+1984:        const rows = consentRosterRows.filter(
+1985:          (row) => row.participantId === participantId,
+1986:        );
+1987:        return (
+1988:          rows.length > 0 && rows.every((row) => row.rankingConsentAt !== null)
+1989:        );
+1990:      });
+1991:
+1992:    const footballTeamRows = participantIds.length
+1993:      ? await tx
+1994:          .select({
+1995:            footballTeamId: schema.tournamentParticipants.footballTeamId,
+1996:          })
+1997:          .from(schema.tournamentParticipants)
+1998:          .where(inArray(schema.tournamentParticipants.id, participantIds))
+1999:      : [];
+2000:    const isFootballTeamMatch =
+2001:      footballTeamRows.length === participantIds.length &&
+2002:      footballTeamRows.length === 2 &&
+2003:      footballTeamRows.every((row) => Boolean(row.footballTeamId));
+2004:
+2005:    // Football group-stage draws have no winner, but still produce a team-ELO
+2006:    // event. Individual/pair ELO keeps the historical winner-only contract.
+2007:    if (
+2008:      eloTournament?.isRanked &&
+2009:      (winnerId || isFootballTeamMatch) &&
+2010:      allParticipantsConsented &&
+2011:      !hasMockParticipant
+2012:    ) {
+2013:      await tx
+2014:        .insert(schema.matchEloOutbox)
+2015:        .values({
+2016:          matchId: id,
+2017:          status: 'PENDING',
+2018:          attempts: 0,
+2019:          nextAttemptAt: new Date(),
+2020:        })
+2021:        .onConflictDoNothing({ target: schema.matchEloOutbox.matchId });
+2022:    }
+2023:
+2024:    // 2. Two-legged knockout (bóng đá): chỉ advance khi CẢ2 leg COMPLETED.
+2025:    //    Tính aggregate = tổng bàn thắng 2 lượt; hòa tổng → luân lưu (penaltyShootout).
+2026:    let effectiveWinnerId = winnerId;
+2027:    // Use the row returned by the completion UPDATE. `existing` is a
+2028:    // pre-completion snapshot and therefore cannot establish this leg's status.
+
+[Showing lines 1879-2028 of 2925. Use :2029 to continue]
+
+### region 33 (read, ~915 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#79EC]
+13:describe('recalculateEloChain consent gate', () => {
+14:  const COMPLETED_AT = new Date('2026-06-01T10:00:00Z');
+15:
+16:  const matchRow = () => ({
+17:    match: {
+18:      id: 'm1',
+19:      winnerId: 'p1',
+20:      participant1Id: 'p1',
+21:      participant2Id: 'p2',
+22:      completedAt: COMPLETED_AT,
+23:      updatedAt: COMPLETED_AT,
+24:    },
+25:    stage: { id: 'stage-1' },
+26:    tournament: { id: 't-1', categoryId: 'cat', matchType: 'KNOCKOUT' },
+27:  });
+28:
+29:  const roster = (userId: string, consentedAt: Date | null) => ({
+30:    userId,
+31:    rankingConsentAt: consentedAt,
+32:  });
+33:
+34:  /** tx stub: resolves queued results in await order, [] once exhausted. */
+35:  const createTx = (results: unknown[][]) => {
+36:    const queue = [...results];
+37:    const deletes: unknown[] = [];
+38:    const chain: Record<string, unknown> = {};
+39:    const self = () => chain;
+40:    chain.select = jest.fn(self);
+41:    chain.from = jest.fn(self);
+42:    chain.innerJoin = jest.fn(self);
+43:    chain.where = jest.fn(self);
+44:    chain.orderBy = jest.fn(self);
+45:    chain.delete = jest.fn(() => {
+46:      deletes.push('deleted');
+47:      return { where: jest.fn().mockResolvedValue(undefined) };
+48:    });
+49:    chain.then = (resolve: (value: unknown) => unknown) =>
+50:      Promise.resolve().then(() => resolve(queue.shift() ?? []));
+51:    return { tx: chain, deletes };
+52:  };
+53:
+54:  const runRecalculate = (tx: unknown) => {
+55:    const service = new RankingsService(
+56:      tx as never,
+57:      {} as never,
+58:      {} as never,
+59:      { delByPattern: jest.fn(), get: jest.fn(), set: jest.fn() } as never,
+60:    );
+61:    return (
+62:      service as unknown as {
+63:        recalculateEloChain(
+64:          txArg: unknown,
+65:          playerIds: string[],
+66:          fromTime: Date,
+67:          categoryId: string,
+68:          matchType: string,
+69:        ): Promise<void>;
+70:      }
+71:    ).recalculateEloChain(
+72:      tx,
+73:      ['u1', 'u2'],
+74:      new Date('2026-05-01T00:00:00Z'),
+75:      'cat',
+76:      'KNOCKOUT',
+77:    );
+78:  };
+79:
+80:  it('never deletes elo history when a player never consented', async () => {
+81:    const { tx, deletes } = createTx([
+82:      [matchRow()], // matches select
+83:      [roster('u1', new Date('2026-05-01T00:00:00Z'))], // winner rosters
+84:      [roster('u2', null)], // loser rosters — never confirmed
+85:    ]);
+86:
+87:    await runRecalculate(tx);
+88:
+89:    expect(deletes).toHaveLength(0);
+90:  });
+91:
+92:  it('never deletes elo history when consent came after the match completed', async () => {
+93:    // V7: the confirmation instant decides the boundary, so a match finished an
+94:    // hour before consent stays permanently unscored.
+95:    const { tx, deletes } = createTx([
+96:      [matchRow()],
+97:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+98:      [roster('u2', new Date('2026-06-01T11:00:00Z'))],
+99:    ]);
+100:
+101:    await runRecalculate(tx);
+102:
+103:    expect(deletes).toHaveLength(0);
+104:  });
+105:
+106:  it('never deletes elo history when a participant carries no roster row', async () => {
+107:    // An Excel-imported entrant with no account cannot confirm; `[].every()` style
+108:    // logic would treat "no rows" as "all good" and score them.
+109:    const { tx, deletes } = createTx([
+110:      [matchRow()],
+111:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+112:      [], // loser has no roster rows at all
+113:    ]);
+114:
+115:    await runRecalculate(tx);
+116:
+117:    expect(deletes).toHaveLength(0);
+118:  });
+119:});
+
+### region 34 (edit, ~163 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#6815]
+13:describe('recalculateEloChain consent gate', () => {
+14:  const COMPLETED_AT = new Date('2026-06-01T10:00:00Z');
+15:
+16:  const matchRow = (isRanked = true) => ({
+17:    match: {
+18:      id: 'm1',
+24:    },
+25:    stage: { id: 'stage-1' },
+26:    tournament: {
+27:      id: 't-1',
+…
+30:      isRanked,
+31:    },
+32:  });
+33:
+
+111:  it('never deletes elo history when a participant carries no roster row', async () => {
+
+122:    expect(deletes).toHaveLength(0);
+123:  });
+124:
+125:  it('never deletes history for an unranked tournament', async () => {
+…
+144:  });
+145:
+146:});
+
+### region 35 (edit, ~280 tok)
+
+This edit anchors to lines 126-143 of backend/src/modules/rankings/recalculate-elo-consent.spec.ts that [backend/src/modules/rankings/recalculate-elo-consent.spec.ts#6815] never displayed (it showed a partial range, a search hit, or a folded summary). Actual file content at those lines:
+  126:    const { tx, deletes } = createTx([[matchRow(false)]]);
+  127:
+  128:    await runRecalculate(tx);
+  129:
+  130:    expect(deletes).toHaveLength(0);
+  131:  });
+  132:
+  133:  it('never deletes history when either side still has a guest roster slot', async () => {
+  134:    const { tx, deletes } = createTx([
+  135:      [matchRow()],
+  136:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+  137:      [roster('u2', new Date('2026-05-01T00:00:00Z'))],
+  138:      [{ participantId: 'p2' }],
+  139:    ]);
+  140:
+  141:    await runRecalculate(tx);
+  142:
+  143:    expect(deletes).toHaveLength(0);
+Verify the content matches what you intend to touch, then re-issue the edit with the same [path#tag] header — a straight retry now succeeds without a re-read. If the content does NOT match, fix your line numbers.
+
+### region 36 (edit, ~317 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#D6AC]
+124:
+125:  it('never deletes history for an unranked tournament', async () => {
+126:    const consent = new Date('2026-05-01T00:00:00Z');
+127:    const { tx, deletes } = createTx([
+…
+130:      [roster('u2', consent)],
+131:    ]);
+132:
+133:    await expect(runRecalculate(tx)).resolves.toBeUndefined();
+134:    expect(deletes).toHaveLength(0);
+135:  });
+136:
+137:  it('never deletes history when either side still has a guest roster slot', async () => {
+138:    const consent = new Date('2026-05-01T00:00:00Z');
+139:    const { tx, deletes } = createTx([
+140:      [matchRow()],
+141:      [roster('u1', consent)],
+142:      [roster('u2', consent)],
+143:      [{ participantId: 'p2' }],
+144:    ]);
+145:
+146:    await expect(runRecalculate(tx)).resolves.toBeUndefined();
+147:    expect(deletes).toHaveLength(0);
+148:  });
+
+Warnings:
+Auto-repaired a replacement boundary echo at line 126: dropped 1 leading body line(s) already present outside the range. Issue the body as final content for the selected range only.
+Auto-repaired a replacement boundary echo at line 133: dropped 1 trailing body line(s) already present outside the range. Issue the body as final content for the selected range only.
+
+### region 37 (bash, ~445 tok)
+
+FAIL src/modules/rankings/recalculate-elo-consent.spec.ts
+  ● recalculateEloChain consent gate › never deletes history for an unranked tournament
+
+    expect(received).resolves.toBeUndefined()
+
+    Received promise rejected instead of resolved
+    Rejected to value: [TypeError: tx.select(...).from(...).where(...).orderBy(...).limit is not a function]
+
+      131 |     ]);
+      132 |
+    > 133 |     await expect(runRecalculate(tx)).resolves.toBeUndefined();
+          |           ^
+      134 |     expect(deletes).toHaveLength(0);
+      135 |   });
+      136 |
+
+      at expect (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (modules/rankings/recalculate-elo-consent.spec.ts:133:11)
+
+  ● recalculateEloChain consent gate › never deletes history when either side still has a guest roster slot
+
+    expect(received).resolves.toBeUndefined()
+
+    Received promise rejected instead of resolved
+    Rejected to value: [TypeError: tx.select(...).from(...).where(...).orderBy(...).limit is not a function]
+
+      144 |     ]);
+      145 |
+    > 146 |     await expect(runRecalculate(tx)).resolves.toBeUndefined();
+          |           ^
+      147 |     expect(deletes).toHaveLength(0);
+      148 |   });
+      149 |
+
+      at expect (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (modules/rankings/recalculate-elo-consent.spec.ts:146:11)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       2 failed, 14 passed, 16 total
+Snapshots:   0 total
+Time:        1.144 s
+Ran all test suites matching src/modules/rankings/ranking-consent-gate.spec.ts|src/modules/rankings/recalculate-elo-consent.spec.ts.
+
+
+Wall time: 1.58 seconds
+
+Command exited with code 1
+
+### region 38 (read, ~686 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#D6AC]
+13:describe('recalculateEloChain consent gate', () => {
+…
+59:  const runRecalculate = (tx: unknown) => {
+…
+66:    return (
+…
+76:    ).recalculateEloChain(
+77:      tx,
+78:      ['u1', 'u2'],
+79:      new Date('2026-05-01T00:00:00Z'),
+80:      'cat',
+81:      'KNOCKOUT',
+82:    );
+83:  };
+84:
+85:  it('never deletes elo history when a player never consented', async () => {
+86:    const { tx, deletes } = createTx([
+87:      [matchRow()], // matches select
+88:      [roster('u1', new Date('2026-05-01T00:00:00Z'))], // winner rosters
+89:      [roster('u2', null)], // loser rosters — never confirmed
+90:    ]);
+91:
+92:    await runRecalculate(tx);
+93:
+94:    expect(deletes).toHaveLength(0);
+95:  });
+96:
+97:  it('never deletes elo history when consent came after the match completed', async () => {
+98:    // V7: the confirmation instant decides the boundary, so a match finished an
+99:    // hour before consent stays permanently unscored.
+100:    const { tx, deletes } = createTx([
+101:      [matchRow()],
+102:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+103:      [roster('u2', new Date('2026-06-01T11:00:00Z'))],
+104:    ]);
+105:
+106:    await runRecalculate(tx);
+107:
+108:    expect(deletes).toHaveLength(0);
+109:  });
+110:
+111:  it('never deletes elo history when a participant carries no roster row', async () => {
+112:    // An Excel-imported entrant with no account cannot confirm; `[].every()` style
+113:    // logic would treat "no rows" as "all good" and score them.
+114:    const { tx, deletes } = createTx([
+115:      [matchRow()],
+116:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+117:      [], // loser has no roster rows at all
+118:    ]);
+119:
+120:    await runRecalculate(tx);
+121:
+122:    expect(deletes).toHaveLength(0);
+123:  });
+124:
+125:  it('never deletes history for an unranked tournament', async () => {
+126:    const consent = new Date('2026-05-01T00:00:00Z');
+127:    const { tx, deletes } = createTx([
+128:      [matchRow(false)],
+129:      [roster('u1', consent)],
+130:      [roster('u2', consent)],
+131:    ]);
+132:
+133:    await expect(runRecalculate(tx)).resolves.toBeUndefined();
+134:    expect(deletes).toHaveLength(0);
+135:  });
+136:
+137:  it('never deletes history when either side still has a guest roster slot', async () => {
+138:    const consent = new Date('2026-05-01T00:00:00Z');
+139:    const { tx, deletes } = createTx([
+140:      [matchRow()],
+141:      [roster('u1', consent)],
+142:      [roster('u2', consent)],
+143:      [{ participantId: 'p2' }],
+144:    ]);
+145:
+146:    await expect(runRecalculate(tx)).resolves.toBeUndefined();
+147:    expect(deletes).toHaveLength(0);
+148:  });
+149:
+150:});
+
+### region 39 (edit, ~282 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#1566]
+85:  it('never deletes elo history when a player never consented', async () => {
+86:    const { tx, deletes } = createTx([
+87:      [matchRow()],
+88:      [],
+89:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+90:      [roster('u2', null)],
+91:    ]);
+92:
+
+96:  });
+
+101:    const { tx, deletes } = createTx([
+102:      [matchRow()],
+103:      [],
+104:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+105:      [roster('u2', new Date('2026-06-01T11:00:00Z'))],
+106:    ]);
+
+116:    const { tx, deletes } = createTx([
+117:      [matchRow()],
+118:      [],
+119:      [roster('u1', new Date('2026-05-01T00:00:00Z'))],
+120:      [],
+121:    ]);
+122:
+130:    const { tx, deletes } = createTx([
+131:      [matchRow(false)],
+132:      [],
+133:    ]);
+134:    await expect(runRecalculate(tx)).resolves.toBeUndefined();
+135:    expect(deletes).toHaveLength(0);
+140:    const { tx, deletes } = createTx([
+141:      [matchRow()],
+142:      [{ participantId: 'p2' }],
+143:      [roster('u1', consent)],
+144:      [roster('u2', consent)],
+145:    ]);
+146:
+
+### region 40 (bash, ~256 tok)
+
+FAIL src/modules/rankings/recalculate-elo-consent.spec.ts
+  ● recalculateEloChain consent gate › never deletes history when either side still has a guest roster slot
+
+    expect(received).resolves.toBeUndefined()
+
+    Received promise rejected instead of resolved
+    Rejected to value: [TypeError: Cannot read properties of undefined (reading 'getTime')]
+
+      145 |     ]);
+      146 |
+    > 147 |     await expect(runRecalculate(tx)).resolves.toBeUndefined();
+          |           ^
+      148 |     expect(deletes).toHaveLength(0);
+      149 |   });
+      150 |
+
+      at expect (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (modules/rankings/recalculate-elo-consent.spec.ts:147:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        0.714 s, estimated 1 s
+Ran all test suites matching src/modules/rankings/recalculate-elo-consent.spec.ts.
+
+
+Wall time: 1.14 seconds
+
+Command exited with code 1
+
+### region 41 (read, ~845 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#2EF9]
+1:import {
+2:  Injectable,
+3:  BadRequestException,
+4:  Inject,
+5:  Optional,
+6:} from '@nestjs/common';
+7:import { Cron } from '@nestjs/schedule';
+8:import { RankingsRepository } from './rankings.repository';
+9:import { EloEngineService } from './elo-engine.service';
+10:import { QueryRankingDto } from './dto/query-ranking.dto';
+11:import { UpdateEloDto } from './dto/update-elo.dto';
+12:import {
+13:  eq,
+14:  and,
+15:  isNull,
+16:  desc,
+17:  sql,
+18:  or,
+19:  asc,
+20:  gte,
+21:  lt,
+22:  inArray,
+23:} from 'drizzle-orm';
+24:import type { AppTx, AppDb } from '../../database/db.types';
+25:import type { AnyColumn } from 'drizzle-orm';
+26:import * as schema from '../../database/schema';
+27:import { RedisService } from '../../providers/redis/redis.service';
+28:import { PG_CONNECTION } from '../../database/database.module';
+29:import { FootballTeamEloService } from './football-team-elo.service';
+30:import {
+31:  normalizeGenderRestriction,
+32:  type GenderRestriction,
+33:} from '../../common/helpers/gender.helper';
+34:
+35:const LEADERBOARD_CACHE_VERSION = 'v2';
+36:
+37:type Transaction = AppTx;
+38:
+39:// ELO Shield: ngưỡng kích hoạt bảo vệ khi user vượt qua mốc ELO nhất định
+40:const ELO_SHIELD_BOUNDARIES = [
+41:  1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800,
+42:] as const;
+43:const ELO_DECAY_INACTIVE_MONTHS = 1;
+44:const ELO_DECAY_THRESHOLD = 1400;
+45:const ELO_DECAY_RATES = [
+46:  { minElo: 1700, rate: 0.05 },
+47:  { minElo: 1600, rate: 0.04 },
+48:  { minElo: 1500, rate: 0.03 },
+49:  { minElo: 1400, rate: 0.02 },
+50:] as const;
+51:const ELO_DECAY_FLOOR = 1000;
+52:
+53:const normalizedRankingGenderCondition = (
+54:  column: AnyColumn,
+55:  gender: GenderRestriction,
+56:) => sql`case upper(trim(coalesce(${column}, '')))
+57:  when 'MEN' then 'MALE'
+58:  when 'NAM' then 'MALE'
+59:  when 'M' then 'MALE'
+60:  when 'WOMEN' then 'FEMALE'
+61:  when 'NU' then 'FEMALE'
+62:  when 'NỮ' then 'FEMALE'
+63:  when 'F' then 'FEMALE'
+64:  when 'MIXED_DOUBLES' then 'MIXED'
+65:  when 'MIX' then 'MIXED'
+66:  else upper(trim(coalesce(${column}, '')))
+67:end = ${gender}`;
+68:
+69:@Injectable()
+70:export class RankingsService {
+71:  private static readonly LEADERBOARD_CACHE_TIMEOUT_MS = 750;
+72:
+73:  constructor(
+74:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+75:    private readonly rankingsRepository: RankingsRepository,
+76:    private readonly eloEngineService: EloEngineService,
+77:    private readonly redisService: RedisService,
+78:    @Optional()
+79:    private readonly footballTeamEloService?: FootballTeamEloService,
+80:  ) {}
+81:
+82:  private async invalidateLeaderboardCache(categoryId: string) {
+83:    try {
+84:      await this.redisService.delByPattern(
+85:        `leaderboard:${LEADERBOARD_CACHE_VERSION}:cat:${categoryId}:*`,
+86:      );
+87:    } catch (err) {
+88:      console.error('Failed to invalidate ELO cache:', err);
+89:    }
+90:  }
+91:
+92:  async invalidateLeaderboardCacheForCategory(categoryId: string) {
+93:    await this.invalidateLeaderboardCache(categoryId);
+94:  }
+95:
+96:  /**
+97:   * Trích xuất scoreRatio (winnerPoints / totalPoints) từ scoreDetails của match.
+98:   * @returns scoreRatio từ 0.5 đến 0.85, hoặc undefined nếu không có dữ liệu set.
+99:   */
+…
+2777:}
+
+[Showing lines 1-98 of 2777. Use :99 to continue]
+
+### region 42 (read, ~711 tok)
+
+[backend/src/modules/rankings/elo-engine.service.ts#454B]
+3:@Injectable()
+4:export class EloEngineService {
+…
+16:  calculateElo(
+…
+25:  ): { newElo: number; changedPoints: number; newWinStreak: number; newPeakElo: number } {
+…
+29:    // 2. Actual Score
+30:    const actual = isWin ? 1.0 : 0.0;
+31:
+32:    // 3. K-Factor (continuous formula thay vì step)
+33:    // matchesPlayed = 0 → K=40, 10→20, 30→10, 100→~3.6
+34:    const K = Math.max(4, Math.round(40 / (1 + matchesPlayed / 10)));
+35:
+36:    // 4. Win Streak Bonus (chỉ cho bên thắng)
+37:    let streakMultiplier = 1.0;
+38:    if (isWin) {
+39:      if (winStreak >= 7) {
+40:        streakMultiplier = 1.3;
+41:      } else if (winStreak >= 5) {
+42:        streakMultiplier = 1.2;
+43:      } else if (winStreak >= 3) {
+44:        streakMultiplier = 1.1;
+45:      }
+46:    }
+47:
+48:    // 5. Score Factor Modifier — hiệu số điểm từng set
+49:    //    Công thức: scoreRatio = winnerPoints / (winnerPoints + loserPoints)
+50:    //    scoreRatio ~0.5 (sát nút) → scoreFactor ~1.0
+51:    //    scoreRatio ~0.65 (áp đảo) → scoreFactor ~1.18
+52:    //    scoreRatio ~0.78 (hủy diệt) → scoreFactor ~1.34
+53:    //    Decay: người mới (<10 trận) chịu ảnh hưởng 100%, người cũ giảm dần
+54:    let scoreFactor = 1.0;
+55:    if (scoreRatio !== undefined && scoreRatio > 0) {
+56:      const clampedRatio = Math.min(0.85, Math.max(0.5, scoreRatio));
+57:      const rawMultiplier = 1.0 + (clampedRatio - 0.5) * 1.2;
+58:      // Decay dần theo số trận: mới đánh → full effect, 25+ trận → chỉ 20%
+59:      const decayFactor = Math.max(0.2, 1 - matchesPlayed / 25);
+60:      scoreFactor = 1.0 + (rawMultiplier - 1.0) * decayFactor;
+61:    }
+62:
+63:    // 6. Upset Bonus / Penalty (thắng/thua bất ngờ khi chênh lệch ELO)
+64:    const eloDiff = opponentElo - playerElo;
+65:    let upsetModifier = 0;
+66:
+67:    if (isWin) {
+68:      if (eloDiff >= 400) {
+69:        upsetModifier = 10; // Thắng đối thủ vượt trội 400+ ELO
+70:      } else if (eloDiff >= 200) {
+71:        upsetModifier = 5;  // Thắng đối thủ mạnh hơn 200+ ELO
+72:      }
+73:    } else {
+74:      if (eloDiff <= -200) {
+75:        upsetModifier = -3; // Thua đối thủ kém 200+ ELO
+76:      }
+77:    }
+78:
+79:    // 7. Tính toán ELO cuối cùng
+80:    const rawChange = K * streakMultiplier * scoreFactor * (actual - expected) + upsetModifier;
+81:    const newElo = Math.max(100, Math.round(playerElo + rawChange));
+82:    const changedPoints = newElo - playerElo;
+83:    const newWinStreak = isWin ? winStreak + 1 : 0;
+84:    const newPeakElo = peakElo ? Math.max(peakElo, newElo) : newElo;
+85:
+86:    return {
+87:      newElo,
+88:      changedPoints,
+89:      newWinStreak,
+90:      newPeakElo,
+91:    };
+92:  }
+93:}

@@ -1,0 +1,155 @@
+? Verifying lockfile against supply-chain policies (1064 entries)...
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /home/runner/.local/share/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Downloading @img/sharp-libvips-linux-x64@1.3.3: 0.00 B/8.17 MB
+Downloading tesseract.js-core@7.0.0: 0.00 B/16.93 MB
+Progress: resolved 936, reused 0, downloaded 416, added 395
+Progress: resolved 936, reused 0, downloaded 513, added 512
+✓ Lockfile passes supply-chain policies (1064 entries in 3.8s)
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 936, reused 0, downloaded 672, added 668
+Progress: resolved 936, reused 0, downloaded 888, added 864
+Packages: +936
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 936, reused 0, downloaded 936, added 936, done
+.../node_modules/msgpackr-extract install$ node-gyp-build-optional-packages
+.../esbuild@0.28.0/node_modules/esbuild postinstall$ node install.js
+.../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+.../node_modules/@scarf/scarf postinstall$ node ./report.js
+.../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+.../node_modules/@nestjs/core postinstall: Done
+.../node_modules/msgpackr-extract install: Done
+.../esbuild@0.18.20/node_modules/esbuild postinstall$ node install.js
+.../bcrypt@6.0.0/node_modules/bcrypt install: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+.../node_modules/@firebase/util postinstall$ node ./postinstall.js
+.../esbuild@0.28.0/node_modules/esbuild postinstall: Done
+.../node_modules/protobufjs postinstall$ node scripts/postinstall
+.../node_modules/@firebase/util postinstall: Done
+.../node_modules/protobufjs postinstall: Done
+.../node_modules/unrs-resolver postinstall$ node postinstall.js
+.../node_modules/tesseract.js postinstall$ opencollective-postinstall || true
+.../esbuild@0.18.20/node_modules/esbuild postinstall: Done
+.../node_modules/unrs-resolver postinstall: Done
+.../node_modules/tesseract.js postinstall: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+.../node_modules/@scarf/scarf postinstall: 
+.../node_modules/@scarf/scarf postinstall:     The dependency 'swagger-ui-dist' is tracking installation
+.../node_modules/@scarf/scarf postinstall:     statistics using scarf-js (https://scarf.sh), which helps open-source developers
+.../node_modules/@scarf/scarf postinstall:     fund and maintain their projects. Scarf securely logs basic installation
+.../node_modules/@scarf/scarf postinstall:     details when this package is installed. The Scarf npm library is open source
+.../node_modules/@scarf/scarf postinstall:     and permissively licensed at https://github.com/scarf-sh/scarf-js. For more
+.../node_modules/@scarf/scarf postinstall:     details about your project's dependencies, try running 'npm ls'. To opt out of
+.../node_modules/@scarf/scarf postinstall:     analytics, set the environment variable 'SCARF_ANALYTICS=false'.
+.../node_modules/@scarf/scarf postinstall:   
+.../node_modules/@scarf/scarf postinstall: Done
+
+dependencies:
++ @moderation-api/unicode-spoofing 0.4.0
++ @nestjs/bullmq 11.0.4
++ @nestjs/common 11.1.24
++ @nestjs/config 4.0.4
++ @nestjs/core 11.1.24
++ @nestjs/jwt 11.0.2
++ @nestjs/mapped-types 2.1.1
++ @nestjs/passport 11.0.5
++ @nestjs/platform-express 11.1.24
++ @nestjs/platform-socket.io 11.1.24
++ @nestjs/schedule 6.1.3
++ @nestjs/swagger 11.4.4
++ @nestjs/throttler 6.5.0
++ @nestjs/websockets 11.1.24
++ @payos/node 2.0.5
++ @scalar/nestjs-api-reference 1.1.20
++ @sentry/nestjs 10.73.0
++ @zxing/library 0.23.0
++ bcrypt 6.0.0
++ bullmq 5.79.1
++ class-transformer 0.5.1
++ class-validator 0.15.1
++ cloudinary 2.10.0
++ cookie-parser 1.4.7
++ dotenv 17.4.2
++ drizzle-orm 0.45.2
++ firebase-admin 13.10.0
++ google-auth-library 10.7.0
++ helmet 8.2.0
++ ioredis 5.11.1
++ joi 18.2.1
++ jsonwebtoken 9.0.3
++ nodemailer 9.0.1
++ openai 6.44.0
++ passport 0.7.0
++ passport-google-oauth20 2.0.0
++ passport-jwt 4.0.1
++ pg 8.23.0
++ postgres 3.4.9
++ reflect-metadata 0.2.2
++ rxjs 7.8.2
++ sharp 0.35.4
++ socket.io 4.8.3
++ streamifier 0.1.1
++ tesseract.js 7.0.0
+
+devDependencies:
++ @eslint/eslintrc 3.3.5
++ @eslint/js 9.39.4
++ @nestjs/cli 11.0.21
++ @nestjs/schematics 11.1.0
++ @nestjs/testing 11.1.24
++ @types/bcrypt 6.0.0
++ @types/cookie-parser 1.4.10
++ @types/express 5.0.6
++ @types/jest 30.0.0
++ @types/jsonwebtoken 9.0.10
++ @types/multer 2.1.0
++ @types/node 24.12.4
++ @types/nodemailer 8.0.1
++ @types/passport-google-oauth20 2.0.17
++ @types/passport-jwt 4.0.1
++ @types/streamifier 0.1.2
++ @types/supertest 7.2.0
++ drizzle-kit 0.31.10
++ eslint 9.39.4
++ eslint-config-prettier 10.1.8
++ eslint-plugin-prettier 5.5.6
++ globals 17.6.0
++ jest 30.4.2
++ prettier 3.8.3
++ source-map-support 0.5.21
++ supertest 7.2.2
++ ts-jest 29.4.11
++ ts-loader 9.6.0
++ ts-node 10.9.2
++ tsconfig-paths 4.2.0
++ typescript 5.9.3
++ typescript-eslint 8.60.1
+
+Done in 9.9s using pnpm v12.9.1
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(31,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(57,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(67,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(79,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/social-sessions/social-sessions.service.spec.ts(120,15): error TS2554: Expected 4 arguments, but got 3.
+src/modules/social-sessions/social-sessions.service.spec.ts(396,9): error TS2554: Expected 1 arguments, but got 2.
+src/modules/social-sessions/social-sessions.service.spec.ts(927,19): error TS2554: Expected 4 arguments, but got 3.
+src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts(183,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(cls: ClassConstructor<RosterImportDto>, plain: unknown[], options?: ClassTransformOptions | undefined): RosterImportDto[]', gave the following error.
+    Argument of type 'typeof RosterImportDto | typeof ImportParticipantsDto' is not assignable to parameter of type 'ClassConstructor<RosterImportDto>'.
+      Type 'typeof ImportParticipantsDto' is not assignable to type 'ClassConstructor<RosterImportDto>'.
+        Construct signature return types 'ImportParticipantsDto' and 'RosterImportDto' are incompatible.
+          The types of 'participants' are incompatible between these types.
+            Type 'ParticipantImportItemDto[]' is not assignable to type 'RosterImportItemDto[]'.
+              Property 'source' is missing in type 'ParticipantImportItemDto' but required in type 'RosterImportItemDto'.
+  Overload 2 of 2, '(cls: ClassConstructor<RosterImportDto>, plain: Record<string, unknown>, options?: ClassTransformOptions | undefined): RosterImportDto', gave the following error.
+    Argument of type 'typeof RosterImportDto | typeof ImportParticipantsDto' is not assignable to parameter of type 'ClassConstructor<RosterImportDto>'.
+      Type 'typeof ImportParticipantsDto' is not assignable to type 'ClassConstructor<RosterImportDto>'.
+        Construct signature return types 'ImportParticipantsDto' and 'RosterImportDto' are incompatible.
+          The types of 'participants' are incompatible between these types.
+            Type 'ParticipantImportItemDto[]' is not assignable to type 'RosterImportItemDto[]'.
+              Property 'source' is missing in type 'ParticipantImportItemDto' but required in type 'RosterImportItemDto'.

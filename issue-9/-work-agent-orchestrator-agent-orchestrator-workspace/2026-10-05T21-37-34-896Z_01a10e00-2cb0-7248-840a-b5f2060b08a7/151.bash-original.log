@@ -1,0 +1,228 @@
+
+Running 19 tests using 1 worker
+
+(node:18138) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing (17.7s)
+(node:18295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division (45.2s)
+(node:18399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves (45.2s)
+(node:18497) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves (12.2s)
+(node:18595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information (45.3s)
+(node:18691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 [chromium] › test/e2e/organizer-add-athlete.spec.ts:196:1 › player claims a guest roster with the URL fragment and the fragment is removed (5.6s)
+  ✘   7 [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token (1.7s)
+(node:18826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [chromium] › test/e2e/organizer-add-athlete.spec.ts:230:1 › does not show payment status without a positive fee snapshot (2.1s)
+  ✓   9 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:279:1 › registration waits for session validation, then reads the current registration (5.2s)
+  ✓  10 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:322:1 › a transient session-validation failure offers a retry instead of an endless spinner (1.5s)
+  ✓  11 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:339:1 › a visitor without a stored session is never held in the session-validating panel (2.9s)
+  ✓  12 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:353:1 › a persisted session that fails validation is logged out before any protected read (3.0s)
+  ✓  13 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:375:1 › an expired access token refreshes and still unlocks the registration read (1.3s)
+  ✓  14 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:398:1 › a validation answer that lands after a confirmed logout cannot restore the session (3.6s)
+  ✓  15 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:431:1 › a confirmed logout never starts another profile validation (5.6s)
+  ✓  16 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:452:1 › a session switch never hands the first account's in-flight profile to the second (4.3s)
+  ✓  17 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:493:1 › signing back in as the same account does not accept the previous session's held profile (3.7s)
+  ✓  18 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:528:1 › the profile page does not accept the shell's held profile once it owns the session check (4.1s)
+  ✓  19 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:564:1 › registered payment visibility follows its fee snapshot (2.5s)
+
+
+  1) [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    Expected: {"divisionId": "synthetic-wide-division", "organizerNote": "Arrives late", "players": [{"displayName": "Guest Athlete", "role": "MAIN"}], "source": "DIRECT"}
+    Received: undefined
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      27 |   await dialog.getByRole('button', { name: 'Thêm vào danh sách' }).click();
+      28 |
+    > 29 |   await expect.poll(() => addRequest).toEqual({
+         |                                       ^
+      30 |     source: 'DIRECT',
+      31 |     divisionId,
+      32 |     players: [{ displayName: 'Guest Athlete', role: 'MAIN' }],
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:29:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-4c715-k-available-until-finishing-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-4c715-k-available-until-finishing-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-orga-4c715-k-available-until-finishing-chromium/error-context.md
+
+  2) [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Thêm VĐV' })
+
+
+      59 |   await openManage(page, { tab: 'registration', divisions: [] });
+      60 |
+    > 61 |   await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+         |                                                        ^
+      62 |   const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+      63 |   await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+      64 |   await dialog.getByLabel('Tên VĐV').fill('No-division athlete');
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:61:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-e2713--athlete-without-a-division-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-e2713--athlete-without-a-division-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-orga-e2713--athlete-without-a-division-chromium/error-context.md
+
+  3) [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.click: Test timeout of 45000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Thêm VĐV' }).getByRole('button', { name: 'Thêm cầu thủ dự bị' })
+
+
+       96 |
+       97 |   const addReserve = dialog.getByRole('button', { name: 'Thêm cầu thủ dự bị' });
+    >  98 |   await addReserve.click();
+          |                    ^
+       99 |   await names.nth(5).fill('Reserve 1');
+      100 |   await expect(addReserve).toHaveCount(0);
+      101 |   await dialog.getByRole('button', { name: 'Thêm vào giải' }).click();
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:98:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-1ec72-rters-and-optional-reserves-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-1ec72-rters-and-optional-reserves-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-orga-1ec72-rters-and-optional-reserves-chromium/error-context.md
+
+  4) [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('dialog', { name: 'Thêm VĐV' }).getByRole('checkbox')
+    Expected: 7
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Thêm VĐV' }).getByRole('checkbox')
+        24 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      137 |   const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+      138 |   const checkboxes = dialog.getByRole('checkbox');
+    > 139 |   await expect(checkboxes).toHaveCount(7);
+          |                            ^
+      140 |   for (let index = 0; index < 7; index += 1) {
+      141 |     await checkboxes.nth(index).check();
+      142 |   }
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:139:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-41286-es-to-starters-and-reserves-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-41286-es-to-starters-and-reserves-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-orga-41286-es-to-starters-and-reserves-chromium/error-context.md
+
+  5) [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information 
+
+    Test timeout of 45000ms exceeded.
+
+    Error: locator.fill: Test timeout of 45000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Thêm VĐV' }).getByLabel('Tìm VĐV')
+
+
+      178 |   const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+      179 |   await dialog.getByRole('button', { name: 'Bạn bè' }).click();
+    > 180 |   await dialog.getByLabel('Tìm VĐV').fill('Friend');
+          |                                      ^
+      181 |   await expect(dialog.getByText('Friend Athlete')).toBeVisible();
+      182 |   await expect(dialog.getByText(/@|09\d{8}/)).toHaveCount(0);
+      183 |   await dialog.getByRole('button', { name: 'Trang tiếp' }).click();
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:180:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-7c7df-xposing-contact-information-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-orga-7c7df-xposing-contact-information-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-orga-7c7df-xposing-contact-information-chromium/error-context.md
+
+  6) [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('alert')
+    Expected substring: "Liên kết không hợp lệ"
+    Error: strict mode violation: getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="mt-2 text-sm text-slate-600">Liên kết không hợp lệ, đã hết hạn, đã được sử dụn…</p> aka getByText('Liên kết không hợp lệ, đã hết')
+        2) <div role="alert" aria-live="assertive" id="__next-route-announcer__"></div> aka locator('[id="__next-route-announcer__"]')
+
+    Call log:
+      - Expect "toContainText" with timeout 10000ms
+      - waiting for getByRole('alert')
+
+
+      223 |     page.getByRole('heading', { name: 'Không thể nhận vị trí thi đấu' }),
+      224 |   ).toBeVisible();
+    > 225 |   await expect(page.getByRole('alert')).toContainText('Liên kết không hợp lệ');
+          |                                         ^
+      226 |   expect(new URL(page.url()).hash).toBe('');
+      227 |   expect(new URL(page.url()).search).not.toContain(claimToken);
+      228 | });
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/organizer-add-athlete.spec.ts:225:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-show-6245a-ears-a-rejected-claim-token-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/organizer-add-athlete-show-6245a-ears-a-rejected-claim-token-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/organizer-add-athlete-show-6245a-ears-a-rejected-claim-token-chromium/error-context.md
+
+  6 failed
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing 
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division 
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves 
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves 
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information 
+    [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token 
+  13 passed (3.6m)

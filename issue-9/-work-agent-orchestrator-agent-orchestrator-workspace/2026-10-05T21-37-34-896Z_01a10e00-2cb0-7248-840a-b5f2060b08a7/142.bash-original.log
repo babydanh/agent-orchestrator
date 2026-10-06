@@ -1,0 +1,45 @@
+
+Running 1 test using 1 worker
+
+(node:17561) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/e2e/registration-session-bootstrap.spec.ts:564:1 › registered payment visibility follows its fee snapshot (14.3s)
+
+
+  1) [chromium] › test/e2e/registration-session-bootstrap.spec.ts:564:1 › registered payment visibility follows its fee snapshot 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByText('Chờ thanh toán', { exact: true })
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for getByText('Chờ thanh toán', { exact: true })
+        24 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      592 |   ).toBeVisible();
+      593 |   await expect(page.getByText('Trạng thái lệ phí', { exact: true })).toHaveCount(0);
+    > 594 |   await expect(page.getByText('Chờ thanh toán', { exact: true })).toHaveCount(0);
+          |                                                                   ^
+      595 |   await expect(page.getByRole('button', { name: 'Thanh toán', exact: true })).toHaveCount(0);
+      596 | });
+      597 |
+        at /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/test/e2e/registration-session-bootstrap.spec.ts:594:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/registration-session-boots-56fb3-ty-follows-its-fee-snapshot-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/registration-session-boots-56fb3-ty-follows-its-fee-snapshot-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/registration-session-boots-56fb3-ty-follows-its-fee-snapshot-chromium/error-context.md
+
+  1 failed
+    [chromium] › test/e2e/registration-session-bootstrap.spec.ts:564:1 › registered payment visibility follows its fee snapshot 

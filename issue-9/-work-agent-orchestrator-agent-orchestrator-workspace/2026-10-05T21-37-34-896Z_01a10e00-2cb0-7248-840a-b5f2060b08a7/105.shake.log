@@ -1,0 +1,1474 @@
+### region 1 (grep, ~257 tok)
+
+# backend/src/modules/tournaments/
+## tournaments.controller.ts#D394
+ 1552:  @ApiOperation({ summary: 'Lấy ứng viên từ bạn bè hoặc thành viên CLB' })
+*1553:  async listAddAthleteCandidates(
+ 1554:    @Param('id', ParseUUIDPipe) id: string,
+ 1555:    @Query() dto: AddAthleteCandidatesDto,
+ 1556:    @CurrentUser() user: JwtPayload,
+ 1557:  ) {
+*1558:    return this.tournamentsService.listAddAthleteCandidates(
+ 1559:      id,
+ 1560:      user.sub,
+ 1561:      this.getSystemRoles(user),
+## tournaments.service.ts#6BEB
+ 819:
+*820:  async listAddAthleteCandidates(
+ 821:    tournamentId: string,
+ 822:    userId: string,
+ 823:    systemRoles: string[],
+...
+ 825:  ) {
+*826:    return this.tournamentParticipantAdminService.listAddAthleteCandidates(
+ 827:      tournamentId,
+ 828:      userId,
+ 829:      systemRoles,
+
+## services/
+### tournament-participant-admin.service.ts#3D2D
+ 128:
+*129:  async listAddAthleteCandidates(
+ 130:    tournamentId: string,
+ 131:    userId: string,
+ 132:    systemRoles: string[],
+
+### region 2 (read, ~205 tok)
+
+[backend/src/modules/tournaments/tournaments.service.ts#6BEB]
+806:  async previewRosterImport(
+…
+811:  ) {
+812:    return this.tournamentParticipantAdminService.previewRosterImport(
+…
+815:      systemRoles,
+816:      dto,
+817:    );
+818:  }
+819:
+820:  async listAddAthleteCandidates(
+821:    tournamentId: string,
+822:    userId: string,
+823:    systemRoles: string[],
+824:    dto: AddAthleteCandidatesDto,
+825:  ) {
+826:    return this.tournamentParticipantAdminService.listAddAthleteCandidates(
+827:      tournamentId,
+828:      userId,
+829:      systemRoles,
+830:      dto,
+831:    );
+832:  }
+833:
+834:  async addAthletes(
+835:    tournamentId: string,
+836:    userId: string,
+837:    systemRoles: string[],
+838:    dto: AddAthletesDto,
+839:  ) {
+…
+847:  }
+
+[Showing lines 815-839 of 1670. Use :840 to continue]
+
+### region 3 (read, ~22 tok)
+
+Path 'web/changes/organizer-add-athlete-consent-20261005/endpoint-contract.md' not found
+
+### region 4 (find, ~205 tok)
+
+2 hit(s) for "Find the Add Athlete endpoint contract document and locate the expected candidate-list response key and guest-claim response shape." in web/changes/ (τ 0.20), strongest first
+
+web/changes/organizer-add-athlete-consent-20261005/03-endpoint-contract.md  0.95  59 lines judged
+  web/changes/organizer-add-athlete-consent-20261005/03-endpoint-contract.md:1-59  0.95  # Endpoint Contract — organizer-add-athlete-consent-20261005
+web/changes/organizer-add-athlete-consent-20261005/02-backend-feature-design.md  0.39  55 lines judged
+  web/changes/organizer-add-athlete-consent-20261005/02-backend-feature-design.md:1-55  0.39  # Backend Feature Design — organizer-add-athlete-consent-20261005
+
+listed 73 · judged 73 · read 20 files (14.6KB) · 5 requests · 15K tokens · $0.0006 · 573ms wall / 861ms api
+
+### region 5 (read, ~858 tok)
+
+[web/changes/organizer-add-athlete-consent-20261005/03-endpoint-contract.md#8381]
+1:# Endpoint Contract — organizer-add-athlete-consent-20261005
+2:
+3:Các route candidate/add/claim mới có JWT; organizer routes yêu cầu `@Roles(ORGANIZER, ADMIN)`, `@Verified()` và `TournamentAccessService.isManager`. Reuse player consent route hiện hữu; player routes dùng current user, không nhận `userId` thay mặt.
+4:
+5:## Candidate list
+6:
+7:`GET /tournaments/:id/add-athletes/candidates?source=FRIENDS|CLUB&divisionId=&search=&cursor=&limit=`
+8:
+9:Response rows: `{ userId, displayName, avatarUrl, source }`; page metadata theo convention repository hiện tại. Email/phone không trả. Exclude người đã có trong roster hoạt động ở tournament/division.
+10:
+11:## Add participant
+12:
+13:`POST /tournaments/:id/add-athletes`
+14:
+15:```json
+16:{
+17:  "source": "FRIENDS | CLUB | DIRECT",
+18:  "divisionId": "uuid",
+19:  "teamName": "Tên đội/cặp (optional)",
+20:  "players": [
+21:    { "userId": "uuid", "role": "MAIN" },
+22:    { "displayName": "Tên VĐV", "email": "optional", "phone": "optional", "role": "MAIN" }
+23:  ],
+24:  "organizerNote": "Tối đa 280 ký tự"
+25:}
+26:```
+27:
+28:- `FRIENDS`/`CLUB`: mỗi player có `userId`; server rechecks eligible source.
+29:- `DIRECT`: mỗi player có `displayName`; `email`/`phone` đều optional. Gắn account chỉ nếu email verified; người chưa liên kết tạo guest slot và claim invite.
+30:- Request không nhận `entryFeeAtRegistration`, `isPaid`, `isPresent`, `rankingConsentAt`, hay arbitrary `registeredBy`.
+31:- Response: `participant` shape hiện hữu + additive optional `entryFeeAtRegistration`, `organizerNote`, `isPresent`, roster display rows, và `claims[]` theo guest: `{ guestId, delivery: EMAILED | HANDOFF, claimToken? }`. Raw contact không echo; token chỉ trả cho HANDOFF. Link `/tournaments/:tournamentId/guest-claim/:guestId#token=...`; fragment secret không nằm trong query.
+32:
+33:## Claim guest
+34:
+35:`POST /tournaments/:id/guest-rosters/:guestId/claim`
+36:
+37:```json
+38:{ "claimToken": "one-time bearer secret" }
+39:```
+40:
+41:Authenticated+verified current user only. Email-backed claim yêu cầu normalized verified account email khớp contact email. Claim thành công thay guest row bằng roster row, không thừa hưởng consent.
+42:
+43:## Player consent
+44:
+45:`POST /tournaments/:id/participants/me/ranking-consent` — route hiện hữu; body rỗng. Current user chỉ; idempotent; `@Verified()`; `404` nếu user không thuộc roster. Tái sử dụng, không tạo route mới hoặc organizer override.
+46:
+47:## Status / lỗi
+48:
+49:- `200/201`: candidate/add/claim/consent thành công.
+50:- `400`: payload, division, status/registration lock, roster size hoặc consent eligibility sai.
+51:- `401/403`: chưa đăng nhập/verified, role/manager sai.
+52:- `404`: tournament/participant/guest slot không thuộc scope.
+53:- `409`: user đã có roster active, capacity hết, token hết hạn/đã dùng hoặc claim race.
+54:
+55:## Tương thích
+56:
+57:- Giữ route/body Excel (`import-participants`, `roster-import`) và wildcard không đổi.
+58:- Không đổi `rankingConsent` field cũ; omitted/false cho phép đăng ký, `true` chỉ consent chính người đăng ký.
+59:- Response field mới optional; client cũ bỏ qua; client mới chấp nhận null/absent.
+
+### region 6 (read, ~1724 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#B563]
+1:import { createHash } from 'node:crypto';
+2:import {
+3:  BadRequestException,
+4:  ConflictException,
+5:  ForbiddenException,
+6:  NotFoundException,
+7:} from '@nestjs/common';
+8:import type { AppDb } from '../../../database/db.types';
+9:import * as schema from '../../../database/schema';
+10:import type { AuditService } from '../../audit/audit.service';
+11:import { NotificationsService } from '../../notifications/notifications.service';
+12:import { TournamentsRepository } from '../tournaments.repository';
+13:import type { TournamentPaymentRepository } from '../repositories/tournament-payment.repository';
+14:import { TournamentAccessService } from './tournament-access.service';
+15:import { TournamentParticipantAdminService } from './tournament-participant-admin.service';
+16:import type { RankingConsentService } from './ranking-consent.service';
+17:
+18:describe('TournamentParticipantAdminService', () => {
+19:  const repositoryMock = {
+20:    findById: jest.fn(),
+21:    findParticipantById: jest.fn(),
+22:    findCompletedParticipantPayment: jest.fn(),
+23:    markParticipantPaid: jest.fn(),
+24:    findDivisionById: jest.fn(),
+25:    updateParticipantStatus: jest.fn(),
+26:    assignNextAvailableSeed: jest.fn(),
+27:    getParticipantRosters: jest.fn(),
+28:  };
+29:  const notificationsMock = {
+30:    sendNotification: jest.fn().mockResolvedValue(undefined),
+31:  };
+32:  const accessMock = { isManager: jest.fn() };
+33:  const tx = {};
+34:  const dbMock = {
+35:    transaction: jest.fn(
+36:      (cb: (arg: unknown) => unknown) => Promise.resolve(cb(tx)),
+37:    ),
+38:  };
+39:  const auditMock = {
+40:    logUpdate: jest.fn().mockResolvedValue(undefined),
+41:    logCreate: jest.fn().mockResolvedValue(undefined),
+42:    logDelete: jest.fn().mockResolvedValue(undefined),
+43:  };
+44:  const paymentRepositoryMock = {
+45:    findCompletedParticipantPaymentInTx: jest.fn(),
+46:    createPendingRefund: jest.fn().mockResolvedValue({ id: 'refund-1' }),
+47:    resolveDivisionEntryFee: jest.fn(),
+48:    setParticipantPaidInTx: jest.fn(),
+49:  };
+50:  const consentMock = {
+51:    sendConfirmationRequest: jest.fn().mockResolvedValue(false),
+52:  };
+53:  const repository = repositoryMock as unknown as TournamentsRepository;
+54:  const access = accessMock as unknown as TournamentAccessService;
+55:  const admin = new TournamentParticipantAdminService(
+56:    repository,
+57:    access,
+58:    notificationsMock as unknown as NotificationsService,
+59:    dbMock as unknown as AppDb,
+60:    auditMock as unknown as AuditService,
+61:    paymentRepositoryMock as unknown as TournamentPaymentRepository,
+62:    consentMock as unknown as RankingConsentService,
+63:  );
+64:
+65:  beforeEach(() => {
+66:    jest.clearAllMocks();
+67:  });
+68:
+69:  it('rejects unsupported participant status before loading the participant', async () => {
+70:    repositoryMock.findById.mockResolvedValue({
+71:      id: 'tournament-1',
+72:      status: 'REGISTRATION_OPEN',
+73:    });
+74:    accessMock.isManager.mockResolvedValue(true);
+75:
+76:    await expect(
+77:      admin.updateParticipantStatus(
+78:        'tournament-1',
+79:        'participant-1',
+80:        'PENDING',
+81:        'organizer-1',
+82:        [],
+83:        jest.fn(),
+84:      ),
+85:    ).rejects.toBeInstanceOf(BadRequestException);
+86:    expect(repositoryMock.findParticipantById).not.toHaveBeenCalled();
+87:  });
+88:
+89:  it('requires a completed payment before approving a paid participant', async () => {
+90:    const tournament = {
+91:      id: 'tournament-1',
+92:      status: 'REGISTRATION_OPEN',
+93:      entryFee: 500,
+94:      name: 'Regional event',
+95:    };
+96:    const participant = {
+97:      id: 'participant-1',
+98:      tournamentId: 'tournament-1',
+99:      tournamentDivisionId: null,
+100:      teamStatus: 'PENDING_APPROVAL',
+101:      isPaid: false,
+102:      entryFeeAtRegistration: 500,
+103:    };
+104:    repositoryMock.findById.mockResolvedValue(tournament);
+105:    accessMock.isManager.mockResolvedValue(true);
+106:    repositoryMock.findParticipantById.mockResolvedValue(participant);
+107:    repositoryMock.findCompletedParticipantPayment.mockResolvedValue({
+108:      id: 'payment-1',
+109:    });
+110:    repositoryMock.updateParticipantStatus.mockResolvedValue({
+111:      ...participant,
+112:      teamStatus: 'COMPLETE',
+113:    });
+114:    repositoryMock.assignNextAvailableSeed.mockResolvedValue(null);
+115:    repositoryMock.getParticipantRosters.mockResolvedValue([]);
+116:    const broadcast = jest.fn();
+117:
+118:    await admin.updateParticipantStatus(
+119:      'tournament-1',
+120:      'participant-1',
+121:      'COMPLETE',
+122:      'organizer-1',
+123:      [],
+124:      broadcast,
+125:    );
+126:
+127:    expect(repositoryMock.markParticipantPaid).toHaveBeenCalledWith(
+128:      'participant-1',
+129:    );
+130:    expect(repositoryMock.updateParticipantStatus).toHaveBeenCalledWith(
+131:      'participant-1',
+132:      'COMPLETE',
+133:      'PENDING_APPROVAL',
+134:    );
+135:    expect(broadcast).toHaveBeenCalledWith('tournament-1', {
+136:      participantId: 'participant-1',
+137:      divisionId: null,
+138:      action: 'APPROVED',
+139:    });
+140:  });
+141:  it('approves a one-player double once when review requests race', async () => {
+142:    const tournament = {
+143:      id: 'tournament-1',
+144:      status: 'REGISTRATION_OPEN',
+145:      name: 'Regional event',
+146:      entryFee: 500,
+147:      matchType: 'DOUBLES',
+148:      tournamentConfig: {
+149:        registrationMode: 'APPROVAL',
+150:        doublesPairingMode: 'ORGANIZER',
+151:      },
+152:    };
+153:    const participant = {
+154:      id: 'participant-1',
+155:      tournamentId: 'tournament-1',
+156:      tournamentDivisionId: 'division-1',
+157:      teamStatus: 'PENDING_APPROVAL',
+158:      isPaid: false,
+159:      entryFeeAtRegistration: 500,
+160:    };
+161:    repositoryMock.findById.mockResolvedValue(tournament);
+162:    accessMock.isManager.mockResolvedValue(true);
+163:    repositoryMock.findParticipantById.mockResolvedValue(participant);
+164:    repositoryMock.findDivisionById.mockResolvedValue({
+165:      matchType: 'DOUBLES',
+166:      entryFeeOverrideEnabled: false,
+167:    });
+168:    repositoryMock.getParticipantRosters.mockResolvedValue([
+169:      { userId: 'player-1', role: 'MAIN' },
+170:    ]);
+171:    repositoryMock.updateParticipantStatus
+172:      .mockResolvedValueOnce({
+173:        ...participant,
+174:        teamStatus: 'PENDING_PARTNER',
+175:      })
+176:      .mockResolvedValueOnce(null);
+177:    const broadcast = jest.fn();
+178:
+179:    await admin.updateParticipantStatus(
+180:      'tournament-1',
+181:      'participant-1',
+182:      'COMPLETE',
+183:      'organizer-1',
+…
+186:    );
+…
+222:  });
+…
+967:});
+
+[Showing lines 1-183 of 967. Use :184 to continue]
+
+### region 7 (read, ~464 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+1191:
+1192:  private async getAcceptedFriendIds(
+1193:    executor: AppDbOrTx,
+1194:    managerId: string,
+1195:    selectedIds?: string[],
+1196:  ): Promise<string[]> {
+1197:    if (selectedIds?.length === 0) return [];
+1198:    const selection =
+1199:      selectedIds && selectedIds.length > 0
+1200:        ? or(
+1201:            and(
+1202:              eq(schema.friendships.senderId, managerId),
+1203:              inArray(schema.friendships.receiverId, selectedIds),
+1204:            ),
+1205:            and(
+1206:              eq(schema.friendships.receiverId, managerId),
+1207:              inArray(schema.friendships.senderId, selectedIds),
+1208:            ),
+1209:          )
+1210:        : undefined;
+1211:    const relations = await executor
+1212:      .select({
+1213:        senderId: schema.friendships.senderId,
+1214:        receiverId: schema.friendships.receiverId,
+1215:      })
+1216:      .from(schema.friendships)
+1217:      .where(
+1218:        and(
+1219:          eq(schema.friendships.status, 'ACCEPTED'),
+1220:          isNull(schema.friendships.deletedAt),
+1221:          or(
+1222:            eq(schema.friendships.senderId, managerId),
+1223:            eq(schema.friendships.receiverId, managerId),
+1224:          ),
+1225:          selection,
+1226:        ),
+1227:      )
+1228:      .for('share');
+1229:    return [
+1230:      ...new Set(
+1231:        relations.map((relation) =>
+1232:          relation.senderId === managerId
+1233:            ? relation.receiverId
+1234:            : relation.senderId,
+1235:        ),
+1236:      ),
+1237:    ];
+1238:  }
+1239:
+1240:  private async getJoinedClubMemberIds(
+1241:    executor: AppDbOrTx,
+…
+1244:  ): Promise<string[]> {
+…
+1260:  }
+
+[Showing lines 1191-1241 of 1626. Use :1242 to continue]
+
+### region 8 (read, ~791 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+128:
+129:  async listAddAthleteCandidates(
+130:    tournamentId: string,
+131:    userId: string,
+132:    systemRoles: string[],
+133:    dto: AddAthleteCandidatesDto,
+134:  ) {
+135:    const tournament = await this.getManagedAddableTournament(
+136:      tournamentId,
+137:      userId,
+138:      systemRoles,
+139:    );
+140:    if (dto.divisionId) {
+141:      await this.getTournamentDivision(this.db, tournamentId, dto.divisionId);
+142:    }
+143:    const sourceUserIds = await this.getSourceUserIds(
+144:      this.db,
+145:      tournament,
+146:      userId,
+147:      dto.source,
+148:    );
+149:    if (sourceUserIds.length === 0) return { items: [], nextCursor: null };
+150:
+151:    const limit = dto.limit ?? 20;
+152:    const search = dto.search?.trim() ?? '';
+153:    const cursor = this.decodeCandidateCursor(dto.cursor, {
+154:      source: dto.source,
+155:      divisionId: dto.divisionId ?? null,
+156:      search,
+157:    });
+158:    const activeRosterQuery = this.db
+159:      .select({ id: schema.tournamentRosters.id })
+160:      .from(schema.tournamentRosters)
+161:      .innerJoin(
+162:        schema.tournamentParticipants,
+163:        eq(
+164:          schema.tournamentParticipants.id,
+165:          schema.tournamentRosters.participantId,
+166:        ),
+167:      )
+168:      .where(
+169:        and(
+170:          eq(schema.tournamentRosters.userId, schema.users.id),
+171:          eq(schema.tournamentRosters.status, 'ACTIVE'),
+172:          eq(schema.tournamentParticipants.tournamentId, tournamentId),
+173:          inArray(
+174:            schema.tournamentParticipants.teamStatus,
+175:            [...CAPACITY_RESERVING_TEAM_STATUSES],
+176:          ),
+177:          dto.divisionId
+178:            ? eq(
+179:                schema.tournamentParticipants.tournamentDivisionId,
+180:                dto.divisionId,
+181:              )
+182:            : undefined,
+183:        ),
+184:      );
+185:    const rows = await this.db
+186:      .select({
+187:        userId: schema.users.id,
+188:        displayName: schema.profiles.fullName,
+189:        avatarUrl: schema.profiles.avatarUrl,
+190:      })
+191:      .from(schema.profiles)
+192:      .innerJoin(schema.users, eq(schema.users.id, schema.profiles.userId))
+193:      .where(
+194:        and(
+195:          inArray(schema.users.id, sourceUserIds),
+196:          eq(schema.users.isMock, false),
+197:          isNull(schema.users.deletedAt),
+198:          notExists(activeRosterQuery),
+199:          search ? ilike(schema.profiles.fullName, `%${search}%`) : undefined,
+200:          cursor
+201:            ? or(
+202:                gt(schema.profiles.fullName, cursor.displayName),
+203:                and(
+204:                  eq(schema.profiles.fullName, cursor.displayName),
+205:                  gt(schema.users.id, cursor.userId),
+206:                ),
+207:              )
+208:            : undefined,
+209:        ),
+210:      )
+211:      .orderBy(asc(schema.profiles.fullName), asc(schema.users.id))
+212:      .limit(limit + 1);
+…
+233:  }
+
+[Showing lines 128-210 of 1626. Use :211 to continue]
+
+### region 9 (read, ~299 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+129:  async listAddAthleteCandidates(
+…
+134:  ) {
+…
+185:    const rows = await this.db
+…
+193:      .where(
+194:        and(
+…
+209:        ),
+210:      )
+211:      .orderBy(asc(schema.profiles.fullName), asc(schema.users.id))
+212:      .limit(limit + 1);
+213:
+214:    const hasMore = rows.length > limit;
+215:    const items = rows.slice(0, limit).map((row) => ({
+216:      ...row,
+217:      source: dto.source,
+218:    }));
+219:    const last = items[items.length - 1];
+220:    return {
+221:      items,
+222:      nextCursor:
+223:        hasMore && last
+224:          ? CursorPaginationHelper.encodeCursor({
+225:              displayName: last.displayName,
+226:              divisionId: dto.divisionId ?? null,
+227:              search,
+228:              source: dto.source,
+229:              userId: last.userId,
+230:            })
+231:          : null,
+232:    };
+233:  }
+234:
+235:  async addAthletes(
+236:    tournamentId: string,
+237:    userId: string,
+238:    systemRoles: string[],
+239:    dto: AddAthletesDto,
+…
+241:  ) {
+…
+405:  }
+
+[Showing lines 209-239 of 1626. Use :240 to continue]
+
+### region 10 (grep, ~136 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+ 134:  ) {
+*135:    const tournament = await this.getManagedAddableTournament(
+ 136:      tournamentId,
+ 137:      userId,
+ 138:      systemRoles,
+...
+ 241:  ) {
+*242:    const tournament = await this.getManagedAddableTournament(
+ 243:      tournamentId,
+ 244:      userId,
+ 245:      systemRoles,
+...
+ 1078:  }
+*1079:  private async getManagedAddableTournament(
+ 1080:    tournamentId: string,
+ 1081:    userId: string,
+ 1082:    systemRoles: string[],
+
+### region 11 (read, ~544 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+1019:  async setParticipantPresent(
+…
+1029:  ) {
+…
+1078:  }
+1079:  private async getManagedAddableTournament(
+1080:    tournamentId: string,
+1081:    userId: string,
+1082:    systemRoles: string[],
+1083:  ): Promise<AdminTournament> {
+1084:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+1085:    if (!tournament || tournament.deletedAt) {
+1086:      throw new NotFoundException('Giải đấu không tồn tại');
+1087:    }
+1088:    const allowed = await this.tournamentAccessService.isManager(
+1089:      tournament,
+1090:      userId,
+1091:      systemRoles,
+1092:    );
+1093:    if (!allowed) throw new ForbiddenException('Bạn không có quyền quản lý giải đấu');
+1094:    this.assertAddableTournament(tournament);
+1095:    return tournament;
+1096:  }
+1097:
+1098:  private assertAddableTournament(tournament: AddableTournament): void {
+1099:    if (tournament.deletedAt) throw new NotFoundException('Giải đấu không tồn tại');
+1100:    if (
+1101:      tournament.status === 'COMPLETED' ||
+1102:      tournament.status === 'CANCELLED' ||
+1103:      (tournament.endDate && tournament.endDate <= new Date())
+1104:    ) {
+1105:      throw new BadRequestException('Không thể thêm VĐV vào giải đã kết thúc.');
+1106:    }
+1107:    if (
+1108:      tournament.isRegistrationLocked ||
+1109:      ['REGISTRATION_CLOSED', 'IN_PROGRESS', 'ONGOING', 'PENDING_DELETE'].includes(
+1110:        tournament.status,
+1111:      )
+1112:    ) {
+1113:      throw new BadRequestException('Đăng ký giải đấu đã đóng.');
+1114:    }
+1115:  }
+1116:
+1117:  private async getTransactionalTournament(
+1118:    tx: AppDbOrTx,
+1119:    tournamentId: string,
+1120:  ) {
+1121:    const [tournament] = await tx
+1122:      .select()
+1123:      .from(schema.tournaments)
+1124:      .where(eq(schema.tournaments.id, tournamentId))
+1125:      .limit(1);
+1126:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+1127:    return tournament;
+1128:  }
+
+[Showing lines 1078-1128 of 1626. Use :1129 to continue]
+
+### region 12 (read, ~532 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+1239:
+1240:  private async getJoinedClubMemberIds(
+1241:    executor: AppDbOrTx,
+1242:    communityId: string | null,
+1243:    selectedIds?: string[],
+1244:  ): Promise<string[]> {
+1245:    if (!communityId || selectedIds?.length === 0) return [];
+1246:    const members = await executor
+1247:      .select({ userId: schema.communityMembers.userId })
+1248:      .from(schema.communityMembers)
+1249:      .where(
+1250:        and(
+1251:          eq(schema.communityMembers.communityId, communityId),
+1252:          eq(schema.communityMembers.status, 'JOINED'),
+1253:          selectedIds?.length
+1254:            ? inArray(schema.communityMembers.userId, selectedIds)
+1255:            : undefined,
+1256:        ),
+1257:      )
+1258:      .for('share');
+1259:    return [...new Set(members.map((member) => member.userId))];
+1260:  }
+1261:
+1262:  private assertAddAthletePayload(dto: AddAthletesDto): void {
+1263:    if (!dto.players.length) {
+1264:      throw new BadRequestException('Cần chọn ít nhất một VĐV.');
+1265:    }
+1266:    const userIds = new Set<string>();
+1267:    const emails = new Set<string>();
+1268:    for (const player of dto.players) {
+1269:      if (dto.source === 'DIRECT') {
+1270:        if (player.userId || !player.displayName?.trim()) {
+1271:          throw new BadRequestException('Thông tin VĐV nhập trực tiếp không hợp lệ.');
+1272:        }
+1273:        const email = player.email ? normalizeEmail(player.email) : '';
+1274:        if (email && emails.has(email)) {
+1275:          throw new BadRequestException('Email khách mời bị trùng.');
+1276:        }
+1277:        if (email) emails.add(email);
+1278:      } else if (
+1279:        !player.userId ||
+1280:        player.displayName !== undefined ||
+1281:        player.email !== undefined ||
+1282:        player.phone !== undefined
+1283:      ) {
+1284:        throw new BadRequestException('Danh sách ứng viên không hợp lệ.');
+1285:      }
+…
+1290:    }
+1291:  }
+
+[Showing lines 1239-1285 of 1626. Use :1286 to continue]
+
+### region 13 (grep, ~148 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+ 142:    }
+*143:    const sourceUserIds = await this.getSourceUserIds(
+ 144:      this.db,
+ 145:      tournament,
+ 146:      userId,
+...
+ 1174:
+*1175:  private async getSourceUserIds(
+ 1176:    executor: AppDbOrTx,
+ 1177:    tournament: Pick<AddableTournament, 'communityId'>,
+ 1178:    managerId: string,
+...
+ 1318:    const selectedIds = players.map((player) => player.userId!);
+*1319:    const allowedIds = await this.getSourceUserIds(
+ 1320:      tx,
+ 1321:      tournament,
+ 1322:      managerId,
+
+### region 14 (read, ~252 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+1154:  private decodeCandidateCursor(
+…
+1157:  ): AddAthleteCursor | null {
+…
+1173:  }
+1174:
+1175:  private async getSourceUserIds(
+1176:    executor: AppDbOrTx,
+1177:    tournament: Pick<AddableTournament, 'communityId'>,
+1178:    managerId: string,
+1179:    source: 'FRIENDS' | 'CLUB',
+1180:    selectedIds?: string[],
+1181:  ): Promise<string[]> {
+1182:    if (source === 'FRIENDS') {
+1183:      return this.getAcceptedFriendIds(executor, managerId, selectedIds);
+1184:    }
+1185:    return this.getJoinedClubMemberIds(
+1186:      executor,
+1187:      tournament.communityId,
+1188:      selectedIds,
+1189:    );
+1190:  }
+1191:
+1192:  private async getAcceptedFriendIds(
+1193:    executor: AppDbOrTx,
+1194:    managerId: string,
+1195:    selectedIds?: string[],
+1196:  ): Promise<string[]> {
+1197:    if (selectedIds?.length === 0) return [];
+…
+1238:  }
+
+[Showing lines 1173-1197 of 1626. Use :1198 to continue]
+
+### region 15 (read, ~2884 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#B563]
+18:describe('TournamentParticipantAdminService', () => {
+…
+358:  describe('setParticipantFeePaid', () => {
+…
+626:    it('still allows unmarking after the event, because refunds happen late', async () => {
+…
+642:      await expect(
+643:        admin.setParticipantFeePaid(
+…
+649:          jest.fn(),
+650:        ),
+651:      ).resolves.toEqual({
+652:        participant: cleared,
+653:        refundRequested: false,
+654:        refundPaymentId: null,
+655:      });
+656:    });
+657:  });
+658:
+659:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+660:    repositoryMock.findById.mockResolvedValue({
+661:      id: 'tournament-1',
+662:      status: 'REGISTRATION_OPEN',
+663:    });
+664:    accessMock.isManager.mockResolvedValue(false);
+665:
+666:    await expect(
+667:      admin.addAthletes(
+668:        'tournament-1',
+669:        'outsider-1',
+670:        [],
+671:        { source: 'DIRECT', players: [{ displayName: 'Player One' }] },
+672:        jest.fn(),
+673:      ),
+674:    ).rejects.toBeInstanceOf(ForbiddenException);
+675:    expect(dbMock.transaction).not.toHaveBeenCalled();
+676:  });
+677:
+678:  it('does not grant ranking consent while adding a guest athlete', async () => {
+679:    const tournament = {
+680:      id: 'tournament-1',
+681:      createdBy: 'organizer-1',
+682:      name: 'Open event',
+683:      status: 'REGISTRATION_OPEN',
+684:      deletedAt: null,
+685:      endDate: new Date(Date.now() + 60_000),
+686:      isRegistrationLocked: false,
+687:      isRanked: true,
+688:      matchType: 'SINGLES',
+689:      maxParticipants: null,
+690:      tournamentConfig: null,
+691:    };
+692:    const insertedParticipant: Record<string, unknown> = {
+693:      id: 'participant-1',
+694:    };
+695:    let participantValues: Record<string, unknown> | null = null;
+696:    repositoryMock.findById.mockResolvedValue(tournament);
+697:    accessMock.isManager.mockResolvedValue(true);
+698:    paymentRepositoryMock.resolveDivisionEntryFee.mockResolvedValue(12.5);
+699:
+700:    type MockQuery = {
+701:      from: (table: unknown) => MockQuery;
+702:      innerJoin: (..._args: unknown[]) => MockQuery;
+703:      leftJoin: (..._args: unknown[]) => MockQuery;
+704:      where: (..._args: unknown[]) => MockQuery;
+705:      groupBy: (..._args: unknown[]) => MockQuery;
+706:      for: (..._args: unknown[]) => MockQuery;
+707:      limit: (..._args: unknown[]) => MockQuery;
+708:      then: (
+709:        resolve: (value: unknown) => unknown,
+710:        reject?: (reason: unknown) => unknown,
+711:      ) => Promise<unknown>;
+712:    };
+713:    const transactionExecutor = {
+714:      select: () => {
+715:        let table: unknown;
+716:        let query: MockQuery;
+717:        query = {
+718:          from: (value) => {
+719:            table = value;
+720:            return query;
+721:          },
+722:          innerJoin: () => query,
+723:          leftJoin: () => query,
+724:          where: () => query,
+725:          groupBy: () => query,
+726:          for: () => query,
+727:          limit: () => query,
+728:          then: (resolve, reject) =>
+729:            Promise.resolve(table === schema.tournaments ? [tournament] : [])
+730:              .then(resolve, reject),
+731:        };
+732:        return query;
+733:      },
+734:      insert: (table: unknown) => ({
+735:        values: (values: Record<string, unknown>) => {
+736:          if (table === schema.tournamentParticipants) {
+737:            participantValues = values;
+738:            Object.assign(insertedParticipant, values);
+739:          }
+740:          return Object.assign(Promise.resolve(undefined), {
+741:            returning: async () => [insertedParticipant],
+742:          });
+743:        },
+744:      }),
+745:    };
+746:    dbMock.transaction.mockImplementation((callback) =>
+747:      Promise.resolve(callback(transactionExecutor)),
+748:    );
+749:
+750:    const result = await admin.addAthletes(
+751:      'tournament-1',
+752:      'organizer-1',
+753:      [],
+754:      {
+755:        source: 'DIRECT',
+756:        organizerNote: '  Late addition  ',
+757:        players: [{ displayName: 'Guest Athlete' }],
+758:      },
+759:      jest.fn(),
+760:    );
+761:
+762:    expect(participantValues).toMatchObject({
+763:      teamStatus: 'COMPLETE',
+764:      rankingConsent: false,
+765:      organizerNote: 'Late addition',
+766:      isPresent: false,
+767:      isPaid: false,
+768:      entryFeeAtRegistration: '12.50',
+769:    });
+770:    expect(result.participant).toMatchObject({ id: 'participant-1' });
+771:  });
+772:
+773:  it('rechecks manager authorization against the locked tournament row', async () => {
+774:    const tournament = {
+775:      id: 'tournament-1',
+776:      createdBy: 'organizer-1',
+777:      status: 'REGISTRATION_OPEN',
+778:      deletedAt: null,
+779:      endDate: new Date(Date.now() + 60_000),
+780:      isRegistrationLocked: false,
+781:    };
+782:    repositoryMock.findById.mockResolvedValue(tournament);
+783:    accessMock.isManager
+784:      .mockResolvedValueOnce(true)
+785:      .mockResolvedValueOnce(false);
+786:
+787:    type MockQuery = {
+788:      from: (table: unknown) => MockQuery;
+789:      where: (..._args: unknown[]) => MockQuery;
+790:      for: (..._args: unknown[]) => MockQuery;
+791:      limit: (..._args: unknown[]) => MockQuery;
+792:      then: (
+793:        resolve: (value: unknown) => unknown,
+794:        reject?: (reason: unknown) => unknown,
+795:      ) => Promise<unknown>;
+796:    };
+797:    const transactionExecutor = {
+798:      select: () => {
+799:        let table: unknown;
+800:        let query: MockQuery;
+801:        query = {
+802:          from: (value) => {
+803:            table = value;
+804:            return query;
+805:          },
+806:          where: () => query,
+807:          for: () => query,
+808:          limit: () => query,
+809:          then: (resolve, reject) =>
+810:            Promise.resolve(table === schema.tournaments ? [tournament] : [])
+811:              .then(resolve, reject),
+812:        };
+813:        return query;
+814:      },
+815:    };
+816:    dbMock.transaction.mockImplementation((callback) =>
+817:      Promise.resolve(callback(transactionExecutor)),
+818:    );
+819:
+820:    const result = await admin
+821:      .addAthletes(
+822:        'tournament-1',
+823:        'organizer-1',
+824:        [],
+825:        { source: 'DIRECT', players: [{ displayName: 'Player One' }] },
+826:        jest.fn(),
+827:      )
+828:      .then(
+829:        () => null,
+830:        (error: unknown) => error,
+831:      );
+832:
+833:    expect(accessMock.isManager).toHaveBeenCalledTimes(2);
+834:    expect(result).toBeInstanceOf(ForbiddenException);
+835:  });
+836:
+837:  it('claims a guest roster once for the verified invited email', async () => {
+838:    const claimToken = 'a'.repeat(43);
+839:    let guestDeleted = false;
+840:    let insertedRoster: Record<string, unknown> | null = null;
+841:    const claimant = {
+842:      email: 'athlete@example.com',
+843:      isEmailVerified: true,
+844:      deletedAt: null,
+845:    };
+846:    const guest = {
+847:      id: 'guest-1',
+848:      participantId: 'participant-1',
+849:      displayName: 'Athlete',
+850:      role: 'MAIN',
+851:      contactEmail: 'ATHLETE@example.com',
+852:      contactPhone: null,
+853:      claimTokenHash: createHash('sha256').update(claimToken).digest('hex'),
+854:      claimExpiresAt: new Date(Date.now() + 60_000),
+855:      createdAt: new Date(),
+856:    };
+857:    const participantContext = {
+858:      participantId: 'participant-1',
+859:      tournamentId: 'tournament-1',
+860:      divisionId: null,
+861:      participantStatus: 'COMPLETE',
+862:      tournamentName: 'Open event',
+863:      tournamentStatus: 'REGISTRATION_OPEN',
+864:      tournamentEndDate: new Date(Date.now() + 60_000),
+865:      tournamentDeletedAt: null,
+866:      isRanked: true,
+867:    };
+868:    const roster = {
+869:      id: 'roster-1',
+870:      participantId: 'participant-1',
+871:      userId: 'user-1',
+872:    };
+873:    const readRows = (table: unknown) => {
+874:      if (table === schema.users) return [claimant];
+875:      if (table === schema.tournamentGuestRosters) {
+876:        return guestDeleted ? [] : [guest];
+877:      }
+878:      if (table === schema.tournamentParticipants) return [participantContext];
+879:      return [];
+880:    };
+881:    const queryEvents: Array<{ table: unknown; lock: unknown }> = [];
+882:    type MockQuery = {
+883:      from: (table: unknown) => MockQuery;
+884:      innerJoin: (..._args: unknown[]) => MockQuery;
+885:      where: (..._args: unknown[]) => MockQuery;
+886:      for: (..._args: unknown[]) => MockQuery;
+887:      limit: (..._args: unknown[]) => MockQuery;
+888:      then: (
+889:        resolve: (value: unknown) => unknown,
+890:        reject?: (reason: unknown) => unknown,
+891:      ) => Promise<unknown>;
+892:    };
+893:    const transactionExecutor = {
+894:      select: () => {
+895:        let table: unknown;
+896:        let event: { table: unknown; lock: unknown } | undefined;
+897:        let query: MockQuery;
+898:        query = {
+899:          from: (value) => {
+900:            table = value;
+901:            event = { table, lock: null };
+902:            queryEvents.push(event);
+903:            return query;
+904:          },
+905:          innerJoin: () => query,
+906:          where: () => query,
+907:          for: (mode) => {
+908:            if (event) event.lock = mode;
+909:            return query;
+910:          },
+911:          limit: () => query,
+912:          then: (resolve, reject) =>
+913:            Promise.resolve(readRows(table)).then(resolve, reject),
+914:        };
+915:        return query;
+916:      },
+917:      insert: (table: unknown) => ({
+918:        values: (values: Record<string, unknown>) => {
+919:          if (table === schema.tournamentRosters) insertedRoster = values;
+920:          return { returning: async () => [roster] };
+921:        },
+922:      }),
+923:      delete: () => ({
+924:        where: async () => {
+925:          guestDeleted = true;
+926:        },
+927:      }),
+928:    };
+929:    dbMock.transaction.mockImplementation((callback) =>
+930:      Promise.resolve(callback(transactionExecutor)),
+931:    );
+932:    const broadcast = jest.fn();
+933:
+934:    await expect(
+935:      admin.claimGuestRoster(
+936:        'tournament-1',
+937:        'guest-1',
+938:        'user-1',
+939:        claimToken,
+940:        broadcast,
+941:      ),
+942:    ).resolves.toEqual({ participantId: 'participant-1', claimed: true });
+943:    const eventsAfterFirstClaim = [...queryEvents];
+944:    await expect(
+945:      admin.claimGuestRoster(
+946:        'tournament-1',
+947:        'guest-1',
+948:        'user-1',
+949:        claimToken,
+950:        broadcast,
+951:      ),
+952:    ).rejects.toBeInstanceOf(ConflictException);
+953:
+954:    const ownerLockIndex = eventsAfterFirstClaim.findIndex(
+955:      (event) => event.table === schema.tournaments && event.lock === 'update',
+956:    );
+957:    const duplicateCheckIndex = eventsAfterFirstClaim.findIndex(
+958:      (event) => event.table === schema.tournamentRosters,
+959:    );
+960:    expect(ownerLockIndex).toBeGreaterThanOrEqual(0);
+961:    expect(ownerLockIndex).toBeLessThan(duplicateCheckIndex);
+962:    expect(insertedRoster).toMatchObject({ role: 'MAIN', status: 'ACTIVE' });
+963:    expect(broadcast).toHaveBeenCalledTimes(1);
+964:    expect(guestDeleted).toBe(true);
+965:  });
+966:
+967:});
+
+### region 16 (edit, ~112 tok)
+
+Tool call was not executed because the assistant hit its output token limit (stop_reason: length) before the arguments could complete; the recorded arguments are truncated and unsafe to run. Do NOT retry by re-emitting the same large payload — split the work into several smaller tool calls (e.g. for `write`/`edit`, write the first chunk then append the rest with subsequent `edit` insert ops, or break the file into multiple `write` targets).
+
+### region 17 (todo, ~390 tok)
+
+Remaining items (6):
+  - Continue from the retained implementation without recreating completed work [in_progress] (Resolve candidate contract)
+  - Fix and verify the backend/Web candidate-list response contract mismatch [pending] (Resolve candidate contract)
+  - Verify Add Athlete, guest claims, consent, fee/note/presence snapshots, ELO gates, and reminders [pending] (Verify required behavior)
+  - Inspect and verify Web Add Athlete and guest-claim flows; preserve documented Flutter SDK blocker [pending] (Verify required behavior)
+  - Update release evidence with observed checks and blockers; do not claim unavailable validator or compliance approval [pending] (Finalize handoff)
+  - Commit on omp/issue-9 with the exact required commit message; do not push [pending] (Finalize handoff)
+Overall: 0/6 done, 6 open.
+Active phase 1/3 "Resolve candidate contract" (0/2).
+  Resolve candidate contract:
+    - [ ] Continue from the retained implementation without recreating completed work (in progress)
+    - [ ] Fix and verify the backend/Web candidate-list response contract mismatch
+  Verify required behavior:
+    - [ ] Verify Add Athlete, guest claims, consent, fee/note/presence snapshots, ELO gates, and reminders
+    - [ ] Inspect and verify Web Add Athlete and guest-claim flows; preserve documented Flutter SDK blocker
+  Finalize handoff:
+    - [ ] Update release evidence with observed checks and blockers; do not claim unavailable validator or compliance approval
+    - [ ] Commit on omp/issue-9 with the exact required commit message; do not push
+
+### region 18 (read, ~438 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#B563]
+32:  const accessMock = { isManager: jest.fn() };
+33:  const tx = {};
+34:  const dbMock = {
+35:    transaction: jest.fn(
+36:      (cb: (arg: unknown) => unknown) => Promise.resolve(cb(tx)),
+37:    ),
+38:  };
+39:  const auditMock = {
+40:    logUpdate: jest.fn().mockResolvedValue(undefined),
+41:    logCreate: jest.fn().mockResolvedValue(undefined),
+42:    logDelete: jest.fn().mockResolvedValue(undefined),
+43:  };
+…
+358:  describe('setParticipantFeePaid', () => {
+…
+626:    it('still allows unmarking after the event, because refunds happen late', async () => {
+…
+642:      await expect(
+643:        admin.setParticipantFeePaid(
+…
+650:        ),
+651:      ).resolves.toEqual({
+652:        participant: cleared,
+653:        refundRequested: false,
+654:        refundPaymentId: null,
+655:      });
+656:    });
+657:  });
+658:
+659:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+660:    repositoryMock.findById.mockResolvedValue({
+661:      id: 'tournament-1',
+662:      status: 'REGISTRATION_OPEN',
+663:    });
+664:    accessMock.isManager.mockResolvedValue(false);
+665:
+666:    await expect(
+667:      admin.addAthletes(
+668:        'tournament-1',
+669:        'outsider-1',
+670:        [],
+671:        { source: 'DIRECT', players: [{ displayName: 'Player One' }] },
+672:        jest.fn(),
+673:      ),
+674:    ).rejects.toBeInstanceOf(ForbiddenException);
+675:    expect(dbMock.transaction).not.toHaveBeenCalled();
+676:  });
+677:
+678:  it('does not grant ranking consent while adding a guest athlete', async () => {
+679:    const tournament = {
+680:      id: 'tournament-1',
+…
+691:    };
+…
+771:  });
+
+### region 19 (edit, ~165 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#844A]
+33:  const tx = {};
+34:  const dbMock = {
+35:    select: jest.fn(),
+36:    transaction: jest.fn(
+37:      (cb: (arg: unknown) => unknown) => Promise.resolve(cb(tx)),
+38:    ),
+39:  };
+
+359:  describe('setParticipantFeePaid', () => {
+
+658:  });
+659:
+660:  it('returns an empty candidate page using the public rows contract', async () => {
+661:    const friendshipQuery = {
+…
+680:  });
+681:
+682:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+683:    repositoryMock.findById.mockResolvedValue({
+
+686:    });
+
+699:  });
+
+### region 20 (bash, ~320 tok)
+
+FAIL src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+  ● TournamentParticipantAdminService › returns an empty candidate page using the public rows contract
+
+    expect(received).resolves.toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    +   "items": Array [],
+        "nextCursor": null,
+    -   "rows": Array [],
+      }
+
+      677 |         source: 'FRIENDS',
+      678 |       }),
+    > 679 |     ).resolves.toEqual({ rows: [], nextCursor: null });
+          |                ^
+      680 |   });
+      681 |
+      682 |   it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+
+      at Object.toEqual (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2140:20)
+      at Object.<anonymous> (modules/tournaments/services/tournament-participant-admin.service.spec.ts:679:16)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 19 skipped, 20 total
+Snapshots:   0 total
+Time:        1.18 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "returns an empty candidate page using the public rows contract".
+
+
+Wall time: 1.61 seconds
+
+Command exited with code 1
+
+### region 21 (read, ~269 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#3D2D]
+129:  async listAddAthleteCandidates(
+…
+134:  ) {
+…
+143:    const sourceUserIds = await this.getSourceUserIds(
+…
+145:      tournament,
+146:      userId,
+147:      dto.source,
+148:    );
+149:    if (sourceUserIds.length === 0) return { items: [], nextCursor: null };
+150:
+151:    const limit = dto.limit ?? 20;
+152:    const search = dto.search?.trim() ?? '';
+…
+213:
+214:    const hasMore = rows.length > limit;
+215:    const items = rows.slice(0, limit).map((row) => ({
+216:      ...row,
+217:      source: dto.source,
+218:    }));
+219:    const last = items[items.length - 1];
+220:    return {
+221:      items,
+222:      nextCursor:
+223:        hasMore && last
+224:          ? CursorPaginationHelper.encodeCursor({
+225:              displayName: last.displayName,
+226:              divisionId: dto.divisionId ?? null,
+227:              search,
+228:              source: dto.source,
+229:              userId: last.userId,
+230:            })
+231:          : null,
+232:    };
+233:  }
+
+### region 22 (edit, ~169 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#79BB]
+143:    const sourceUserIds = await this.getSourceUserIds(
+
+147:      dto.source,
+148:    );
+149:    if (sourceUserIds.length === 0) return { rows: [], nextCursor: null };
+150:
+151:    const limit = dto.limit ?? 20;
+213:
+214:    const hasMore = rows.length > limit;
+215:    const candidateRows = rows.slice(0, limit).map((row) => ({
+216:      ...row,
+217:      source: dto.source,
+218:    }));
+219:    const last = candidateRows[candidateRows.length - 1];
+220:    return {
+221:      rows: candidateRows,
+222:      nextCursor:
+223:        hasMore && last
+
+231:          : null,
+232:    };
+
+### region 23 (bash, ~88 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       19 skipped, 1 passed, 20 total
+Snapshots:   0 total
+Time:        1.042 s, estimated 2 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "returns an empty candidate page using the public rows contract".
+
+
+Wall time: 1.47 seconds
+
+### region 24 (edit, ~257 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#1F64]
+143:    const sourceUserIds = await this.getSourceUserIds(
+
+147:      dto.source,
+148:    );
+149:    if (sourceUserIds.length === 0) return { items: [], nextCursor: null };
+150:
+151:    const limit = dto.limit ?? 20;
+219:    const last = candidateRows[candidateRows.length - 1];
+220:    return {
+221:      items: candidateRows,
+222:      nextCursor:
+223:        hasMore && last
+
+231:          : null,
+232:    };
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#DA60]
+660:  it('returns an empty candidate page using the public rows contract', async () => {
+
+680:  });
+681:
+682:  it('returns candidate records in rows for the Web API client', async () => {
+683:    const createQuery = (value: unknown[]) => {
+…
+733:  });
+734:
+735:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+736:    repositoryMock.findById.mockResolvedValue({
+
+739:    });
+
+752:  });
+
+### region 25 (bash, ~350 tok)
+
+FAIL src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+  ● TournamentParticipantAdminService › returns candidate records in rows for the Web API client
+
+    expect(received).resolves.toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "nextCursor": null,
+    -   "rows": Array [
+    +   "items": Array [
+          Object {
+            "avatarUrl": null,
+            "displayName": "Athlete One",
+            "source": "FRIENDS",
+            "userId": "athlete-1",
+          },
+        ],
+    +   "nextCursor": null,
+      }
+
+      720 |         source: 'FRIENDS',
+      721 |       }),
+    > 722 |     ).resolves.toEqual({
+          |                ^
+      723 |       rows: [
+      724 |         {
+      725 |           userId: 'athlete-1',
+
+      at Object.toEqual (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2140:20)
+      at Object.<anonymous> (modules/tournaments/services/tournament-participant-admin.service.spec.ts:722:16)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 20 skipped, 21 total
+Snapshots:   0 total
+Time:        1.16 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "returns candidate records in rows for the Web API client".
+
+
+Wall time: 1.59 seconds
+
+Command exited with code 1
+
+### region 26 (edit, ~125 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#79BB]
+143:    const sourceUserIds = await this.getSourceUserIds(
+
+147:      dto.source,
+148:    );
+149:    if (sourceUserIds.length === 0) return { rows: [], nextCursor: null };
+150:
+151:    const limit = dto.limit ?? 20;
+219:    const last = candidateRows[candidateRows.length - 1];
+220:    return {
+221:      rows: candidateRows,
+222:      nextCursor:
+223:        hasMore && last
+
+231:          : null,
+232:    };
+
+### region 27 (bash, ~89 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       19 skipped, 2 passed, 21 total
+Snapshots:   0 total
+Time:        0.892 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "returns an empty candidate page|returns candidate records in rows".
+
+
+Wall time: 1.33 seconds
+
+### region 28 (todo, ~361 tok)
+
+Remaining items (5):
+  - Fix and verify the backend/Web candidate-list response contract mismatch [in_progress] (Resolve candidate contract)
+  - Verify Add Athlete, guest claims, consent, fee/note/presence snapshots, ELO gates, and reminders [pending] (Verify required behavior)
+  - Inspect and verify Web Add Athlete and guest-claim flows; preserve documented Flutter SDK blocker [pending] (Verify required behavior)
+  - Update release evidence with observed checks and blockers; do not claim unavailable validator or compliance approval [pending] (Finalize handoff)
+  - Commit on omp/issue-9 with the exact required commit message; do not push [pending] (Finalize handoff)
+Overall: 1/6 done, 5 open.
+Active phase 1/3 "Resolve candidate contract" (1/2).
+  Resolve candidate contract:
+    - [X] Continue from the retained implementation without recreating completed work
+    - [ ] Fix and verify the backend/Web candidate-list response contract mismatch (in progress)
+  Verify required behavior:
+    - [ ] Verify Add Athlete, guest claims, consent, fee/note/presence snapshots, ELO gates, and reminders
+    - [ ] Inspect and verify Web Add Athlete and guest-claim flows; preserve documented Flutter SDK blocker
+  Finalize handoff:
+    - [ ] Update release evidence with observed checks and blockers; do not claim unavailable validator or compliance approval
+    - [ ] Commit on omp/issue-9 with the exact required commit message; do not push
+
+### region 29 (bash, ~15 tok)
+
+## main...origin/main
+?? ./
+main
+
+
+Wall time: 0.11 seconds
+
+### region 30 (bash, ~349 tok)
+
+branch omp/issue-9
+staged 0, unstaged 15, untracked 6
+M src/database/schema/tournaments.schema.ts
+M src/modules/rankings/ranking-consent-gate.spec.ts
+M src/modules/rankings/rankings.service.ts
+M src/modules/rankings/recalculate-elo-consent.spec.ts
+M src/modules/tournaments/repositories/tournament-registration.repository.ts
+M src/modules/tournaments/services/ranking-consent.service.spec.ts
+M src/modules/tournaments/services/ranking-consent.service.ts
+M src/modules/tournaments/services/tournament-capacity.service.spec.ts
+M src/modules/tournaments/services/tournament-capacity.service.ts
+M src/modules/tournaments/services/tournament-lite.service.ts
+M src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+M src/modules/tournaments/services/tournament-participant-admin.service.ts
+M src/modules/tournaments/tournaments-lite-pairing.spec.ts
+M src/modules/tournaments/tournaments.controller.ts
+M src/modules/tournaments/tournaments.service.ts
+?? .ripwire_quality_baseline
+?? src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql
+?? src/modules/tournaments/dto/add-athlete-candidates.dto.ts
+?? src/modules/tournaments/dto/add-athletes.dto.ts
+?? src/modules/tournaments/dto/claim-guest-roster.dto.ts
+?? src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts
+omp/issue-9
+[raw output: artifact://104]
+
+
+Wall time: 0.12 seconds

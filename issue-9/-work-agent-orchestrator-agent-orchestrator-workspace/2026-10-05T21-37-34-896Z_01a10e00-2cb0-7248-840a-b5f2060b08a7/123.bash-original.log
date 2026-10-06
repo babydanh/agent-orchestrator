@@ -1,0 +1,75 @@
+FAIL src/modules/tournaments/services/tournament-capacity.service.spec.ts
+  ● batched capacity reads › reads every division in one aggregate pass
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      495 |     expect(snapshots['division-2'].occupiedTeamSlots).toBe(1);
+      496 |     // Two owner queries + one aggregate, never one per division.
+    > 497 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      498 |   });
+      499 |
+      500 |   it('reads a page of tournaments in one aggregate pass', async () => {
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:497:22)
+
+  ● batched capacity reads › reads a page of tournaments in one aggregate pass
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      532 |     expect(snapshots['tournament-1'].isFull).toBe(false);
+      533 |     expect(snapshots['tournament-2'].isFull).toBe(true);
+    > 534 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      535 |   });
+      536 | });
+      537 |
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:534:22)
+
+  ● readEffectiveCapacity › keeps the division limit when the division sets one
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 2
+    Received number of calls: 3
+
+      822 |     expect(capacity.maxTeamSlots).toBe(4);
+      823 |     expect(capacity.occupiedTeamSlots).toBe(1);
+    > 824 |     expect(dbSelect).toHaveBeenCalledTimes(2);
+          |                      ^
+      825 |   });
+      826 |
+      827 |   it('falls back to the tournament limit with tournament-wide occupancy', async () => {
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:824:22)
+
+  ● readEffectiveCapacity › leaves the division uncapped when neither scope sets a limit
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 3
+    Received number of calls: 4
+
+      911 |     // The division owner, its parent (which sets no limit either), then the
+      912 |     // division's own occupancy — still no per-division fan-out.
+    > 913 |     expect(dbSelect).toHaveBeenCalledTimes(3);
+          |                      ^
+      914 |   });
+      915 | });
+      916 |
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-capacity.service.spec.ts:913:22)
+
+
+Test Suites: 1 failed, 7 passed, 8 total
+Tests:       4 failed, 138 passed, 142 total
+Snapshots:   0 total
+Time:        2.366 s, estimated 7 s
+Ran all test suites matching src/modules/matches/matches.repository.ranking-consent.spec.ts|src/modules/rankings/ranking-consent-gate.spec.ts|src/modules/rankings/recalculate-elo-consent.spec.ts|src/modules/tournaments/services/tournament-participant-admin.service.spec.ts|src/modules/tournaments/services/tournament-capacity.service.spec.ts|src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts|src/modules/tournaments/services/ranking-consent.service.spec.ts|src/modules/tournaments/tournaments-lite-pairing.spec.ts.
