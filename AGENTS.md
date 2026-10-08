@@ -35,6 +35,13 @@ Khi người dùng nói: *"đẩy session dở dang lên github", "lên github l
 
 ---
 
+## 1.6. Cloud Cancel & Pull Fast-Track (Hủy Cloud & Kéo Về Local Tự Động)
+Khi người dùng nói: *"hủy cloud kéo về", "hủy github kéo về", "kéo dở dang về máy", "lấy về local làm tiếp"*:
+- **THỰC HIỆN NGAY TRONG 1 BƯỚC DUY NHẤT**:
+  1. Chạy ngay: `powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1`
+  2. Báo cáo xác nhận đã hủy workflow trên GitHub Actions và đã kéo code + session về máy, nhắc user gõ `omp --resume` là xong ngay!
+---
+
 ## 2. Git Fast-Track (Tối ưu hóa thao tác Git & Push)
 
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
