@@ -1,6 +1,6 @@
 ---
 name: postgres-concurrency-locks
-description: Deep expertise in PostgreSQL row-level locks (FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE, FOR KEY SHARE, SKIP LOCKED) and Redis distributed locks (Redlock) for high-concurrency race conditions.
+description: Use when designing PostgreSQL concurrency, row-level locks (FOR UPDATE, SKIP LOCKED), or Redis distributed locks (Redlock).
 ---
 
 # PostgreSQL Concurrency & Distributed Locking Playbook

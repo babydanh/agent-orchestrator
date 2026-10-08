@@ -194,12 +194,12 @@ jobs:
             methodOrder:
               - shake
               - soft
-            thresholdPercent: 70
-            keepRecentTokens: 15000
-            idleEnabled: true
-            supersedeReads: true
-            dropUseless: true
-            pruneToolOutputs: true
+            thresholdPercent: 75
+            keepRecentTokens: 16000
+            idleEnabled: false
+            supersedeReads: false
+            dropUseless: false
+            pruneToolOutputs: false
           advisor:
             enabled: true
           prewalk:
@@ -260,10 +260,18 @@ jobs:
               },
               "ripwire": {
                 "command": "ripwire",
-                "args": ["--mcp"]
+                "args": [
+                  "--mcp",
+                  "--top-k=150",
+                  "--max-file-size=2M",
+                  "--exclude=node_modules",
+                  "--exclude=.git",
+                  "--exclude=.next",
+                  "--exclude=.dart_tool",
+                  "--exclude=coverage",
+                  "--exclude=.cache"
+                ]
               }
-            }
-          }
           EOF
 
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
