@@ -180,16 +180,17 @@ jobs:
           symbolPreset: nerd
           modelRoles:
             default: openai-codex/gpt-6-luna:xhigh
-            plan: openai-codex/gpt-6.1-sol:max
+            plan: openai-codex/gpt-6.1-sol:high
             judge: openrouter/~typesafe/jev-latest:auto
             smol: openrouter/inclusionai/ling-3.1-flash
             task: openrouter/inclusionai/ling-3.1-flash
-            vision: openrouter/stealth/space-bunny-alpha:max
+            vision: openrouter/google/gemini-2.5-flash
             commit: openrouter/inclusionai/ling-3.1-flash
             advisor: openrouter/inclusionai/ling-3.1-flash
-            slow: openrouter/stealth/space-bunny-alpha:max
+            slow: openrouter/inclusionai/ling-3.1-flash
             tiny: openrouter/inclusionai/ling-3.1-flash
             memory: openrouter/inclusionai/ling-3.1-flash
+            image: openrouter/inclusionai/ming-image-0.1-design
           compaction:
             methodOrder:
               - shake
@@ -220,13 +221,11 @@ jobs:
             modelFallback: false
             fallbackChains:
               "openai-codex/*":
-                - openrouter/stealth/space-bunny-alpha:max
                 - openrouter/inclusionai/ling-3.1-flash
               default:
-                - openrouter/stealth/space-bunny-alpha:max
                 - openrouter/inclusionai/ling-3.1-flash
               plan:
-                - openrouter/stealth/space-bunny-alpha:max
+                - openrouter/inclusionai/ling-3.1-flash
               smol:
                 - openrouter/inclusionai/ling-3.1-flash
               task:
@@ -341,9 +340,9 @@ jobs:
           echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
           cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
-            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
+            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/inclusionai/ling-3.1-flash" -p
           else
-            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
+            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/inclusionai/ling-3.1-flash" -p
           fi
           cd - >/dev/null
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
