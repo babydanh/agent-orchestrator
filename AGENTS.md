@@ -6,22 +6,24 @@ Whenever concluding or completing ANY task, answering a request, or reporting ba
 ### 📋 1. Yêu cầu ban đầu (User Goals):
 - [Trích xuất chính xác từng gạch đầu dòng mục tiêu từ prompt của người dùng]
 
-### ✅ 2. Những gì đã thực hiện (Execution Checklist):
-- **[Mục 1 từ prompt]**: Giải thích ngắn gọn cách làm + file/hàm cụ thể đã sửa (`path/to/file:line`).
-- **[Mục 2 từ prompt]**: Giải thích ngắn gọn cách làm + file/hàm cụ thể đã sửa.
+### 🚀 TRẠNG THÁI HIỆN TẠI (Execution Status):
+> **[ĐÃ CODE THẬT XONG 100%]** hoặc **[MỚI LẬP KẾ HOẠCH / ĐANG KHẢO SÁT, CHƯA ĐỤNG CODE]**
+*(BẮT BUỘC ghi rõ ràng 1 trong 2 trạng thái trên để người dùng biết ngay lập tức).*
+
+### ✅ 2. Những gì đã thực hiện (Execution Checklist - Viết Thật Đơn Giản, Dễ Hiểu):
+- **Tóm tắt ngắn gọn**: Đã làm đúng cái gì cho tính năng người dùng yêu cầu (nói thẳng kết quả, không viết văn vở kỹ thuật hoa mỹ).
+- **Vị trí sửa cụ thể**: File và dòng cụ thể đã sửa thật (`path/to/file:line`).
 
 ### 🔗 3. Những gì liên quan & Phạm vi ảnh hưởng (Side-effects & Related Changes):
-- Các file hoặc component phụ bắt buộc phải sửa ké theo để không bị gãy code (ví dụ: route, model, state, config).
-- Cảnh báo nếu thay đổi này có ảnh hưởng ngầm tới các phần khác trong project.
+- Các file bắt buộc phải sửa ké theo (nếu có). Nếu KHÔNG có file nào khác bị ảnh hưởng, ghi rõ: *"Không ảnh hưởng file khác"*.
 
 ### 🧪 4. Kết quả kiểm tra (Verification Evidence):
-- Lệnh verify đã chạy (`flutter analyze`, `ast-grep`, tests) kèm output chứng minh 0 errors / pass.
+- Lệnh verify đã chạy (`npm test`, `flutter analyze`, v.v.) kèm kết quả chứng minh chạy được.
 
 ### 💡 5. Lưu ý từ Advisor (nếu có):
-- Lưu ý kỹ thuật ngắn gọn từ Advisor (nếu có).
+- Nếu thấy code cũ ở chỗ khác xấu/lỗi nhưng KHÔNG được phép sửa, ghi chú ngắn tại đây để người dùng biết.
 
 > **BẮT BUỘC TUÂN THỦ**: Không được bỏ qua form này khi kết thúc lượt trả lời. Đây là quy chuẩn cao nhất của hệ thống.
-
 ---
 
 ## 2. Git Fast-Track (Tối ưu hóa thao tác Git & Push)
@@ -35,19 +37,19 @@ Khi người dùng yêu cầu "commit", "push", "commit push", "đẩy code", "l
 
 ---
 
-## 3. Mandatory AST-Grep for Code Search & Inspection
-Whenever inspecting, searching, or refactoring source code in supported languages (TypeScript, JavaScript, Python, Dart, Rust, Go, Java, C/C++):
-- The agent **MUST ALWAYS prioritize `ast-grep` via bash/terminal commands (`ast-grep run -p '...'`)** over naive plain-text regex (`grep`) or semantic search (`find`).
-- **Why**: Drastically reduces token noise, whitespace drift, and captures multi-line syntax, decorators, widget trees, and function signatures with 100% precision.
-- **Examples**:
-  ```bash
-  ast-grep run -p 'class $NAME extends $BASE { $$$ }' --lang dart
-  ast-grep run -p 'void $FN($$$ARGS) { $$$ }' --lang dart
-  ast-grep run -p 'Widget build(BuildContext context) { $$$ }' --lang dart
-  ```
-- **When to use plain grep / find**: ONLY for non-code files (`.env`, `.yaml`, `.json`, `.md`, logs) or literal error message strings.
+## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
+Để tìm kiếm chính xác, nhanh nhất và không bao giờ nuốt RAM:
 
----
+1. **Khi nào BẮT BUỘC dùng `ripwire` (Kiến trúc & Đồ thị quan hệ)**:
+   - **Chỉ dùng khi**: Cần hiểu luồng dữ liệu lớn, tính toán phạm vi ảnh hưởng (*blast radius*), xem ai đang gọi hàm này (*impact*, *uses*), hoặc khám phá kiến trúc dự án mới (*explore*).
+   - Cực kỳ mạnh vì nó cắt giảm 75% token rác so với đọc chay cả file.
+
+2. **Khi nào BẮT BUỘC dùng `ast-grep` (Tìm kiếm cấu trúc cú pháp cụ thể)**:
+   - Khi tìm class, function, widget tree, decorator trong TypeScript, Dart, Python, Go, Rust:
+     `ast-grep run -p 'function $FN($$$ARGS) { $$$ }'`
+
+3. **Khi nào dùng `grep` / `read` thuần (Chuỗi chữ, i18n, text cụ thể)**:
+   - Khi tìm **chuỗi thông báo lỗi, text dịch đa ngôn ngữ (i18n vi.json, en.json), key config, file `.env`, file test**: Dùng `grep` trực tiếp là nhanh nhất và đúng trọng tâm nhất (như trong ảnh thực tế bạn đang làm).
 
 ## 4. Smart Feedback Loop: Advisor vs. Worker (No Infinite Loops)
 - **Selective Auto-Fix (P0/P1 Blockers Only)**:
@@ -106,8 +108,61 @@ OMP operates with a perpetual shared memory layer via OpenViking (`openviking` M
 
 ---
 
-## 9. Local Web Server Anti-Bloat Protocol
-- **NO Arbitrary Dev Servers & NO `--webpack`**:
-  - The host system has limited memory. NEVER run `next dev --webpack` or start ad-hoc dev servers on custom ports (e.g. 3104) without user request.
-  - If a Next.js test requires a running frontend, use the existing running instance on `http://localhost:3101` (`pnpm start:3101`).
-  - If a dev server must be started, use ONLY `pnpm dev:3101` (Turbopack) and terminate it immediately after verification finishes.
+## 9. Low-RAM Web Server & Dev/Test Protocol
+- **Runtime Preference (Bun > Node)**:
+  - Luôn ưu tiên dùng `bun` thay vì `node`/`npm`/`yarn` khi chạy script, API mock, testing runner hoặc dev server (ví dụ: `bun run dev`, `bun test`, `bun run build`).
+  - Runtime của `bun` ngốn cực ít RAM (~30MB–60MB) so với Node (~200MB–600MB+).
+- **Turbopack Bắt Buộc (Next.js)**:
+  - CẤM chạy Webpack (`next dev --webpack` hoặc Next.js mặc định không cờ khi dự án hỗ trợ Turbo).
+  - Luôn chạy với cờ `--turbo` (ví dụ: `pnpm dev --turbo` hoặc `bun run dev -- --turbo`).
+  - Nếu phải dùng Node cho Next.js, luôn giới hạn heap size:
+    `NODE_OPTIONS="--max-old-space-size=512"` (PowerShell: `$env:NODE_OPTIONS="--max-old-space-size=512"`).
+- **Quy trình Test Web Tiết Kiệm RAM**:
+  1. **Tái sử dụng server có sẵn**: Kiểm tra cổng trước (ví dụ cổng `3101` hoặc `3000`). Nếu đã có server chạy sẵn, tuyệt đối KHÔNG khởi tạo thêm instance mới.
+  2. **Headless & Direct HTTP Verification**: Khi test API hoặc render trang, ưu tiên dùng `curl`, `fetch`, hoặc test script dạng console thay vì bật trình duyệt Chrome/Puppeteer ngốn hàng GB RAM.
+  3. **Tắt Server Ngay Khi Xong Test**:
+     - Dev server phục vụ test KHÔNG được để chạy ngầm vĩnh viễn.
+     - Sau khi verify xong endpoint / UI, phải tắt ngay tiến trình (PowerShell: `Stop-Process -Id <PID> -Force` hoặc `taskkill /F /PID <PID>`).
+  4. **Giới hạn số worker**: Khi build hoặc test với Jest/Vitest/Playwright, luôn truyền `--maxWorkers=1` hoặc `--concurrency=1` để tránh fork nhiều process Node song song làm tràn RAM.
+
+---
+
+## 10. UI Wireframe & Mockup Handover Protocol (Skill: `wireframe-handover`)
+- **Nguyên tắc Wireframe-First**: Khi người dùng gửi ảnh giao diện cũ, screenshot, hoặc link web kèm yêu cầu làm lại UI / thêm tính năng:
+  - **TUYỆT ĐỐI KHÔNG** đè code dự án hoặc viết logic thật ngay lập tức.
+  - Kích hoạt ngay skill `wireframe-handover` (`C:\Users\GIGABYTE\.omp\agent\skills\wireframe-handover\SKILL.md`).
+- **Vẽ khung trực tiếp ngay trong Prompt (Siêu nhẹ, 0 byte file, xem ngay tại terminal)**:
+  1. Vẽ khung **ASCII Box / Unicode Grid** (`┌─┐`, `│ │`, `└─┘`) hoặc Mermaid thể hiện rõ vị trí Navbar, Sidebar, Card, Table, Form, Buttons.
+  2. Đánh dấu rõ các khối `[Mới: ...]` hoặc vị trí đã điều chỉnh theo yêu cầu của user.
+  3. Dừng lại hỏi chốt ý kiến:
+     *"Khung layout phác họa trực tiếp ở trên bạn xem đã đúng ý chưa? Cần đổi vị trí khối nào hay thêm bớt gì trước khi mình bắt đầu code thật không?"*
+  4. Chỉ khi người dùng phản hồi duyệt ("ok", "tiến hành đi") mới bắt đầu viết code vào dự án.
+
+---
+
+## 12. Pixel-Perfect Responsive UI Protocol (Skill: `pixel-perfect-responsive`)
+- **Quy chuẩn bắt buộc cho mọi dòng code UI (Web & Flutter)**:
+  - **CẤM kích thước cứng (No Fixed Width/Height)**: Cấm gán width cứng (`width: 600px`, `width: 380`) khiến màn hình nhỏ bị tràn (horizontal scroll / RenderFlex overflow).
+  - **Mobile-First & Fluid Spacing**:
+    - Web: Bắt buộc dùng CSS `clamp(min, val, max)` cho typography/padding và CSS Grid `auto-fit`/`minmax` để tự thích ứng từ màn 4.7" đến 34" Ultrawide.
+    - Flutter: Bắt buộc dùng `flutter_screenutil` (`.w`, `.h`, `.sp`, `.r`) hoặc `LayoutBuilder` / `Flexible` / `Wrap` để không bao giờ bị RenderFlex vàng/đen.
+
+---
+
+---
+
+## 13. Adversarial Planning & Edge-Case Protocol (Tư Duy Kế Hoạch Chống Lỗ Hổng)
+- **Bắt buộc áp dụng trong khâu PLAN trước khi đụng vào code**:
+  1. **Tự phản biện lỗi biên (Adversarial Self-Audit)**:
+     - Luôn lường trước ít nhất 3 kịch bản xấu nhất: Mạng rớt / timeout giữa chừng, dữ liệu null / mảng rỗng, thao tác bấm đúp liên tục (race condition / idempotency).
+  2. **Cite-Check (Kiểm chứng tham số & schema thật)**:
+     - Tuyệt đối cấm bịa hàm / bịa tên trường API. Bắt buộc đọc file schema hoặc type definition trước khi đưa vào kế hoạch.
+  3. **Surgical Scope**:
+     - Kế hoạch phải chỉ rõ file nào cần sửa và sửa đúng đoạn nào (phẫu thuật từng dòng), cấm viết lại toàn bộ file.
+
+
+## 11. End-to-End Implementation Discipline (Làm Tới Nơi Tới Chốn)
+- **Được phép chủ động sửa toàn bộ các file liên quan**:
+  - Khi làm tính năng người dùng yêu cầu, AI **ĐƯỢC PHÉP VÀ NÊN chủ động sửa trọn gói** các thành phần liên quan (route, model, database schema, state, UI, API service) để tính năng chạy được từ A-Z.
+  - Chỉ cần nhớ nguyên tắc cốt lõi: **Mọi file sửa đều phải phục vụ trực tiếp cho tính năng chính**, không đi sửa lung tung ngoài lề.
+  - Báo cáo rõ ràng: Đã sửa những file nào, tính năng đã code thật xong chưa.

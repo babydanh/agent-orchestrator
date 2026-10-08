@@ -1,6 +1,6 @@
 ---
 name: socketio-room-resilience
-description: Realtime WebSocket architecture for live tournament scoring, match rooms, automatic reconnection, state resynchronization, and memory leak cleanup.
+description: Use when implementing realtime WebSocket rooms, live scoreboards, automatic reconnection, or socket leak cleanup.
 ---
 
 # Socket.IO Realtime Resilience & Live Score Playbook
