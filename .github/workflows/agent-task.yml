@@ -324,10 +324,23 @@ jobs:
 
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
           SESSION_ID=$(echo "$ISSUE_BODY" | grep -oP 'Session-ID\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          TARGET_REPO=$(echo "$ISSUE_BODY" | grep -oP 'Repo mục tiêu\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          
+          # Tự động nhảy vào đúng repo mục tiêu nếu có
+          EXEC_DIR="."
+          if [ "$TARGET_REPO" = "HethongBackendApi_QuanlyGiaiDau" ] && [ -d "backend" ]; then
+            EXEC_DIR="backend"
+          elif [ "$TARGET_REPO" = "HethongFrontEndApp_QLgiaidau" ] && [ -d "app" ]; then
+            EXEC_DIR="app"
+          elif [ "$TARGET_REPO" = "HethongFrontEndWeb_QLgiaidau" ] && [ -d "web" ]; then
+            EXEC_DIR="web"
+          fi
+          echo "Thư mục thực thi chính: $EXEC_DIR"
+
           if [ -n "$SESSION_ID" ]; then
             echo "Phát hiện Handoff Session ID: $SESSION_ID. Đang tải từ branch omp-sync/sessions..."
             mkdir -p /tmp/sync_sessions
-            git clone --branch omp-sync/sessions --single-branch "https://${GH_PAT:-$GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
+            git clone --branch omp-sync/sessions --depth 1 "https://${GH_PAT:-$GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
             if [ -d "/tmp/sync_sessions/$SESSION_ID" ]; then
               echo "Khôi phục phiên làm việc $SESSION_ID vào ~/.omp/agent/sessions/..."
               mkdir -p ~/.omp/agent/sessions
@@ -335,14 +348,14 @@ jobs:
             fi
           fi
 
-          echo "Executing OMP in Headless Mode..."
-          # Sử dụng pipe và cờ -p để chạy không tương tác (non-interactive), chống treo runner
+          echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
+          cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
             printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
           else
             printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/stealth/space-bunny-alpha:max" -p
           fi
-
+          cd - >/dev/null
       - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
