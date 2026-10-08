@@ -26,16 +26,16 @@ Whenever concluding or completing ANY task, answering a request, or reporting ba
 > **BẮT BUỘC TUÂN THỦ**: Không được bỏ qua form này khi kết thúc lượt trả lời. Đây là quy chuẩn cao nhất của hệ thống.
 ---
 
-## 2. Git Fast-Track (Tối ưu hóa thao tác Git & Push)
-Khi người dùng yêu cầu "commit", "push", "commit push", "đẩy code", "lưu git":
-- **TUYỆT ĐỐI KHÔNG ĐƯỢC** kích hoạt quy trình cồng kềnh như `finishing-a-development-branch`, không tạo plan todo phức tạp, không spawn reviewer subagent làm tốn thời gian.
-- **Thực hiện ngay lập tức**:
-  1. `git status -s` để xem file thay đổi.
-  2. `git add . && git commit -m "..."`
-  3. `git push`
-  4. Trả lời báo cáo nhanh gọn trong 15-30 giây.
+## 1.5. Cloud Handoff Fast-Track (Bàn Giao Siêu Tốc Trong 15 Giây)
+Khi người dùng nói: *"đẩy session dở dang lên github", "lên github làm tiếp", "chuyển lên github", "handoff", "lưu session"*:
+- **TUYỆT ĐỐI CẤM**: Không phân tích code, không chạy linter/test, không spawn subagent, không lập todo rườm rà.
+- **THỰC HIỆN NGAY TRONG 1 BƯỚC DUY NHẤT**:
+  1. Chạy ngay: `powershell C:\Users\GIGABYTE\.omp\scripts\fast-handoff.ps1`
+  2. Nếu có Issue URL hoặc thông tin bàn giao -> Báo cáo link Issue và dừng lại ngay trong 15-20 giây!
 
 ---
+
+## 2. Git Fast-Track (Tối ưu hóa thao tác Git & Push)
 
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
 Để tìm kiếm chính xác, nhanh nhất và không bao giờ nuốt RAM:
