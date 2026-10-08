@@ -182,14 +182,14 @@ jobs:
             default: openai-codex/gpt-6-luna:xhigh
             plan: openai-codex/gpt-6.1-sol:max
             judge: openrouter/~typesafe/jev-latest:auto
-            smol: openrouter/stealth/space-bunny-alpha:max
-            task: openrouter/stealth/space-bunny-alpha:max
+            smol: openrouter/inclusionai/ling-3.1-flash
+            task: openrouter/inclusionai/ling-3.1-flash
             vision: openrouter/stealth/space-bunny-alpha:max
-            commit: openrouter/stealth/space-bunny-alpha:auto
-            advisor: openrouter/stealth/space-bunny-alpha:max
+            commit: openrouter/inclusionai/ling-3.1-flash
+            advisor: openrouter/inclusionai/ling-3.1-flash
             slow: openrouter/stealth/space-bunny-alpha:max
-            tiny: openrouter/stealth/space-bunny-alpha:max
-            memory: openrouter/stealth/space-bunny-alpha:max
+            tiny: openrouter/inclusionai/ling-3.1-flash
+            memory: openrouter/inclusionai/ling-3.1-flash
           compaction:
             methodOrder:
               - shake
@@ -217,30 +217,20 @@ jobs:
           astEdit:
             enabled: true
           retry:
-            modelFallback: true
+            modelFallback: false
             fallbackChains:
               "openai-codex/*":
                 - openrouter/stealth/space-bunny-alpha:max
+                - openrouter/inclusionai/ling-3.1-flash
               default:
                 - openrouter/stealth/space-bunny-alpha:max
+                - openrouter/inclusionai/ling-3.1-flash
               plan:
                 - openrouter/stealth/space-bunny-alpha:max
               smol:
-                - openrouter/stealth/space-bunny-alpha:max
+                - openrouter/inclusionai/ling-3.1-flash
               task:
-                - openrouter/stealth/space-bunny-alpha:max
-              vision:
-                - openrouter/stealth/space-bunny-alpha:max
-              commit:
-                - openrouter/stealth/space-bunny-alpha:max
-              advisor:
-                - openrouter/stealth/space-bunny-alpha:max
-              slow:
-                - openrouter/stealth/space-bunny-alpha:max
-              tiny:
-                - openrouter/stealth/space-bunny-alpha:max
-              memory:
-                - openrouter/stealth/space-bunny-alpha:max
+                - openrouter/inclusionai/ling-3.1-flash
           providers:
             openrouterVariant: nitro
             cacheWarming: idle
