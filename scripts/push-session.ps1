@@ -3,41 +3,80 @@ param (
     [string]$SessionId = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$Branch = ""
+    [string]$Branch = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$TargetRepo = "HethongBackendApi_QuanlyGiaiDau"
 )
 
 $ErrorActionPreference = "Stop"
 
-# 1. Tim Session ID neu chua truyen vao
-if (-not $SessionId) {
-    $latestSession = Get-ChildItem "$HOME\.omp\agent\sessions" -Filter "*.jsonl" -Recurse -File | 
-                     Sort-Object LastWriteTime -Descending | 
-                     Select-Object -First 1
-    if (-not $latestSession) {
-        Write-Error "Khong tim thay session .jsonl nao trong $HOME\.omp\agent\sessions"
-        exit 1
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "       OMP CLOUD HANDOFF: 2-WAY SYNC SESSIONS             " -ForegroundColor Cyan
+Write-Host "==========================================================" -ForegroundColor Cyan
+
+# 1. Tim file session moi nhat
+$sessionBase = "$HOME\.omp\agent\sessions"
+$sessionFile = $null
+
+if ($SessionId) {
+    $sessionFile = Get-ChildItem $sessionBase -Filter "*$SessionId*.jsonl" -Recurse -File | Select-Object -First 1
+} else {
+    $sessionFile = Get-ChildItem $sessionBase -Filter "*.jsonl" -Recurse -File | 
+                   Sort-Object LastWriteTime -Descending | 
+                   Select-Object -First 1
+    if ($sessionFile) {
+        $SessionId = $sessionFile.BaseName
     }
-    $SessionId = $latestSession.BaseName
 }
 
-Write-Host ">>> Session ID duoc chon: $SessionId" -ForegroundColor Cyan
+if (-not $sessionFile) {
+    Write-Error "Khong tim thay file session .jsonl nao trong $sessionBase!"
+    exit 1
+}
 
-# 2. Xac dinh branch hien tai neu chua truyen
+# Xac dinh relative path cua session de cloud tai lap dung cay thu muc
+$relDir = $sessionFile.DirectoryName.Substring($sessionBase.Length).TrimStart('\', '/')
+Write-Host ">>> File Session duoc chon: $($sessionFile.Name)" -ForegroundColor Green
+Write-Host ">>> Thu muc phan vung session: $relDir" -ForegroundColor Green
+Write-Host ">>> Session ID: $SessionId" -ForegroundColor Green
+
+# 2. Xac dinh branch hien tai va commit/push code do dang
 if (-not $Branch) {
     try {
         $Branch = (git branch --show-current).Trim()
     } catch {
-        $Branch = "omp/handoff-" + (Get-Date -Format "yyyyMMddHHmmss")
+        $Branch = ""
+    }
+    if (-not $Branch) {
+        $Branch = "omp/handoff-" + (Get-Date -Format "yyyyMMdd-HHmmss")
     }
 }
-Write-Host ">>> Branch dang lam do: $Branch" -ForegroundColor Cyan
 
-# 3. Tao thu muc tam de push len branch omp-sync/sessions
+# Kiem tra xem co code chua commit khong de commit luon
+try {
+    $gitStatus = git status --porcelain 2>$null
+    if ($gitStatus) {
+        Write-Host ">>> Phat hien code chua commit tai local, dang commit va push len branch '$Branch'..." -ForegroundColor Yellow
+        git checkout -B $Branch
+        git add .
+        git commit -m "chore(omp): checkpoint before cloud handoff"
+        git push -u origin $Branch
+        Write-Host ">>> Da push code do dang len branch $Branch thanh cong!" -ForegroundColor Green
+    } else {
+        Write-Host ">>> Working tree sach, push branch $Branch len remote..." -ForegroundColor Yellow
+        git push -u origin $Branch 2>$null
+    }
+} catch {
+    Write-Host ">>> Chu y: Khong the push code tu thu muc hien tai (co the chua phai git repo hoac khong co remote)." -ForegroundColor Yellow
+}
+
+# 3. Dong bo Session JSONL len branch omp-sync/sessions tren GitHub
 $tempDir = Join-Path $env:TEMP ("omp-sync-" + (Get-Random))
 $repoUrl = "https://github.com/babydanh/agent-orchestrator.git"
 
 try {
-    Write-Host ">>> Dang dong bo session len branch omp-sync/sessions..." -ForegroundColor Yellow
+    Write-Host ">>> Dang dong bo session len branch omp-sync/sessions tren GitHub..." -ForegroundColor Yellow
     git clone --branch omp-sync/sessions --depth 1 $repoUrl $tempDir 2>$null
     if (-not (Test-Path $tempDir)) {
         New-Item -ItemType Directory -Path $tempDir | Out-Null
@@ -49,18 +88,18 @@ try {
         Set-Location $tempDir
     }
 
-    # Tao thu muc session
-    $targetSessionDir = Join-Path $tempDir $SessionId
-    New-Item -ItemType Directory -Path $targetSessionDir -Force | Out-Null
+    # Tao cau truc thu muc theo dung SessionId kem relative path
+    $targetDir = Join-Path $tempDir $SessionId
+    if ($relDir) {
+        $targetDir = Join-Path $targetDir $relDir
+    }
+    New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
 
     # Copy toan bo file session lien quan
-    $sessionFiles = Get-ChildItem "$HOME\.omp\agent\sessions" -Filter "*$SessionId*" -Recurse -File
-    foreach ($f in $sessionFiles) {
-        Copy-Item $f.FullName -Destination $targetSessionDir -Force
-    }
+    Copy-Item $sessionFile.FullName -Destination $targetDir -Force
 
-    # Khử token/secret trước khi commit để không bị GitHub chặn push
-    Get-ChildItem $targetSessionDir -Recurse -File | ForEach-Object {
+    # Khử token/secret truoc khi commit de khong bi GitHub chan push
+    Get-ChildItem $targetDir -Recurse -File | ForEach-Object {
         (Get-Content $_.FullName) -replace 'ghp_[a-zA-Z0-9]{36}', '***' `
                                   -replace 'github_pat_[a-zA-Z0-9_]{82}', '***' `
                                   -replace 'sk-or-v1-[a-f0-9]{64}', '***' | 
@@ -70,7 +109,7 @@ try {
     git add .
     $status = git status --porcelain
     if ($status) {
-        git commit -m "chore(sync): push local session $SessionId for handoff"
+        git commit -m "chore(sync): push local session $SessionId ($relDir) for handoff"
         git push origin omp-sync/sessions
         Write-Host ">>> DA DONG BO SESSION LEN BRANCH omp-sync/sessions THANH CONG!" -ForegroundColor Green
     } else {
@@ -83,6 +122,11 @@ try {
     }
 }
 
-Write-Host "`n>>> THONG TIN DE TAO ISSUE / NHAN LENH HANDOFF:" -ForegroundColor Magenta
-Write-Host "Branch dở dang: $Branch" -ForegroundColor Yellow
-Write-Host "Session-ID: $SessionId" -ForegroundColor Yellow
+Write-Host "==========================================================" -ForegroundColor Magenta
+Write-Host "BAN GIAO HOAN TAT! MAU ISSUE DE BAN DUNG HOAC GO MCP GITHUB:" -ForegroundColor Magenta
+Write-Host "==========================================================" -ForegroundColor Magenta
+Write-Host "Repo mục tiêu: $TargetRepo" -ForegroundColor White
+Write-Host "Branch dở dang: $Branch" -ForegroundColor White
+Write-Host "Session-ID: $SessionId" -ForegroundColor White
+Write-Host "Session-Path: $relDir" -ForegroundColor White
+Write-Host "==========================================================" -ForegroundColor Magenta
