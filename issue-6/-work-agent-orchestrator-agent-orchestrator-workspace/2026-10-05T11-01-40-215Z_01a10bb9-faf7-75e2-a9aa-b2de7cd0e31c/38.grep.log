@@ -1,0 +1,883 @@
+# web/test/e2e/
+## admin-cursor-pagination.spec.ts
+ 53|    await expect(page.getByText('Page One User')).toBeVisible();
+*54|    await expect(page.getByRole('button', { name: /Xem thêm người dùng|Load more users/i })).toHaveCount(0);
+*55|    const nextPageButton = page.getByRole('button', { name: /Trang sau|Next page/i });
+ 56|    await expect(nextPageButton).toBeEnabled();
+ 57|
+ 58|    await nextPageButton.click();
+...
+ 60|    await expect(page.getByText('Page One User')).toHaveCount(0);
+*61|    await expect(page.getByRole('button', { name: /Trang trước|Previous page/i })).toBeEnabled();
+ 62|  });
+ 63|});
+## court-camera-live-controls.spec.ts
+ 333|function visibilityToggle(page: Page): Locator {
+*334|  return page.getByRole('button', { name: COPY.liveToggleName, exact: true });
+ 335|}
+ 336|
+ 337|/** Uses the mounted App Router context to exercise a real client-side transition. */
+...
+ 452|  await page.goto(boardUrl, { waitUntil: 'domcontentloaded' });
+*453|  await expect(page.getByRole('heading', { name: COPY.boardTitle, exact: true })).toBeVisible();
+ 454|}
+ 455|
+ 456|async function installBoardApi(page: Page, initial: BoardFixtureOptions): Promise<BoardFixture> {
+...
+ 593|    .locator('section')
+*594|    .filter({ has: page.getByRole('heading', { name: COPY.boardTitle, exact: true }) })
+ 595|    .last();
+ 596|}
+ 597|
+...
+ 599|function matchCard(page: Page, pair: string): Locator {
+*600|  return page.getByRole('group', { name: new RegExp(`${pair}$`) });
+ 601|}
+ 602|
+ 603|/** The droppable column of one court. */
+ 604|function courtColumn(page: Page, courtName: string): Locator {
+*605|  return page.getByRole('group', { name: courtName, exact: true });
+ 606|}
+ 607|
+ 608|function unassignedPool(page: Page): Locator {
+*609|  return page.getByRole('group', { name: COPY.unassignedPool, exact: true });
+ 610|}
+ 611|
+ 612|function clearCourtAction(card: Locator): Locator {
+*613|  return card.getByRole('button', { name: new RegExp(`^${COPY.clearCourtPrefix}`) });
+ 614|}
+ 615|
+ 616|/** Reaches a control with Tab presses only, and fails when it is unreachable. */
+...
+ 619|    if (await target.evaluate((element) => element === document.activeElement)) return;
+*620|    await page.keyboard.press('Tab');
+ 621|  }
+ 622|  throw new Error(`Control was not reachable with ${maxPresses} Tab presses`);
+ 623|}
+...
+ 701|  // is gated by `canControlLiveMatch`, is not rendered for them.
+*702|  await expect(page.getByRole('button', { name: COPY.startScoring })).toHaveCount(0);
+ 703|
+ 704|  const toggle = visibilityToggle(page);
+ 705|  await expect(toggle).toBeVisible();
+*706|  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+ 707|  await expect(toggle).toHaveText(COPY.liveHide);
+ 708|  await expect(page.locator('video')).toHaveCount(1);
+ 709|
+...
+ 754|  // The destination control names the match it belongs to.
+*755|  const seatedSelect = seatedCard.getByRole('combobox');
+*756|  await expect(seatedSelect).toHaveAccessibleName(new RegExp(`^${COPY.courtSelectPrefix}`));
+ 757|  await expect(seatedSelect).toBeEnabled();
+ 758|  await expect(clearCourtAction(seatedCard)).toBeVisible();
+ 759|
+...
+ 770|  // Only the selected match moved.
+*771|  await expect(courtColumn(page, COPY.courtTwo).getByRole('group', { name: /Alpha vs Beta$/ })).toBeVisible();
+*772|  await expect(courtColumn(page, COPY.courtOne).getByRole('group', { name: /Alpha vs Beta$/ })).toHaveCount(0);
+*773|  await expect(unassignedPool(page).getByRole('group', { name: /Gamma vs Delta$/ })).toBeVisible();
+ 774|
+ 775|  // The existing drag path converges on exactly the same request.
+ 776|  await dragCardOnto(
+...
+ 778|    unassignedPool(page)
+*779|      .getByRole('group', { name: /Gamma vs Delta$/ })
+*780|      .getByRole('button', { name: COPY.dragHandle }),
+ 781|    courtColumn(page, COPY.courtOne),
+ 782|  );
+ 783|
+...
+ 786|  expect(board.scheduleCalls[1].body).toEqual({ courtId: courtOne });
+*787|  await expect(courtColumn(page, COPY.courtOne).getByRole('group', { name: /Gamma vs Delta$/ })).toBeVisible();
+ 788|
+ 789|  // Clearing a court uses the same existing path.
+ 790|  await clearCourtAction(seatedCard).click();
+...
+ 792|  expect(board.scheduleCalls[2].body).toEqual({ courtId: null });
+*793|  await expect(unassignedPool(page).getByRole('group', { name: /Alpha vs Beta$/ })).toBeVisible();
+ 794|
+ 795|  // A destination inside the 30-minute window of the resident match asks first.
+ 796|  await board.use({
+...
+ 803|
+*804|  const clashingCard = unassignedPool(page).getByRole('group', { name: /Gamma vs Delta$/ });
+ 805|  await expect(clashingCard).toBeVisible();
+## doubles-invite-name-pairing.spec.ts
+ 333|      await expect(page.locator('form button[type="submit"]')).toHaveCount(0);
+*334|      await page.getByRole('button', { name: 'Xem trang giải đấu' }).click();
+ 335|      await expect(page).toHaveURL(new RegExp(`/tournaments/${tournamentId}\\?divisionId=synthetic-division$`));
+*336|      const registeredButton = page.getByRole('button', { name: 'Đã đăng ký' }).first();
+ 337|      await expect(registeredButton).toBeVisible();
+ 338|      await registeredButton.click();
+ 339|      await expect(page.getByText(/Đang chờ BTC duyệt/i).first()).toBeVisible();
+...
+ 400|
+*401|  await page.getByRole('button', { name: 'Xem trang giải đấu' }).click();
+ 402|  await expect(page).toHaveURL(
+ 403|    new RegExp(`/tournaments/${tournamentId}\\?divisionId=${savedDivision.id}$`),
+ 404|  );
+*405|  await page.getByRole('button', { name: 'Đã đăng ký' }).first().click();
+ 406|  await expect(page.getByText(/Đang chờ BTC duyệt/i).first()).toBeVisible();
+ 407|});
+ 408|test('approved organizer entries remain in the BTC queue when default mode is self-invite', async ({ page }) => {
+...
+ 432|
+*433|  await page.getByRole('button', { name: 'Kiểm tra thủ công' }).click();
+ 434|  await expect(page.getByText(/Đã được duyệt/i).first()).toBeVisible();
+ 435|  await expect(page.getByText('Đồng đội thử nghiệm')).toBeVisible({ timeout: 12000 });
+ 436|  await expect(page.getByText('Người chơi thử nghiệm')).toBeVisible();
+## entity-brand-avatar.spec.ts
+ 123|  await page.goto(`/lite/tournaments/join/${identityInviteCode}`);
+*124|  await expect(page.getByRole('heading', { name: identityTournamentName })).toBeVisible();
+ 125|  // The identity slot is the element carrying role="img" + aria-label={name};
+ 126|  // the inner <img> only gets its role implicitly, so this stays unambiguous
+ 127|  // whether or not an image is currently rendered inside it.
+...
+ 188|  await page.goto('/');
+*189|  const heading = page.getByRole('heading', {
+ 190|    level: 4,
+ 191|    name: homepageTournamentName,
+ 192|    exact: true,
+...
+ 237|  await page.goto('/communities');
+*238|  await expect(page.getByRole('heading', { name: communityWithLogo })).toBeVisible();
+ 239|}
+ 240|
+ 241|test('fallback candidate state survives equivalent array props and resets when URLs change', () => {
+...
+ 293|
+*294|  const name = page.getByRole('heading', { level: 3, name: profileName, exact: true });
+ 295|  await expect(name).toBeVisible();
+ 296|  await expect(name).toHaveCSS('font-size', '16px');
+ 297|  await expect(name).toHaveCSS('line-height', '24px');
+## homepage-friends-posts.spec.ts
+ 70|
+*71|  await expect(page.getByRole('heading', { name: 'Hoạt động đang tìm người' })).toBeVisible();
+ 72|  await expect.poll(() => activityFeedRequested).toBe(true);
+ 73|  await page.waitForTimeout(friendsRequestObservationWindowMs);
+*74|  await expect(page.getByRole('heading', { name: 'Bài viết từ bạn bè' })).toHaveCount(0);
+ 75|  expect(friendsPostRequests).toEqual([]);
+ 76|});
+ 77|
+...
+ 135|  await expect(page.getByText('1/6', { exact: true })).toBeVisible();
+*136|  await expect(page.getByRole('link', { name: /Web social session fixture/ }))
+ 137|    .toHaveAttribute('href', '/social/00000000-0000-4000-8000-000000000001');
+ 138|  await expect(page.getByText('private-contact-sentinel')).toHaveCount(0);
+ 139|  await expect(page.getByText('synthetic-host-id')).toHaveCount(0);
+...
+ 191|
+*192|  await page.getByRole('button', { name: 'Khám phá', exact: true }).click();
+*193|  const clubLink = page.getByRole('menuitem', { name: 'Cộng đồng / CLB', exact: true });
+*194|  const socialLink = page.getByRole('menuitem', { name: 'Social', exact: true });
+ 195|  await expect(clubLink).toHaveAttribute('href', '/communities');
+ 196|  await expect(socialLink).toHaveAttribute('href', '/?view=feed');
+ 197|
+## join-tournament.spec.ts
+ 137|        // Submit registration
+*138|        const confirmBtn = page.getByRole('button', { name: /xác nhận đăng ký|đăng ký tham gia|đăng ký giải|confirm.*registration|register/i })
+ 139|          .or(page.locator('button[type="submit"]'))
+ 140|          .last();
+ 141|
+## live-score-entry-mode.spec.ts
+ 119|
+*120|  await expect(page.getByRole('dialog')).toHaveCount(0);
+*121|  const startScoring = page.getByRole('button', { name: 'Tính điểm', exact: true });
+ 122|  await expect(startScoring).toBeVisible();
+ 123|  await startScoring.click();
+ 124|
+*125|  const scoringDialog = page.getByRole('dialog');
+ 126|  await expect(scoringDialog).toBeVisible();
+ 127|  await expect(scoringDialog.getByText('Set 2: 0-0', { exact: true })).toBeVisible();
+ 128|});
+## organizer-ops-match-scope.spec.ts
+ 151|
+*152|  await expect(page.getByRole('button', { name: /Trận đấu/ })).toBeVisible();
+*153|  await expect(page.getByRole('heading', { name: 'Panel vận hành giải đấu' })).toHaveCount(0);
+ 154|  await expect(
+ 155|    page.getByText(
+ 156|      'Màn hình này dùng để theo dõi nhịp chạy thực tế của giải: trận nào sắp gọi vào sân, trận nào đang nghẽn, vấn đề nào chưa chốt và roster nào cần xử lý kỹ thuật.',
+...
+ 170|  expect(mobileSize.documentWidth).toBeLessThanOrEqual(mobileSize.viewportWidth);
+*171|  await expect(page.getByRole('button', { name: /Trận đấu/ })).toBeVisible();
+ 172|  await testInfo.attach('ops-panel-mobile', {
+ 173|    body: await page.screenshot({ fullPage: true }),
+ 174|    contentType: 'image/png',
+## organizer-registration-visibility.spec.ts
+ 112|  if (options.autoSelectedDivisionId) {
+*113|    await expect(divisionButton).toHaveAttribute('aria-current', 'page');
+ 114|  } else if (await divisionButton.getAttribute('aria-current') !== 'page') {
+ 115|    await divisionButton.click();
+ 116|  }
+*117|  await expect(page.getByRole('table')).toBeVisible();
+ 118|}
+ 119|
+ 120|test('organizer sees forbidden participant-list failures and can retry to pending rows', async ({ page }) => {
+...
+ 133|  const errorMessage = 'Không tải được hồ sơ đăng ký. Chưa thể xác nhận danh sách trống.';
+*134|  await expect(page.getByRole('alert').filter({ hasText: errorMessage })).toBeVisible();
+ 135|  await expect(page.getByText('Không có hồ sơ phù hợp')).toHaveCount(0);
+ 136|  await expect(page.getByText('SENTINEL_FORBIDDEN_RESPONSE_BODY')).toHaveCount(0);
+ 137|
+ 138|  allowSuccessfulRead = true;
+*139|  await page.getByRole('button', { name: 'Thử lại' }).click();
+ 140|
+*141|  const pendingRow = page.getByRole('row').filter({ hasText: 'Pending doubles pair' });
+ 142|  await expect(pendingRow).toBeVisible();
+ 143|  await expect(pendingRow.getByTitle(/chờ.*duyệt/i)).toBeVisible();
+ 144|  expect(participantMethods.length).toBeGreaterThanOrEqual(2);
+...
+ 156|  await expect(page.getByText('Không có hồ sơ phù hợp')).toBeVisible();
+*157|  await expect(page.getByRole('alert').filter({ hasText: 'Không tải được hồ sơ đăng ký. Chưa thể xác nhận danh sách trống.' })).toHaveCount(0);
+ 158|  expect(participantReads).toBeGreaterThan(0);
+ 159|});
+ 160|
+...
+ 182|
+*183|  await expect(page.getByRole('row').filter({ hasText: 'Pending doubles pair' })).toBeVisible();
+ 184|});
+ 185|
+ 186|test('organizer URL division selection takes priority over pending auto-focus', async ({ page }) => {
+...
+ 221|
+*222|  await expect(page.getByRole('row').filter({ hasText: 'Pending doubles pair' })).toHaveCount(0);
+ 223|});
+## organizer-venue-registration-settings.spec.ts
+ 170|
+*171|  await page.getByRole('button', { name: 'Thêm địa điểm mới', exact: true }).click();
+ 172|  const savedVenueOption = page.locator('select option[value="saved-moc-venue"]');
+ 173|  await expect(savedVenueOption).toHaveText(/Mộc/);
+ 174|  await page.locator('select:has(option[value="saved-moc-venue"])').selectOption(savedVenue.id);
+*175|  await page.getByRole('button', { name: /Dùng địa điểm này|Use this venue/i }).click();
+ 176|
+ 177|  await expect.poll(() => context.venueAttachments.length).toBe(1);
+ 178|  expect(context.venueAttachments[0]).toMatchObject({ venueId: savedVenue.id });
+*179|  await page.getByRole('button', { name: 'Thêm địa điểm mới', exact: true }).click();
+ 180|  await expect(page.locator('select option[value="saved-moc-venue"]')).toHaveCount(0);
+ 181|});
+ 182|
+...
+ 195|
+*196|  const courtSettingsButton = page.getByRole('button').filter({ hasText: 'Cài đặt sân' });
+ 197|  await expect(courtSettingsButton).toBeVisible();
+ 198|  const courtCountBadge = page.getByText('2 sân thi đấu', { exact: true });
+ 199|  await expect(courtCountBadge.locator('span').first()).toHaveCSS('font-weight', '800');
+...
+ 202|  await courtSettingsButton.click();
+*203|  const venueTab = page.getByRole('button', { name: /Sân Mộc/ });
+ 204|  await expect(venueTab).toBeVisible();
+ 205|  await expect(venueTab.locator('span').last()).toHaveCSS('font-weight', '800');
+ 206|});
+...
+ 217|  await endDateInput.fill(dateText);
+*218|  await page.getByRole('button', { name: /Lưu cài đặt|Save settings/i }).click();
+ 219|
+ 220|  await expect.poll(() => context.registrationUpdates.length).toBe(1);
+ 221|  expect(Date.parse(String(context.registrationUpdates[0].registrationEndDate))).toBeGreaterThan(oldDeadline);
+...
+ 239|  await endDateInput.fill(dateText);
+*240|  await page.getByRole('button', { name: /Lưu cài đặt|Save settings/i }).click();
+ 241|
+ 242|  await expect.poll(() => context.registrationUpdates.length).toBe(1);
+ 243|  expect(context.registrationUpdates[0]).toEqual({
+## organizer-wide-tab-overlay.spec.ts
+ 14|  await expect(page.getByTestId('manage-introduction-panel')).toBeVisible();
+*15|  await expect(page.getByRole('dialog')).toHaveCount(0);
+ 16|  await expect(page.getByTestId('manage-wide-overlay')).toHaveCount(0);
+ 17|});
+ 18|
+...
+ 23|
+*24|  await expect(page.getByRole('dialog')).toHaveCount(0);
+ 25|  await page.getByTestId('manage-tab-settings').click();
+*26|  await expect(page.getByRole('dialog')).toHaveCount(0);
+ 27|  await page.getByTestId('manage-tab-sponsors').click();
+*28|  await expect(page.getByRole('dialog')).toHaveCount(0);
+ 29|  await expect(page.locator('#sponsor-settings-heading')).toBeVisible();
+ 30|
+ 31|  await page.getByTestId('manage-tab-registration').click();
+...
+ 41|  await expect(operationTabs.getByTestId('manage-wide-tab-sponsors')).toHaveCount(0);
+*42|  await expect(operationTabs.getByTestId('manage-wide-tab-registration')).toHaveAttribute('aria-current', 'page');
+ 43|  await expect(divisionSelector.getByText('Nội dung thi đấu', { exact: false })).toBeVisible();
+ 44|  await expect(firstDivisionButton).toBeVisible();
+ 45|  await expect(secondDivisionButton).toBeVisible();
+...
+ 54|  await firstDivisionButton.click();
+*55|  await expect(firstDivisionButton).toHaveAttribute('aria-current', 'page');
+ 56|  await expect(content.getByTestId(`manage-wide-division-content-${division.id}`)).toBeVisible();
+ 57|  await expect(content.getByTestId(`manage-wide-division-content-${secondDivision.id}`)).toHaveCount(0);
+ 58|
+ 59|  await secondDivisionButton.click();
+*60|  await expect(secondDivisionButton).toHaveAttribute('aria-current', 'page');
+ 61|  await expect(content.getByTestId(`manage-wide-division-content-${secondDivision.id}`)).toBeVisible();
+ 62|  await expect(content.getByTestId(`manage-wide-division-content-${division.id}`)).toHaveCount(0);
+ 63|
+...
+ 65|  await expect(overlay).toBeVisible();
+*66|  await expect(operationTabs.getByTestId('manage-wide-tab-bracket')).toHaveAttribute('aria-current', 'page');
+ 67|  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('bracket');
+ 68|  await expect(content.locator('#manage-bracket-workspace')).toBeVisible();
+ 69|
+...
+ 71|  await expect(overlay).toBeVisible();
+*72|  await expect(operationTabs.getByTestId('manage-wide-tab-court_schedule')).toHaveAttribute('aria-current', 'page');
+ 73|  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('court_schedule');
+ 74|  await expect(content.getByText('Chưa có sân thi đấu')).toBeVisible();
+ 75|});
+...
+ 90|  await page.setViewportSize({ width: 375, height: 812 });
+*91|  await page.emulateMedia({ reducedMotion: 'reduce' });
+ 92|  await openManage(page, { tab: 'registration' });
+ 93|
+ 94|  const overlay = page.getByTestId('manage-wide-overlay');
+...
+ 103|
+*104|  const closeButton = overlay.getByRole('button', { name: 'Đóng' });
+ 105|  const closeBox = await closeButton.boundingBox();
+ 106|  const lastTabBox = await operationTabs.getByTestId('manage-wide-tab-livestream').boundingBox();
+ 107|  expect(closeBox?.width).toBeGreaterThanOrEqual(44);
+...
+ 127|  // The participant table only renders once its division is expanded.
+*128|  const divisionButton = page.getByRole('button', { name: new RegExp(division.name, 'i') });
+ 129|  if (await divisionButton.getAttribute('aria-expanded') !== 'true') {
+ 130|    await divisionButton.click();
+ 131|  }
+*132|  await expect(overlay.getByRole('table')).toBeVisible();
+ 133|
+ 134|  const box = await overlay.boundingBox();
+ 135|  const viewport = page.viewportSize();
+...
+ 150|  await expect(overlay).toBeVisible();
+*151|  await page.keyboard.press('Escape');
+ 152|  await expect(overlay).toHaveCount(0);
+ 153|  await expect(page.getByTestId('manage-introduction-panel')).toBeVisible();
+ 154|  await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false);
+...
+ 157|  await expect(overlay).toBeVisible();
+*158|  await page.keyboard.press('Escape');
+ 159|  await expect(overlay).toHaveCount(0);
+ 160|  await expect(page.getByTestId('manage-introduction-panel')).toBeVisible();
+ 161|  await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false);
+...
+ 164|  await expect(overlay).toBeVisible();
+*165|  await overlay.getByRole('button', { name: 'Đóng' }).click();
+ 166|  await expect(overlay).toHaveCount(0);
+ 167|  await expect(page.getByTestId('manage-introduction-panel')).toBeVisible();
+ 168|  await expect.poll(() => new URL(page.url()).searchParams.has('tab')).toBe(false);
+...
+ 177|
+*178|  await page.keyboard.press('Escape');
+ 179|  await expect(page.getByTestId('manage-wide-overlay')).toHaveCount(0);
+ 180|  // The schedule board measures itself with a ResizeObserver; a hidden-but-mounted
+ 181|  // tree would lock it at 0x0 and render an empty grid on the next open.
+...
+ 198|  await expect(overlay.getByTestId('manage-wide-operation-tabs').locator('button')).toHaveCount(4);
+*199|  await expect(overlay.getByTestId('manage-wide-tab-livestream')).toHaveAttribute('aria-current', 'page');
+*200|  await expect(content.getByRole('heading', { name: 'Trực tiếp', exact: true })).toHaveCount(0);
+ 201|  await expect(content.getByText('BTC tạo camera và gán camera vào trận.', { exact: false })).toHaveCount(0);
+*202|  await expect(content.getByRole('heading', { name: 'Camera của giải', exact: true })).toBeVisible();
+ 203|  await expect(overlay.getByTestId('manage-wide-empty')).toHaveCount(0);
+ 204|  await expect(overlay.getByTestId('manage-wide-division-selector')).toHaveCount(0);
+ 205|  await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('livestream');
+## pairing-random-generate.spec.ts
+ 284|
+*285|  const openPairing = page.getByRole('button', { name: new RegExp(copy.pairNow) });
+ 286|  await expect(openPairing).toBeVisible({ timeout: 30000 });
+ 287|  // Read while the entry is still the frontmost control: opening the picker
+ 288|  // makes the rest of the page inert, so anything read afterwards would only
+...
+ 293|
+*294|  const picker = page.getByRole('dialog', { name: copy.pickerTitle });
+ 295|  await expect(picker).toBeVisible();
+ 296|  await expect(picker.getByText(copy.selectedCount(0))).toBeVisible();
+ 297|
+...
+ 313|
+*314|  const withAvatar = picker.getByRole('button', { name: /An Nguyen/ });
+ 315|  await expect(withAvatar).toBeVisible();
+ 316|  await expect(withAvatar.locator('img')).toHaveAttribute('src', athleteAvatarUrl);
+ 317|  // The avatar is decorative: it must not enter the accessibility tree, so the
+ 318|  // row is still announced by the athlete's name alone.
+*319|  await expect(withAvatar.getByRole('img')).toHaveCount(0);
+ 320|
+*321|  const withoutAvatar = picker.getByRole('button', { name: /Binh Tran/ });
+ 322|  await expect(withoutAvatar).toBeVisible();
+ 323|  await expect(withoutAvatar.locator('img')).toHaveCount(0);
+ 324|  // The row concatenates the decorative initial with the name, so the fallback
+...
+ 337|  // the onError handler swaps it for the name's initial.
+*338|  const brokenRow = picker.getByRole('button', { name: /Huong Le/ });
+ 339|  await expect(brokenRow).toBeVisible();
+ 340|  await expect(brokenRow.locator('img')).toHaveCount(0);
+ 341|  // Same node, not the row text: the initial is decorative and sits in the
+...
+ 344|  // The row is still announced by the athlete's name alone.
+*345|  await expect(brokenRow.getByRole('img')).toHaveCount(0);
+ 346|
+ 347|  // A null avatarUrl takes the same fallback and is unaffected by the change.
+*348|  const noAvatarRow = picker.getByRole('button', { name: /Binh Tran/ });
+ 349|  await expect(noAvatarRow.locator('img')).toHaveCount(0);
+ 350|  await expect(noAvatarRow.locator('span[aria-hidden="true"]').first()).toHaveText('B');
+ 351|});
+...
+ 364|
+*365|  const anRow = picker.getByRole('button', { name: /An Nguyen/ });
+ 366|  await anRow.click();
+*367|  await expect(anRow).toHaveAttribute('aria-pressed', 'true');
+ 368|  await expect(picker.getByText(copy.selectedCount(1))).toBeVisible();
+ 369|
+*370|  await picker.getByRole('button', { name: copy.randomButton }).click();
+ 371|
+*372|  const confirmDialog = page.getByRole('dialog', { name: copy.randomConfirmTitle });
+ 373|  await expect(confirmDialog).toBeVisible();
+ 374|  await expect(confirmDialog).toContainText(copy.randomConfirmDescription);
+*375|  await expect(confirmDialog.getByRole('button', { name: copy.randomConfirmAction })).toBeEnabled();
+*376|  await expect(confirmDialog.getByRole('button', { name: copy.cancel })).toBeVisible();
+ 377|  // Nothing is written before the organizer confirms.
+ 378|  expect(generateRequests).toHaveLength(0);
+ 379|
+ 380|  // Backing out of the confirmation is not a decision about the selection.
+*381|  await confirmDialog.getByRole('button', { name: copy.cancel }).click();
+ 382|  await expect(confirmDialog).toBeHidden();
+ 383|  await expect(picker).toBeVisible();
+*384|  await expect(anRow).toHaveAttribute('aria-pressed', 'true');
+ 385|  await expect(picker.getByText(copy.selectedCount(1))).toBeVisible();
+ 386|  expect(generateRequests).toHaveLength(0);
+ 387|
+ 388|  const readsBefore = divisionDataReadCount();
+*389|  await picker.getByRole('button', { name: copy.randomButton }).click();
+ 390|  await page
+*391|    .getByRole('dialog', { name: copy.randomConfirmTitle })
+*392|    .getByRole('button', { name: copy.randomConfirmAction })
+ 393|    .click();
+ 394|
+ 395|  await expect.poll(() => generateRequests.length).toBe(1);
+...
+ 421|
+*422|  await picker.getByRole('button', { name: copy.randomButton }).click();
+## pairing-selected-names.spec.ts
+ 134|  await page.goto(`/organizer/tournaments/${tournamentId}/manage?tab=registration`);
+*135|  const openPairing = page.getByRole('button', { name: /BTC ghép đôi|Pair now/i });
+ 136|  await expect(openPairing).toBeVisible({ timeout: 30000 });
+ 137|  await openPairing.click();
+ 138|
+*139|  const dialog = page.getByRole('dialog');
+ 140|  await expect(dialog).toBeVisible();
+*141|  const search = dialog.getByRole('textbox', { name: /Tìm VĐV|Find athletes/i });
+*142|  await dialog.getByRole('button', { name: /An Nguyen/ }).click();
+ 143|  await search.fill('Minh');
+*144|  await dialog.getByRole('button', { name: /Minh Tran/ }).click();
+ 145|
+ 146|  await expect(dialog.getByText('Đã chọn 2/2 VĐV')).toBeVisible();
+ 147|  await expect(dialog.getByText('VĐV đã chọn: An Nguyen · Minh Tran')).toBeVisible();
+*148|  await expect(dialog.getByRole('button', { name: 'Ghép hai VĐV', exact: true })).toBeEnabled();
+ 149|});
+## player-full-flow.spec.ts
+ 213|          // Submit registration
+*214|          const confirmBtn = page.getByRole('button', { name: /xác nhận đăng ký|đăng ký tham gia|đăng ký giải|confirm.*registration|register/i })
+ 215|            .or(page.locator('button[type="submit"]'))
+ 216|            .last();
+ 217|
+## quick-tournament.spec.ts
+ 95|    const tournamentCard = page.locator('div.bg-white', { hasText: tournamentName }).first();
+*96|    await tournamentCard.getByRole('link', { name: /Quản lý/i }).click();
+ 97|    await sleep();
+ 98|
+ 99|    // 3. Sau khi click giải đấu đã chọn, hệ thống navigate đến /organizer/tournaments/{id}/manage
+...
+ 133|    await sleep();
+*134|    await page.getByRole('button', { name: 'Lưu lịch trình' }).click();
+ 135|    await sleep();
+ 136|
+ 137|    // --- TAB 3: ĐĂNG KÝ (Registration) ---
+...
+ 152|    // Click vào nút "Sinh VĐV ảo"
+*153|    // await page.getByRole('button', { name: /Sinh VĐV ảo/i }).click();
+ 154|    // await sleep();
+ 155|
+*156|    await page.getByRole('button', { name: /Lưu thông tin đăng ký/i }).click();
+ 157|    await sleep();
+ 158|
+ 159|    // --- TAB 4: SƠ ĐỒ (Bracket) ---
+...
+ 169|    await sleep();
+*170|    await page.getByRole('button', { name: /Tạo camera/i }).click();
+ 171|    await sleep();
+ 172|
+ 173|    // --- TAB 6: TÀI CHÍNH (Finance) ---
+...
+ 179|    //   await sleep();
+*180|    //   await page.getByRole('button', { name: /Lưu cài đặt tài chính/i }).click();
+ 181|    //   await sleep();
+ 182|    // }
+ 183|
+## registration-session-bootstrap.spec.ts
+ 278|  // the current-registration status already.
+*279|  await expect(page.getByRole('heading', { level: 1, name: tournamentName })).toBeVisible();
+ 280|
+ 281|  // Session validation is still in flight: report progress, never a failure,
+ 282|  // and keep the protected registration request out of the way.
+ 283|  await expect.poll(() => session.profileRequests.length).toBeGreaterThan(0);
+*284|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toBeVisible();
+*285|  await expect(page.getByRole('alert').filter({ hasText: failedStatusText })).toHaveCount(0);
+ 286|  // Observe a bounded window with /users/profile still held: the protected call
+ 287|  // must stay absent for its whole duration, not merely be zero at one instant.
+ 288|  await page.waitForTimeout(pendingObservationWindowMs);
+...
+ 307|  await expect.poll(() => session.myRegistrationRequests.length).toBeGreaterThan(0);
+*308|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toHaveCount(0);
+*309|  await expect(page.getByRole('status').filter({ hasText: checkingRegistrationStatusText })).toHaveCount(0);
+*310|  await expect(page.getByRole('alert').filter({ hasText: failedStatusText })).toHaveCount(0);
+ 311|});
+ 312|
+ 313|test('a transient session-validation failure offers a retry instead of an endless spinner', async ({ page }) => {
+...
+ 319|
+*320|  await expect(page.getByRole('heading', { level: 1, name: tournamentName })).toBeVisible();
+ 321|
+ 322|  // Validation has settled and produced no session, so the failure is real and
+ 323|  // actionable — and no request is fired against the unusable session.
+*324|  await expect(page.getByRole('alert').filter({ hasText: failedStatusText })).toBeVisible();
+*325|  await expect(page.getByRole('button', { name: retryLabel })).toBeVisible();
+*326|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toHaveCount(0);
+ 327|  await expect.poll(() => session.myRegistrationRequests.length).toBe(0);
+ 328|});
+ 329|
+...
+ 340|  await expect.poll(() => session.myRegistrationRequests.length).toBe(0);
+*341|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toHaveCount(0);
+ 342|});
+ 343|
+ 344|test('a persisted session that fails validation is logged out before any protected read', async ({ page }) => {
+...
+ 358|  await page.waitForURL(/\/login\?redirect=/);
+*359|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toHaveCount(0);
+ 360|  // The same absence the pending case watches for: the window turns "no
+ 361|  // request was made" into an observation instead of a single instant.
+ 362|  await page.waitForTimeout(pendingObservationWindowMs);
+...
+ 372|
+*373|  await expect(page.getByRole('heading', { level: 1, name: tournamentName })).toBeVisible();
+ 374|
+ 375|  // An expired access token is the transport's problem, not the page's: one
+ 376|  // refresh, one replay, one profile that finally describes a working session.
+...
+ 384|  await expect.poll(() => session.myRegistrationRequests.length).toBeGreaterThan(0);
+*385|  await expect(page.getByRole('alert').filter({ hasText: failedStatusText })).toHaveCount(0);
+*386|  await expect(page.getByRole('status').filter({ hasText: validatingSessionStatusText })).toHaveCount(0);
+ 387|});
+ 388|
+ 389|test('a validation answer that lands after a confirmed logout cannot restore the session', async ({ page }) => {
+...
+ 533|  // open when the profile page becomes the newer owner of the session check.
+*534|  await page.getByRole('button', { name: accountMenuLabel }).click();
+*535|  await page.getByRole('link', { name: profileLinkLabel }).click();
+ 536|  await page.waitForURL('**/profile');
+ 537|  await expect.poll(() => session.profileRequests.length).toBe(2);
+ 538|
+## roster-import.spec.ts
+ 20|
+*21|  const divisionButton = page.getByRole('button', {
+ 22|    name: new RegExp(divisionFixture.name, 'i'),
+ 23|  });
+ 24|  if (await divisionButton.getAttribute('aria-expanded') !== 'true') {
+...
+ 75|
+*76|  await page.getByRole('button', { name: 'Nhập Excel' }).click();
+ 77|
+ 78|  const buffer = readFileSync(
+ 79|    join(testDirectory, 'fixtures', 'roster-import', 'valid-roster.xlsx'),
+...
+ 86|
+*87|  await page.getByRole('button', { name: 'Xem danh sách VĐV' }).click();
+*88|  await page.getByRole('button', { name: 'Kiểm tra danh sách' }).click();
+ 89|  await expect.poll(() => previewPayloads.length).toBe(1);
+ 90|
+ 91|  const dialog = page.getByTestId('roster-import-modal');
+...
+ 95|  await wildcardRow.locator('select').selectOption('WILD_CARD_REQUEST');
+*96|  await page.getByRole('button', { name: 'Kiểm tra danh sách' }).click();
+ 97|  await expect.poll(() => previewPayloads.length).toBe(2);
+ 98|
+*99|  const confirmButton = page.getByRole('button', { name: 'Xác nhận thêm 3 VĐV' });
+ 100|  await expect(confirmButton).toBeEnabled();
+ 101|  await confirmButton.click();
+ 102|  await expect.poll(() => committedParticipants.length).toBe(3);
+...
+ 130|
+*131|  const divisionButton = page.getByRole('button', {
+ 132|    name: new RegExp(divisionFixture.name, 'i'),
+ 133|  });
+ 134|  if (await divisionButton.getAttribute('aria-expanded') !== 'true') {
+...
+ 177|
+*178|  await page.getByRole('button', { name: 'Nhập Excel' }).click();
+ 179|
+ 180|  const buffer = readFileSync(
+ 181|    join(testDirectory, 'fixtures', 'roster-import', 'valid-roster.xlsx'),
+...
+ 188|
+*189|  await page.getByRole('button', { name: 'Xem danh sách VĐV' }).click();
+*190|  await page.getByRole('checkbox', { name: 'Đánh dấu tất cả dòng là yêu cầu đặc cách' }).check();
+*191|  await page.getByRole('button', { name: 'Kiểm tra danh sách' }).click();
+ 192|
+*193|  await page.getByRole('button', { name: 'Xác nhận thêm 3 VĐV' }).click();
+ 194|  await expect.poll(() => committedParticipants.length).toBe(3);
+ 195|
+ 196|  // Every row is annotated as a wildcard request, and the import still never
+...
+ 208|
+*209|  const divisionButton = page.getByRole('button', {
+ 210|    name: new RegExp(divisionFixture.name, 'i'),
+ 211|  });
+ 212|  if (await divisionButton.getAttribute('aria-expanded') !== 'true') {
+...
+ 258|
+*259|  await page.getByRole('button', { name: 'Nhập Excel' }).click();
+ 260|
+ 261|  const workbook = XLSX.utils.book_new();
+ 262|  XLSX.utils.book_append_sheet(
+...
+ 276|
+*277|  await page.getByRole('button', { name: 'Xem danh sách VĐV' }).click();
+*278|  const checkButton = page.getByRole('button', { name: 'Kiểm tra danh sách' });
+ 279|  await checkButton.click();
+ 280|  await expect.poll(() => previewCount).toBe(1);
+ 281|  await expect(checkButton).toBeEnabled();
+...
+ 285|  const dialog = page.getByTestId('roster-import-modal');
+*286|  const confirmButton = dialog.getByRole('button', { name: /Xác nhận thêm/ });
+ 287|  await expect(confirmButton).toBeEnabled();
+ 288|  await confirmButton.click();
+ 289|  await expect.poll(() => commitCount).toBe(1);
+...
+ 301|
+*302|  const divisionButton = page.getByRole('button', {
+ 303|    name: new RegExp(divisionFixture.name, 'i'),
+ 304|  });
+ 305|  if (await divisionButton.getAttribute('aria-expanded') !== 'true') {
+...
+ 314|
+*315|  await page.getByRole('button', { name: 'Nhập Excel' }).click();
+ 316|  const buffer = readFileSync(
+ 317|    join(testDirectory, 'fixtures', 'roster-import', 'invalid-roster.xlsx'),
+ 318|  );
+...
+ 324|
+*325|  await page.getByRole('button', { name: 'Xem danh sách VĐV' }).click();
+ 326|  const dialog = page.getByTestId('roster-import-modal');
+ 327|  await expect(dialog.locator('tbody tr')).toHaveCount(4);
+## score-modal-livestream-toggle.spec.ts
+ 214|async function openScoreModal(page: import('@playwright/test').Page) {
+*215|  await page.getByRole('button', { name: 'Tính điểm', exact: true }).click();
+*216|  const dialog = page.getByRole('dialog');
+ 217|  await expect(dialog).toBeVisible();
+ 218|  await expect(dialog.getByText('Set 2: 0-0', { exact: true })).toBeVisible();
+ 219|  return dialog;
+...
+ 235|
+*236|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+*237|    await expect(dialog.getByRole('button', { name: stopLabel })).toHaveCount(0);
+ 238|  });
+ 239|
+ 240|  test('treats a malformed optional-state response as unavailable', async ({
+...
+ 247|
+*248|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+ 249|    await expect(dialog.getByText('Set 2: 0-0', { exact: true })).toBeVisible();
+ 250|  });
+ 251|
+...
+ 265|
+*266|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+*267|    await expect(dialog.getByRole('button', { name: stopLabel })).toHaveCount(0);
+ 268|
+ 269|    await dialog
+*270|      .getByRole('button', { name: 'Đóng bảng trọng tài', exact: true })
+ 271|      .click();
+*272|    await expect(page.getByRole('dialog')).toHaveCount(0);
+ 273|    dialog = await openScoreModal(page);
+ 274|
+*275|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+*276|    await expect(dialog.getByRole('button', { name: stopLabel })).toHaveCount(0);
+ 277|    await expect(dialog.getByText('Set 2: 0-0', { exact: true })).toBeVisible();
+ 278|  });
+ 279|
+...
+ 285|
+*286|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+ 287|    await expect(dialog.getByText('Set 2: 0-0', { exact: true })).toBeVisible();
+ 288|    await expect(page.getByText(permissionDenied, { exact: true })).toHaveCount(0);
+ 289|  });
+...
+ 318|    const dialog = await openScoreModal(page);
+*319|    const startButton = dialog.getByRole('button', {
+ 320|      name: startLabel,
+ 321|      exact: true,
+ 322|    });
+...
+ 326|    await expect(startButton).toBeDisabled();
+*327|    await expect(dialog.getByRole('button', { name: stopLabel })).toHaveCount(0);
+ 328|    allowStart.resolve();
+ 329|
+*330|    const stopButton = dialog.getByRole('button', {
+ 331|      name: stopLabel,
+ 332|      exact: true,
+ 333|    });
+...
+ 337|    await expect(stopButton).toBeDisabled();
+*338|    await expect(dialog.getByRole('button', { name: startLabel })).toHaveCount(0);
+ 339|    allowStop.resolve();
+ 340|
+ 341|    await expect(
+*342|      dialog.getByRole('button', { name: startLabel, exact: true }),
+ 343|    ).toBeVisible();
+ 344|  });
+ 345|
+...
+ 364|    const dialog = await openScoreModal(page);
+*365|    const startButton = dialog.getByRole('button', {
+ 366|      name: startLabel,
+ 367|      exact: true,
+ 368|    });
+...
+ 374|    await expect(
+*375|      dialog.getByRole('button', { name: stopLabel, exact: true }),
+ 376|    ).toHaveCount(0);
+ 377|    allowConfirmRead.resolve();
+ 378|
+ 379|    await expect(
+*380|      dialog.getByRole('button', { name: stopLabel, exact: true }),
+ 381|    ).toBeVisible();
+ 382|  });
+ 383|
+## tournament-ai-create-refine.spec.ts
+ 290|  await page.goto('/organizer/tournaments/create', { waitUntil: 'domcontentloaded' });
+*291|  await page.getByRole('button', { name: /AI\s*\/\s*Excel/i }).click();
+ 292|  await expect(aiModal(page)).toBeVisible();
+ 293|
+ 294|  return captured;
+...
+ 299|async function openSourceDisclosure(modal: Locator): Promise<void> {
+*300|  await modal.getByRole('button', { name: COPY.sourceToggle }).click();
+ 301|  // Matched by label, not by role: `<input type="url">` carries no implicit ARIA role, so
+*302|  // `getByRole('textbox')` never resolves to it.
+ 303|  await expect(modal.getByLabel(COPY.sourceUrl)).toBeVisible();
+ 304|}
+ 305|
+...
+ 316|
+*317|    await modal.getByRole('textbox', { name: COPY.instruction }).fill(INSTRUCTION);
+*318|    await modal.getByRole('button', { name: COPY.analyze }).first().click();
+ 319|
+ 320|    await expect(page.getByText(COPY.draftNotice).first()).toBeVisible();
+ 321|    const parseBody = jsonBody(captured.parseRequests[0]);
+...
+ 326|
+*327|    await modal.getByRole('button', { name: COPY.create }).first().click();
+ 328|
+ 329|    await expect.poll(() => captured.createRequests.length).toBe(1);
+ 330|    const createBody = jsonBody(captured.createRequests[0]);
+...
+ 344|
+*345|    await modal.getByRole('textbox', { name: COPY.instruction }).fill(INSTRUCTION);
+*346|    await modal.getByRole('button', { name: COPY.analyze }).first().click();
+ 347|    await expect(page.getByText(COPY.draftNotice).first()).toBeVisible();
+ 348|
+ 349|    await expect(modal.getByText(parsedDraft.description)).toBeVisible();
+...
+ 366|    await expect(modal.getByText('Câu hỏi 13')).toBeHidden();
+*367|    await modal.getByRole('button', { name: COPY.viewAllQuestions }).click();
+ 368|    await expect(modal.getByText('Câu hỏi 13')).toBeVisible();
+ 369|    await expect(captured.createRequests).toHaveLength(0);
+ 370|    await expect(modal.getByText(parsedDraft.bannerUrl, { exact: true })).toBeVisible();
+...
+ 381|
+*382|    await modal.getByRole('textbox', { name: COPY.instruction }).fill(INSTRUCTION);
+*383|    await modal.getByRole('button', { name: COPY.analyze }).first().click();
+ 384|    await expect.poll(() => captured.parseRequests.length).toBe(1);
+ 385|
+ 386|    // The refine field is the supported refine affordance: it submits on Enter.
+*387|    const refineField = modal.getByRole('textbox', { name: COPY.refine });
+ 388|    await refineField.fill(REFINE_INSTRUCTION);
+ 389|    await refineField.press('Enter');
+ 390|
+...
+ 410|    });
+*411|    await modal.getByRole('button', { name: COPY.analyze }).first().click();
+ 412|
+ 413|    await expect.poll(() => captured.parseRequests.length).toBe(1);
+ 414|    expect(String(jsonBody(captured.parseRequests[0]).rawText ?? '')).toContain(
+...
+ 470|    });
+*471|    await modal.getByRole('textbox', { name: COPY.instruction }).fill(INSTRUCTION);
+*472|    await modal.getByRole('button', { name: COPY.analyze }).first().click();
+ 473|
+ 474|    await expect(page.getByText(COPY.sourceTextTooLong).first()).toBeVisible();
+ 475|    // The organizer's prompt survives the refusal so they can correct it without retyping.
+*476|    await expect(modal.getByRole('textbox', { name: COPY.instruction })).toHaveValue(INSTRUCTION);
+ 477|    expectNothingUploadedOrCreated(captured, expanding.buffer);
+ 478|  });
+ 479|
+...
+ 504|    const captured = await openCreatePage(page, { parseStatus: 503 });
+*505|    const prompt = aiModal(page).getByRole('textbox', { name: COPY.instruction });
+ 506|
+ 507|    await prompt.fill(INSTRUCTION);
+*508|    await aiModal(page).getByRole('button', { name: COPY.analyze }).first().click();
+ 509|
+ 510|    await expect(page.getByText(COPY.providerUnavailable).first()).toBeVisible();
+ 511|    await expect(prompt).toHaveValue(INSTRUCTION);
+
+## p0/
+### p0-unified.spec.ts
+ 66|      } else {
+*67|        const submitButton = page.getByRole('button', { name: /xác nhận đăng ký|confirm.*registration|register/i }).last();
+ 68|        if (await submitButton.count()) {
+ 69|          await expect(submitButton).toBeVisible();
+ 70|          await sleep();
+...
+ 95|
+*96|    //       const operationsTab = page.getByRole('button', { name: /vận hành|operations/i }).first();
+ 97|    //       if (await operationsTab.count()) {
+ 98|    //         await expect(operationsTab).toBeVisible();
+ 99|    //         await sleep();
+...
+ 109|    //         const firstCard = matchCards.first();
+*110|    //         const scheduleButton = firstCard.getByRole('button', { name: /xếp lịch|schedule/i });
+ 111|    //         if (await scheduleButton.count()) {
+ 112|    //           await expect(scheduleButton).toBeVisible();
+ 113|    //           await sleep();
+...
+ 115|    //           await sleep();
+*116|    //           await expect(page.getByRole('dialog')).toBeVisible();
+ 117|    //           await sleep();
+*118|    //           await page.getByRole('button', { name: /hủy|cancel/i }).last().click();
+ 119|    //           await sleep();
+ 120|    //         }
+ 121|
+*122|    //         const scoreOrOperationButton = firstCard.getByRole('button', { name: /điểm|score|thao tác đặc biệt|special operation/i }).first();
+ 123|    //         if (await scoreOrOperationButton.count()) {
+ 124|    //           await expect(scoreOrOperationButton).toBeVisible();
+ 125|    //           await sleep();
+...
+ 127|    //           await sleep();
+*128|    //           await expect(page.getByRole('dialog')).toBeVisible();
+ 129|    //           await sleep();
+ 130|    //         }
+ 131|    //       }
+...
+ 140|
+*141|    //       const bracketTab = page.getByRole('button', { name: /sơ đồ|bracket/i }).first();
+ 142|    //       if (await bracketTab.count()) {
+ 143|    //         await expect(bracketTab).toBeVisible();
+ 144|    //         await sleep();
+...
+ 150|
+*151|    //       const matchesTab = page.getByRole('button', { name: /trận đấu|matches/i }).first();
+ 152|    //       if (await matchesTab.count()) {
+ 153|    //         await expect(matchesTab).toBeVisible();
+ 154|    //         await sleep();
+
+Showing files 1-20 of 24+. Use skip=20 for the next page, or narrow paths/pattern.

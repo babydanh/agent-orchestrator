@@ -1,0 +1,2856 @@
+### region 1 (write, ~42 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#4892]
+Successfully wrote 8240 bytes to backend/src/modules/auth/participant-ranking-consent.service.ts
+
+### region 2 (read, ~2290 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#4892]
+1:import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+2:import { ConfigService } from '@nestjs/config';
+3:import * as jwt from 'jsonwebtoken';
+4:import { and, eq, or, sql } from 'drizzle-orm';
+5:import { PG_CONNECTION } from '../../database/database.module';
+6:import type { AppDb } from '../../database/db.types';
+7:import * as schema from '../../database/schema';
+8:import { MailService } from '../../providers/mail/mail.service';
+9:
+10:const TOKEN_PURPOSE = 'tournament-participant-ranking-consent';
+11:const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+12:
+13:type ConsentToken = jwt.JwtPayload & {
+14:  purpose: typeof TOKEN_PURPOSE;
+15:  participantId: string;
+16:  email: string;
+17:};
+18:
+19:type ParticipantConsentRow = {
+20:  participantId: string;
+21:  participantName: string;
+22:  tournamentName: string;
+23:  customResponses: unknown;
+24:};
+25:
+26:function normalizedEmail(value: unknown): string | null {
+27:  if (typeof value !== 'string') return null;
+28:  const email = value.trim().toLowerCase();
+29:  return EMAIL_PATTERN.test(email) ? email : null;
+30:}
+31:
+32:function responsesOf(value: unknown): Record<string, unknown> {
+33:  return value && typeof value === 'object' && !Array.isArray(value)
+34:    ? (value as Record<string, unknown>)
+35:    : {};
+36:}
+37:
+38:function participantEmails(value: unknown): string[] {
+39:  const responses = responsesOf(value);
+40:  return [responses.player1Email, responses.player2Email]
+41:    .map(normalizedEmail)
+42:    .filter((email): email is string => email !== null);
+43:}
+44:
+45:function escapeHtml(value: string): string {
+46:  return value.replace(/[&<>"']/g, (character) => {
+47:    switch (character) {
+48:      case '&': return '&amp;';
+49:      case '<': return '&lt;';
+50:      case '>': return '&gt;';
+51:      case '"': return '&quot;';
+52:      default: return '&#39;';
+53:    }
+54:  });
+55:}
+56:
+57:@Injectable()
+58:export class ParticipantRankingConsentService {
+59:  private readonly logger = new Logger(ParticipantRankingConsentService.name);
+60:
+61:  constructor(
+62:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+63:    private readonly configService: ConfigService,
+64:    private readonly mailService: MailService,
+65:  ) {}
+66:
+67:  async sendConfirmation(
+68:    participantId: string,
+69:    recipientEmail: string,
+70:    participantName: string,
+71:    tournamentName: string,
+72:  ): Promise<boolean> {
+73:    const email = normalizedEmail(recipientEmail);
+74:    if (!email) return false;
+75:
+76:    try {
+77:      const token = jwt.sign(
+78:        { purpose: TOKEN_PURPOSE, participantId, email },
+79:        this.jwtSecret(),
+80:        { expiresIn: '7d' },
+81:      );
+82:      const frontendUrl = (
+83:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3101'
+84:      ).replace(/\/+$/, '');
+85:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+86:      const safeName = escapeHtml(participantName);
+87:      const safeTournamentName = escapeHtml(tournamentName);
+88:      const html = `
+89:        <p>Xin chào ${safeName},</p>
+90:        <p>Ban tổ chức đã ghi nhận bạn tham gia giải <strong>${safeTournamentName}</strong>.</p>
+91:        <p><strong>Bạn đã tham gia giải này chưa? Có phải bạn không?</strong></p>
+92:        <p>Chỉ khi bạn chủ động xác nhận, kết quả các trận đấu sau đó mới được tính vào bảng xếp hạng ELO. Trận đã diễn ra trước lúc xác nhận sẽ không được tính.</p>
+93:        <p><a href="${confirmUrl}">Xác nhận tôi đã tham gia</a></p>
+94:        <p>Nếu chưa có tài khoản, hãy đăng ký hoặc đăng nhập bằng email này trước khi xác nhận.</p>
+95:      `;
+96:
+97:      return await this.mailService.sendMail(
+98:        email,
+99:        `Xác nhận tham gia giải ${tournamentName}`,
+100:        html,
+101:      );
+102:    } catch (error) {
+103:      this.logger.warn('Không gửi được email xác nhận consent ELO.');
+104:      return false;
+105:    }
+106:  }
+107:
+108:  async handleAccountAccess(userId: string, emailValue: string): Promise<number> {
+109:    const email = normalizedEmail(emailValue);
+110:    if (!email) return 0;
+111:
+112:    try {
+113:      const rows = await this.db
+114:        .select({
+115:          participantId: schema.tournamentParticipants.id,
+116:          participantName: schema.tournamentParticipants.teamName,
+117:          tournamentName: schema.tournaments.name,
+118:          customResponses: schema.tournamentParticipants.customResponses,
+119:        })
+120:        .from(schema.tournamentParticipants)
+121:        .innerJoin(
+122:          schema.tournaments,
+123:          eq(schema.tournamentParticipants.tournamentId, schema.tournaments.id),
+124:        )
+125:        .where(
+126:          and(
+127:            eq(schema.tournamentParticipants.rankingConsent, false),
+128:            eq(schema.tournamentParticipants.isMock, false),
+129:            or(
+130:              sql`lower(${schema.tournamentParticipants.customResponses}->>'player1Email') = ${email}`,
+131:              sql`lower(${schema.tournamentParticipants.customResponses}->>'player2Email') = ${email}`,
+132:            ),
+133:          ),
+134:        );
+135:
+136:      let notifiedCount = 0;
+137:      for (const row of rows) {
+138:        if (!participantEmails(row.customResponses).includes(email)) continue;
+139:        await this.linkRosterAccount(row, userId, email);
+140:        if (
+141:          await this.sendConfirmation(
+142:            row.participantId,
+143:            email,
+144:            row.participantName,
+145:            row.tournamentName,
+146:          )
+147:        ) {
+148:          notifiedCount += 1;
+149:        }
+150:      }
+151:      return notifiedCount;
+152:    } catch (error) {
+153:      this.logger.warn('Không xử lý được email participant consent sau khi đăng nhập.');
+154:      return 0;
+155:    }
+156:  }
+157:
+158:  async confirm(token: string): Promise<{ confirmed: true }> {
+159:    let claims: ConsentToken;
+160:    try {
+161:      const decoded = jwt.verify(token, this.jwtSecret());
+162:      if (
+163:        typeof decoded === 'string' ||
+164:        decoded.purpose !== TOKEN_PURPOSE ||
+165:        typeof decoded.participantId !== 'string' ||
+166:        !normalizedEmail(decoded.email)
+167:      ) {
+168:        throw new Error('Invalid consent token');
+169:      }
+170:      claims = decoded as ConsentToken;
+171:    } catch {
+172:      throw new BadRequestException('Liên kết xác nhận không hợp lệ hoặc đã hết hạn.');
+173:    }
+174:
+175:    const email = normalizedEmail(claims.email);
+176:    if (!email) {
+177:      throw new BadRequestException('Email xác nhận không hợp lệ.');
+178:    }
+179:
+180:    const [participant] = await this.db
+181:      .select({
+182:        participantId: schema.tournamentParticipants.id,
+183:        rankingConsent: schema.tournamentParticipants.rankingConsent,
+184:        isMock: schema.tournamentParticipants.isMock,
+185:        customResponses: schema.tournamentParticipants.customResponses,
+186:      })
+187:      .from(schema.tournamentParticipants)
+188:      .where(eq(schema.tournamentParticipants.id, claims.participantId))
+189:      .limit(1);
+190:
+191:    if (
+192:      !participant ||
+193:      participant.isMock ||
+194:      !participantEmails(participant.customResponses).includes(email)
+195:    ) {
+196:      throw new BadRequestException('Không tìm thấy participant đăng ký bằng email này.');
+197:    }
+198:
+199:    const [user] = await this.db
+200:      .select({ id: schema.users.id })
+201:      .from(schema.users)
+202:      .where(sql`lower(${schema.users.email}) = ${email}`)
+203:      .limit(1);
+204:
+205:    if (!user) {
+206:      throw new BadRequestException(
+207:        'Vui lòng đăng ký hoặc đăng nhập bằng email này trước khi xác nhận.',
+208:      );
+209:    }
+210:
+211:    await this.linkRosterAccount(participant, user.id, email);
+212:    if (!participant.rankingConsent) {
+213:      await this.db
+214:        .update(schema.tournamentParticipants)
+215:        .set({ rankingConsent: true })
+216:        .where(eq(schema.tournamentParticipants.id, claims.participantId));
+217:    }
+218:
+219:    return { confirmed: true };
+220:  }
+221:
+222:  private async linkRosterAccount(
+223:    participant: ParticipantConsentRow,
+224:    userId: string,
+225:    email: string,
+226:  ): Promise<void> {
+227:    const responses = responsesOf(participant.customResponses);
+228:    const role = normalizedEmail(responses.player2Email) === email ? 'MAIN' : 'MAIN';
+229:    await this.db
+230:      .insert(schema.tournamentRosters)
+231:      .values({ participantId: participant.participantId, userId, role });
+232:  }
+233:
+234:  private jwtSecret(): string {
+235:    const secret = this.configService.get<string>('auth.jwtAccessSecret');
+236:    if (!secret) throw new Error('JWT access secret is not configured');
+237:    return secret;
+238:  }
+239:}
+
+### region 3 (edit, ~381 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#1BFF]
+76:    try {
+
+97:      return await this.mailService.sendMail(
+
+100:        html,
+101:      );
+102:    } catch {
+103:      this.logger.warn('Không gửi được email xác nhận consent ELO.');
+104:      return false;
+105:    }
+
+112:    try {
+
+137:      for (const row of rows) {
+138:        if (!participantEmails(row.customResponses).includes(email)) continue;
+139:        await this.linkRosterAccount(row.participantId, userId);
+140:        if (
+141:          await this.sendConfirmation(
+
+146:          )
+147:        ) {
+
+149:        }
+150:      }
+151:      return notifiedCount;
+152:    } catch {
+153:      this.logger.warn('Không xử lý được email participant consent sau khi đăng nhập.');
+154:      return 0;
+155:    }
+
+158:  async confirm(token: string): Promise<{ confirmed: true }> {
+
+205:    if (!user) {
+
+209:    }
+210:
+211:    await this.linkRosterAccount(participant.participantId, user.id);
+212:    if (!participant.rankingConsent) {
+213:      await this.db
+214:        .update(schema.tournamentParticipants)
+215:        .set({ rankingConsent: true })
+216:        .where(eq(schema.tournamentParticipants.id, claims.participantId));
+217:    }
+
+220:  }
+221:
+222:  private async linkRosterAccount(participantId: string, userId: string): Promise<void> {
+223:    await this.db
+224:      .insert(schema.tournamentRosters)
+225:      .values({ participantId, userId, role: 'MAIN' })
+226:      .onConflictDoNothing();
+227:  }
+228:
+
+### region 4 (read, ~432 tok)
+
+[backend/src/modules/auth/auth.module.ts#4822]
+1:import { Module } from '@nestjs/common';
+2:import { JwtModule } from '@nestjs/jwt';
+3:import { PassportModule } from '@nestjs/passport';
+4:import { ConfigModule, ConfigService } from '@nestjs/config';
+5:import { AuthService } from './auth.service';
+6:import { AuthController } from './auth.controller';
+7:import { AuthRepository } from './auth.repository';
+8:import { JwtStrategy } from './strategies/jwt.strategy';
+9:import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+10:import { GoogleStrategy } from './strategies/google.strategy';
+11:import { BullModule } from '@nestjs/bullmq';
+12:import { UsersModule } from '../users/users.module';
+13:import { AccountSanctionModule } from '../../common/services/account-sanction.module';
+14:
+15:@Module({
+16:  imports: [
+17:    PassportModule,
+18:    UsersModule,
+19:    AccountSanctionModule,
+20:    BullModule.registerQueue({
+21:      name: 'email-delivery',
+22:    }),
+23:    JwtModule.registerAsync({
+24:      imports: [ConfigModule],
+25:      inject: [ConfigService],
+26:      useFactory: (configService: ConfigService) => {
+27:        const expiresIn = configService.get<string>('auth.jwtAccessExpiresIn') || '15m';
+28:        return {
+29:          secret: configService.get<string>('auth.jwtAccessSecret'),
+30:          // Safe cast: expiresIn string value is valid for JWT SignOptions
+31:          signOptions: { expiresIn: expiresIn as unknown as never },
+32:        };
+33:      },
+34:    }),
+35:  ],
+36:  controllers: [AuthController],
+37:  providers: [AuthService, AuthRepository, JwtStrategy, JwtRefreshStrategy, GoogleStrategy],
+38:  exports: [AuthService, JwtModule],
+39:})
+40:export class AuthModule {}
+
+### region 5 (read, ~4401 tok)
+
+[backend/src/modules/auth/auth.service.ts#E31A]
+1:import {
+2:  Injectable,
+3:  UnauthorizedException,
+4:  BadRequestException,
+5:  ForbiddenException,
+6:  ConflictException,
+7:  InternalServerErrorException,
+8:  Inject,
+9:  Logger,
+10:} from '@nestjs/common';
+11:import { JwtService } from '@nestjs/jwt';
+12:import { ConfigService } from '@nestjs/config';
+13:import * as bcrypt from 'bcrypt';
+14:import * as crypto from 'crypto';
+15:import * as jwt from 'jsonwebtoken';
+16:import { OAuth2Client } from 'google-auth-library';
+17:import { InjectQueue } from '@nestjs/bullmq';
+18:import { Queue } from 'bullmq';
+19:import { eq, and, gt, sql } from 'drizzle-orm';
+20:import { PG_CONNECTION } from '../../database/database.module';
+21:import type { AppDb } from '../../database/db.types';
+22:import * as schema from '../../database/schema';
+23:import { AuthRepository } from './auth.repository';
+24:import { UsersRepository } from '../users/users.repository';
+25:import { RegisterDto } from './dto/register.dto';
+26:import { LoginDto } from './dto/login.dto';
+27:import { OAuthProfileDto } from './dto/oauth-profile.dto';
+28:import { InvalidCredentialsException } from './exceptions/invalid-credentials.exception';
+29:import { UserRole } from '../../common/constants/enums';
+30:import { ERROR_MESSAGES } from '../../common/constants/error-messages';
+31:import { AccountSanctionService } from '../../common/services/account-sanction.service';
+32:
+33:@Injectable()
+34:export class AuthService {
+35:  private readonly googleClient: OAuth2Client;
+36:  private readonly logger = new Logger(AuthService.name);
+37:
+38:  constructor(
+39:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+40:    private readonly authRepository: AuthRepository,
+41:    private readonly jwtService: JwtService,
+42:    private readonly configService: ConfigService,
+43:    private readonly usersRepository: UsersRepository,
+44:    @InjectQueue('email-delivery') private readonly emailQueue: Queue,
+45:    private readonly accountSanctionService: AccountSanctionService,
+46:  ) {
+47:    this.googleClient = new OAuth2Client(
+48:      this.configService.get<string>('auth.googleClientId'),
+49:    );
+50:  }
+51:
+52:  async register(registerDto: RegisterDto) {
+53:    const email = registerDto.email.toLowerCase().trim();
+54:    const existingUser = await this.authRepository.findUserByEmail(email);
+55:    if (existingUser) {
+56:      throw new ConflictException(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS);
+57:    }
+58:
+59:    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+60:
+61:    // Default role PLAYER (Tìm hoặc lấy role đầu tiên / fallback)
+62:    let defaultRole = await this.authRepository.findRoleByName(UserRole.PLAYER);
+63:    if (!defaultRole) {
+64:      // Tìm không phân biệt hoa thường nếu có
+65:      const [anyPlayerRole] = await this.db
+66:        .select()
+67:        .from(schema.roles)
+68:        .where(sql`LOWER(${schema.roles.name}) = 'player'`)
+69:        .limit(1);
+70:      defaultRole = anyPlayerRole;
+71:    }
+72:
+73:    if (!defaultRole) {
+74:      // Tự động tạo role PLAYER nếu DB chưa có
+75:      const [createdRole] = await this.db
+76:        .insert(schema.roles)
+77:        .values({
+78:          name: UserRole.PLAYER,
+79:          slug: 'player',
+80:          description: 'Vận động viên / Người chơi',
+81:        })
+82:        .onConflictDoNothing()
+83:        .returning();
+84:      defaultRole = createdRole || (await this.authRepository.findRoleByName(UserRole.PLAYER));
+85:    }
+86:
+87:    if (!defaultRole) {
+88:      throw new InternalServerErrorException('Hệ thống chưa thiết lập vai trò người chơi (PLAYER).');
+89:    }
+90:
+91:    const newUser = await this.authRepository.createUserWithProfile(
+92:      { email, passwordHash: hashedPassword },
+93:      { fullName: registerDto.fullName, userId: '' }, // userId will be populated in repository
+94:      defaultRole.id,
+95:    );
+96:
+97:    // Tạo userRanks mặc định (ELO 1000) cho tất cả category (bọc try/catch an toàn)
+98:    try {
+99:      await this.authRepository.createDefaultUserRanks(newUser.id);
+100:    } catch (err) {
+101:      this.logger.warn(`Không thể tạo userRank mặc định cho user ${newUser.id}: ${err.message}`);
+102:    }
+103:
+104:    delete (newUser as { passwordHash?: string | null }).passwordHash;
+105:    return newUser;
+106:  }
+107:
+108:  async login(loginDto: LoginDto, userAgent?: string, ipAddress?: string) {
+109:    const email = loginDto.email.toLowerCase().trim();
+110:    const user = await this.authRepository.findUserByEmail(email);
+111:    if (!user) {
+112:      throw new InvalidCredentialsException();
+113:    }
+114:
+115:    if (!user.passwordHash) {
+116:      throw new BadRequestException(
+117:        'Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.',
+118:      );
+119:    }
+120:
+121:    const isPasswordValid = await bcrypt.compare(
+122:      loginDto.password,
+123:      user.passwordHash,
+124:    );
+125:    if (!isPasswordValid) {
+126:      throw new InvalidCredentialsException();
+127:    }
+128:
+129:    await this.assertAccountCanAccess(user.id);
+130:
+131:    const roles = await this.authRepository.findUserRoles(user.id);
+132:
+133:    // Tạo userRanks mặc định nếu chưa có
+134:    await this.authRepository.createDefaultUserRanks(user.id);
+135:
+136:    return this.generateTokens(
+137:      user.id,
+138:      user.email,
+139:      roles,
+140:      userAgent,
+141:      ipAddress,
+142:      user.isEmailVerified,
+143:      user.isMock,
+144:    );
+145:  }
+146:
+147:  async refreshToken(
+148:    refreshToken: string,
+149:    userAgent?: string,
+150:    ipAddress?: string,
+151:  ) {
+152:    // Bước 1: Atomic revoke — đánh dấu token này là revoked ngay lập tức
+153:    // Nếu có 2 request đến cùng lúc, chỉ 1 cái thành công (affectedRows > 0)
+154:    const revokeResult = await this.db
+155:      .update(schema.sessions)
+156:      .set({ isRevoked: true, revokedAt: new Date() })
+157:      .where(
+158:        and(
+159:          eq(schema.sessions.refreshToken, refreshToken),
+160:          eq(schema.sessions.isRevoked, false),
+161:        ),
+162:      )
+163:      .returning();
+164:
+165:    if (revokeResult.length === 0) {
+166:      // Grace period check: Nếu session vừa bị revoke trong 15s qua (do race condition giữa các request đồng thời)
+167:      const oldSession = await this.authRepository.findSessionByRefreshToken(refreshToken);
+168:      if (oldSession) {
+169:        const fifteenSecondsAgo = new Date(Date.now() - 15000);
+170:        if (oldSession.revokedAt && oldSession.revokedAt > fifteenSecondsAgo) {
+171:          // Token này vừa mới được refresh thành công bởi một request song song!
+172:          // Lấy session active mới nhất của user để cấp token mới mà không hủy phiên
+173:          const [latestSession] = await this.db
+174:            .select()
+175:            .from(schema.sessions)
+176:            .where(
+177:              and(
+178:                eq(schema.sessions.userId, oldSession.userId),
+179:                eq(schema.sessions.isRevoked, false),
+180:                gt(schema.sessions.expiresAt, new Date()),
+181:              ),
+182:            )
+183:            .orderBy(sql`${schema.sessions.createdAt} DESC`)
+184:            .limit(1);
+185:
+186:          if (latestSession) {
+187:            await this.assertAccountCanAccess(oldSession.userId);
+188:            const roles = await this.authRepository.findUserRoles(oldSession.userId);
+189:            const [userRecord] = await this.db
+190:              .select({ email: schema.users.email, isEmailVerified: schema.users.isEmailVerified, isMock: schema.users.isMock })
+191:              .from(schema.users)
+192:              .where(eq(schema.users.id, oldSession.userId))
+193:              .limit(1);
+…
+215:          }
+216:        }
+…
+223:      }
+…
+225:    }
+…
+258:  }
+…
+260:  async logout(refreshToken: string) {
+261:    await this.authRepository.revokeSessionByToken(refreshToken);
+262:    return { success: true };
+263:  }
+264:
+265:  async oauthLogin(
+266:    oauthProfile: OAuthProfileDto,
+267:    userAgent?: string,
+268:    ipAddress?: string,
+269:  ) {
+270:    // Nếu tài khoản OAuth không cung cấp email, tự động sinh email ảo dựa trên ID nhà phát hành
+271:    if (!oauthProfile.email) {
+272:      oauthProfile.email = `${oauthProfile.provider.toLowerCase()}-${oauthProfile.providerUserId}@vndcsport.vn`;
+273:    }
+274:
+275:    // 1. Check if provider is already linked
+276:    const existingProvider = await this.authRepository.findAuthProvider(
+277:      oauthProfile.provider,
+278:      oauthProfile.providerUserId,
+279:    );
+280:
+281:    if (existingProvider) {
+282:      await this.assertAccountCanAccess(existingProvider.userId);
+283:      // Cập nhật lại fullName và avatarUrl mới nhất từ OAuth sang Profile
+284:      const updateData: Partial<typeof schema.profiles.$inferInsert> = {};
+285:      if (oauthProfile.displayName) updateData.fullName = oauthProfile.displayName;
+286:      if (oauthProfile.avatarUrl) updateData.avatarUrl = oauthProfile.avatarUrl;
+287:      if (Object.keys(updateData).length > 0) {
+288:        await this.db.update(schema.profiles)
+289:          .set(updateData)
+290:          .where(eq(schema.profiles.userId, existingProvider.userId));
+291:      }
+292:
+293:      // Tạo userRanks mặc định nếu chưa có (kể cả đã OAuth trước đó)
+294:      await this.authRepository.createDefaultUserRanks(existingProvider.userId);
+295:
+296:      const roles = await this.authRepository.findUserRoles(
+297:        existingProvider.userId,
+298:      );
+299:      const [existingUser] = await this.db
+300:        .select({ isEmailVerified: schema.users.isEmailVerified, isMock: schema.users.isMock })
+301:        .from(schema.users)
+302:        .where(eq(schema.users.id, existingProvider.userId))
+303:        .limit(1);
+304:
+305:      // Đăng nhập bằng OAuth là đã chứng minh sở hữu email → tự động xác minh
+306:      // cho tài khoản liên kết từ trước (trước khi có logic auto-verify ở nhánh
+307:      // dưới), nếu không những tài khoản này bị kẹt "Chưa xác minh" vĩnh viễn.
+308:      // Bỏ qua email ảo @vndcsport.vn vì không phải email thật.
+309:      const isVirtualOAuthEmail = (oauthProfile.email || '').endsWith('@vndcsport.vn');
+310:      if (existingUser && !existingUser.isEmailVerified && !isVirtualOAuthEmail) {
+311:        await this.db.update(schema.users)
+312:          .set({ isEmailVerified: true })
+313:          .where(eq(schema.users.id, existingProvider.userId));
+314:        existingUser.isEmailVerified = true;
+315:      }
+316:
+317:      return this.generateTokens(
+318:        existingProvider.userId,
+319:        oauthProfile.email || '',
+320:        roles,
+321:        userAgent,
+322:        ipAddress,
+323:        existingUser?.isEmailVerified,
+324:        existingUser?.isMock,
+325:      );
+326:    }
+327:
+328:    // 2. If not linked, check if user exists by email (case-insensitive — giống login/register)
+329:    const normalizedEmail = oauthProfile.email?.toLowerCase().trim() || oauthProfile.email;
+330:    oauthProfile.email = normalizedEmail;
+331:    let user = normalizedEmail
+332:      ? await this.authRepository.findUserByEmail(normalizedEmail)
+333:      : null;
+334:
+335:    const systemAdminsRaw = this.configService.get<string>('SYSTEM_ADMINS') || '';
+336:    const systemAdmins = systemAdminsRaw.split(',').map(email => email.trim().toLowerCase());
+337:    const isSystemAdmin = normalizedEmail ? systemAdmins.includes(normalizedEmail) : false;
+338:
+339:    if (!user) {
+340:      // 3. If no user, create a new one
+341:      const targetRoleName = isSystemAdmin ? UserRole.ADMIN : UserRole.PLAYER;
+342:      const defaultRole = await this.authRepository.findRoleByName(targetRoleName);
+343:      
+344:      // Nếu email có đuôi @vndcsport.vn (email ảo tự sinh), ta để isEmailVerified: false
+345:      const isVirtualEmail = oauthProfile.email.endsWith('@vndcsport.vn');
+346:      
+347:      user = await this.authRepository.createOAuthUser(
+348:        {
+349:          email: oauthProfile.email,
+350:          passwordHash: null,
+351:          isEmailVerified: !isVirtualEmail,
+352:        },
+353:        { 
+354:          fullName: oauthProfile.displayName || oauthProfile.email.split('@')[0], 
+355:          avatarUrl: oauthProfile.avatarUrl,
+356:          userId: '' 
+357:        },
+358:        defaultRole?.id || '',
+359:      );
+360:
+361:      // Nếu là Admin hệ thống, gán thêm vai trò ORGANIZER và kiểm tra ADMIN
+362:      if (isSystemAdmin) {
+363:        const organizerRole = await this.authRepository.findRoleByName(UserRole.ORGANIZER);
+364:        if (organizerRole) {
+365:          await this.db.insert(schema.userToRoles).values({ userId: user.id, roleId: organizerRole.id }).onConflictDoNothing();
+366:        }
+367:        // Đảm bảo có vai trò ADMIN
+368:        const adminRole = await this.authRepository.findRoleByName(UserRole.ADMIN);
+369:        if (adminRole) {
+370:          await this.db.insert(schema.userToRoles).values({ userId: user.id, roleId: adminRole.id }).onConflictDoNothing();
+371:        }
+372:      }
+373:
+374:      // Tạo userRanks mặc định (ELO 1000) cho tất cả category
+375:      await this.authRepository.createDefaultUserRanks(user.id);
+376:    } else {
+377:      // 3.1. Tạo userRanks mặc định nếu chưa có
+378:      await this.authRepository.createDefaultUserRanks(user.id);
+379:
+380:      // Không được tự động xác minh một email chỉ vì provider trả về cùng chuỗi email.
+381:      // Nếu email đang lưu chưa xác minh, người dùng phải xác minh qua mailbox trước;
+382:      // nếu không, việc đổi email chưa xác minh có thể bị dùng để nhập nhầm vào tài khoản.
+383:      if (!user.isEmailVerified) {
+384:        throw new UnauthorizedException(
+385:          'Email tài khoản chưa được xác minh. Vui lòng xác minh email trước khi đăng nhập bằng OAuth.',
+386:        );
+387:      }
+388:
+389:      // 3.3. Nếu là Admin đăng nhập mà chưa có đủ quyền ADMIN hoặc ORGANIZER, gán bổ sung luôn
+390:      if (isSystemAdmin) {
+391:        const organizerRole = await this.authRepository.findRoleByName(UserRole.ORGANIZER);
+392:        const adminRole = await this.authRepository.findRoleByName(UserRole.ADMIN);
+393:        const roles = await this.authRepository.findUserRoles(user.id);
+394:        
+395:        if (organizerRole && !roles.includes(UserRole.ORGANIZER)) {
+396:          await this.db.insert(schema.userToRoles).values({ userId: user.id, roleId: organizerRole.id }).onConflictDoNothing();
+397:        }
+398:        if (adminRole && !roles.includes(UserRole.ADMIN)) {
+399:          await this.db.insert(schema.userToRoles).values({ userId: user.id, roleId: adminRole.id }).onConflictDoNothing();
+400:        }
+401:      }
+402:
+403:      // 3.4. Kiểm tra và cập nhật Profile nếu bị thiếu fullName hoặc avatarUrl, hoặc đồng bộ lại từ Google
+404:      const [profile] = await this.db.select().from(schema.profiles).where(eq(schema.profiles.userId, user.id)).limit(1);
+405:      if (!profile) {
+406:        await this.db.insert(schema.profiles).values({
+407:          userId: user.id,
+408:          fullName: oauthProfile.displayName || oauthProfile.email.split('@')[0],
+409:          avatarUrl: oauthProfile.avatarUrl,
+410:        });
+411:      } else {
+412:        const updateData: Partial<typeof schema.profiles.$inferInsert> = {};
+413:        // Luôn luôn cập nhật tên thật và avatar mới nhất từ Google OAuth
+414:        if (oauthProfile.displayName) {
+415:          updateData.fullName = oauthProfile.displayName;
+416:        }
+417:        if (oauthProfile.avatarUrl) {
+418:          updateData.avatarUrl = oauthProfile.avatarUrl;
+419:        }
+420:        if (Object.keys(updateData).length > 0) {
+421:          await this.db.update(schema.profiles).set(updateData).where(eq(schema.profiles.userId, user.id));
+422:        }
+423:      }
+424:    }
+425:
+426:    // 4. Link provider
+427:    await this.authRepository.createAuthProvider({
+428:      userId: user.id,
+429:      provider: oauthProfile.provider,
+430:      providerUserId: oauthProfile.providerUserId,
+431:      providerEmail: oauthProfile.email,
+432:      providerAvatarUrl: oauthProfile.avatarUrl,
+433:      providerDisplayName: oauthProfile.displayName,
+434:      accessToken: oauthProfile.accessToken,
+435:      refreshToken: oauthProfile.refreshToken,
+436:    });
+437:
+438:    // 5. Generate tokens. The existing-provider branch was checked above;
+439:    // this also covers an existing password account linked by OAuth.
+440:    await this.assertAccountCanAccess(user.id);
+441:    const roles = await this.authRepository.findUserRoles(user.id);
+442:    return this.generateTokens(
+443:      user.id,
+444:      user.email,
+445:      roles,
+446:      userAgent,
+447:      ipAddress,
+448:      user.isEmailVerified,
+449:      user.isMock,
+450:    );
+451:  }
+452:
+453:  private async assertAccountCanAccess(userId: string): Promise<void> {
+454:    if (await this.accountSanctionService.hasActiveAccessBan(userId)) {
+455:      throw new ForbiddenException('Tài khoản của bạn đang bị hạn chế truy cập.');
+456:    }
+457:  }
+…
+969:}
+
+### region 6 (read, ~596 tok)
+
+[backend/src/modules/tournaments/dto/roster-import.dto.ts#3F75]
+1:import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+2:import { Type } from 'class-transformer';
+3:import {
+4:  ArrayMaxSize,
+5:  IsArray,
+6:  IsBoolean,
+7:  IsEmail,
+8:  IsIn,
+9:  IsNumber,
+10:  IsObject,
+11:  IsOptional,
+12:  IsString,
+13:  ValidateNested,
+14:} from 'class-validator';
+15:
+16:export const IMPORT_SOURCES = [
+17:  'MANUAL_EMAIL',
+18:  'EXCEL',
+19:  'AI_EXCEL',
+20:  'GOOGLE_FORM',
+21:] as const;
+22:export type ImportSource = (typeof IMPORT_SOURCES)[number];
+23:
+24:export const ROSTER_ENTRY_TYPES = ['REGULAR', 'WILD_CARD_REQUEST'] as const;
+25:export type RosterEntryType = (typeof ROSTER_ENTRY_TYPES)[number];
+26:
+27:/**
+28: * Strict roster row for `POST /tournaments/:id/roster-import`.
+29: *
+30: * New, additive endpoint: it never changes the legacy import contract, it only
+31: * adds the email/provenance guarantees the spreadsheet workflow depends on.
+32: */
+33:export class RosterImportItemDto {
+34:  @ApiProperty({ description: 'Tên đội / cặp đấu hoặc tên VĐV' })
+35:  @IsString()
+36:  teamName: string;
+37:
+38:  @ApiProperty({ description: 'Họ tên VĐV 1' })
+39:  @IsString()
+40:  player1Name: string;
+41:
+42:  @ApiPropertyOptional({ description: 'Email VĐV 1 (tùy chọn)' })
+43:  @IsOptional()
+44:  @IsEmail()
+45:  player1Email?: string;
+46:
+47:  @ApiPropertyOptional({ description: 'SĐT VĐV 1' })
+48:  @IsOptional()
+49:  @IsString()
+50:  player1Phone?: string;
+51:
+52:  @ApiPropertyOptional({ description: 'Họ tên VĐV 2 (nếu giải đôi)' })
+53:  @IsOptional()
+54:  @IsString()
+55:  player2Name?: string;
+56:
+57:  @ApiPropertyOptional({ description: 'Email VĐV 2' })
+58:  @IsOptional()
+59:  @IsEmail()
+60:  player2Email?: string;
+61:
+62:  @ApiPropertyOptional({ description: 'SĐT VĐV 2' })
+63:  @IsOptional()
+64:  @IsString()
+65:  player2Phone?: string;
+66:
+67:  @ApiPropertyOptional({ description: 'Điểm trình / ELO khởi tạo' })
+68:  @IsOptional()
+69:  @IsNumber()
+70:  elo?: number;
+71:
+72:  @ApiPropertyOptional({ description: 'Đã thanh toán lệ phí hay chưa' })
+73:  @IsOptional()
+74:  @IsBoolean()
+75:  isPaid?: boolean;
+76:
+77:  @ApiPropertyOptional({ description: 'Tự động duyệt hồ sơ (APPROVED)' })
+78:  @IsOptional()
+…
+80:  autoApprove?: boolean;
+…
+100:}
+
+[Showing lines 1-78 of 125. Use :79 to continue]
+
+### region 7 (read, ~45 tok)
+
+.
+  - mail.processor.ts     483B      37m ago
+  - mail.service.spec.ts  2.0KB     37m ago
+  - mail.service.ts       3.2KB     37m ago
+  - mail.module.ts        456B      37m ago
+
+### region 8 (read, ~137 tok)
+
+[backend/src/providers/mail/mail.module.ts#74D8]
+1:import { Module } from '@nestjs/common';
+2:import { ConfigModule } from '@nestjs/config';
+3:import { BullModule } from '@nestjs/bullmq';
+4:import { MailService } from './mail.service';
+5:import { MailProcessor } from './mail.processor';
+6:
+7:@Module({
+8:  imports: [
+9:    ConfigModule,
+10:    BullModule.registerQueue({
+11:      name: 'email-delivery',
+12:    }),
+13:  ],
+14:  providers: [MailService, MailProcessor],
+15:  exports: [MailService, BullModule],
+16:})
+17:export class MailModule {}
+
+### region 9 (read, ~1216 tok)
+
+[backend/src/modules/auth/auth.service.ts#E31A]
+52:  async register(registerDto: RegisterDto) {
+…
+90:
+91:    const newUser = await this.authRepository.createUserWithProfile(
+92:      { email, passwordHash: hashedPassword },
+93:      { fullName: registerDto.fullName, userId: '' }, // userId will be populated in repository
+94:      defaultRole.id,
+95:    );
+96:
+97:    // Tạo userRanks mặc định (ELO 1000) cho tất cả category (bọc try/catch an toàn)
+98:    try {
+99:      await this.authRepository.createDefaultUserRanks(newUser.id);
+100:    } catch (err) {
+101:      this.logger.warn(`Không thể tạo userRank mặc định cho user ${newUser.id}: ${err.message}`);
+102:    }
+103:
+104:    delete (newUser as { passwordHash?: string | null }).passwordHash;
+105:    return newUser;
+106:  }
+107:
+108:  async login(loginDto: LoginDto, userAgent?: string, ipAddress?: string) {
+109:    const email = loginDto.email.toLowerCase().trim();
+110:    const user = await this.authRepository.findUserByEmail(email);
+111:    if (!user) {
+112:      throw new InvalidCredentialsException();
+113:    }
+114:
+115:    if (!user.passwordHash) {
+116:      throw new BadRequestException(
+117:        'Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.',
+118:      );
+119:    }
+120:
+121:    const isPasswordValid = await bcrypt.compare(
+122:      loginDto.password,
+123:      user.passwordHash,
+124:    );
+125:    if (!isPasswordValid) {
+126:      throw new InvalidCredentialsException();
+127:    }
+128:
+129:    await this.assertAccountCanAccess(user.id);
+130:
+131:    const roles = await this.authRepository.findUserRoles(user.id);
+132:
+133:    // Tạo userRanks mặc định nếu chưa có
+134:    await this.authRepository.createDefaultUserRanks(user.id);
+135:
+136:    return this.generateTokens(
+137:      user.id,
+138:      user.email,
+139:      roles,
+140:      userAgent,
+141:      ipAddress,
+142:      user.isEmailVerified,
+143:      user.isMock,
+144:    );
+145:  }
+146:
+147:  async refreshToken(
+148:    refreshToken: string,
+149:    userAgent?: string,
+150:    ipAddress?: string,
+151:  ) {
+…
+258:  }
+…
+265:  async oauthLogin(
+…
+269:  ) {
+…
+281:    if (existingProvider) {
+…
+293:      // Tạo userRanks mặc định nếu chưa có (kể cả đã OAuth trước đó)
+294:      await this.authRepository.createDefaultUserRanks(existingProvider.userId);
+295:
+296:      const roles = await this.authRepository.findUserRoles(
+297:        existingProvider.userId,
+298:      );
+299:      const [existingUser] = await this.db
+300:        .select({ isEmailVerified: schema.users.isEmailVerified, isMock: schema.users.isMock })
+301:        .from(schema.users)
+302:        .where(eq(schema.users.id, existingProvider.userId))
+303:        .limit(1);
+304:
+305:      // Đăng nhập bằng OAuth là đã chứng minh sở hữu email → tự động xác minh
+306:      // cho tài khoản liên kết từ trước (trước khi có logic auto-verify ở nhánh
+307:      // dưới), nếu không những tài khoản này bị kẹt "Chưa xác minh" vĩnh viễn.
+308:      // Bỏ qua email ảo @vndcsport.vn vì không phải email thật.
+309:      const isVirtualOAuthEmail = (oauthProfile.email || '').endsWith('@vndcsport.vn');
+310:      if (existingUser && !existingUser.isEmailVerified && !isVirtualOAuthEmail) {
+311:        await this.db.update(schema.users)
+312:          .set({ isEmailVerified: true })
+313:          .where(eq(schema.users.id, existingProvider.userId));
+314:        existingUser.isEmailVerified = true;
+315:      }
+316:
+317:      return this.generateTokens(
+318:        existingProvider.userId,
+319:        oauthProfile.email || '',
+320:        roles,
+321:        userAgent,
+322:        ipAddress,
+323:        existingUser?.isEmailVerified,
+324:        existingUser?.isMock,
+325:      );
+326:    }
+327:
+…
+426:    // 4. Link provider
+427:    await this.authRepository.createAuthProvider({
+428:      userId: user.id,
+429:      provider: oauthProfile.provider,
+430:      providerUserId: oauthProfile.providerUserId,
+431:      providerEmail: oauthProfile.email,
+432:      providerAvatarUrl: oauthProfile.avatarUrl,
+433:      providerDisplayName: oauthProfile.displayName,
+434:      accessToken: oauthProfile.accessToken,
+435:      refreshToken: oauthProfile.refreshToken,
+436:    });
+437:
+438:    // 5. Generate tokens. The existing-provider branch was checked above;
+439:    // this also covers an existing password account linked by OAuth.
+440:    await this.assertAccountCanAccess(user.id);
+441:    const roles = await this.authRepository.findUserRoles(user.id);
+442:    return this.generateTokens(
+443:      user.id,
+444:      user.email,
+445:      roles,
+446:      userAgent,
+447:      ipAddress,
+448:      user.isEmailVerified,
+449:      user.isMock,
+450:    );
+451:  }
+452:
+
+### region 10 (grep, ~1245 tok)
+
+# backend/src/
+
+## config/
+### auth.config.ts#38F9
+ 11:    process.env.GOOGLE_CALLBACK_URL ||
+*12:    (process.env.FRONTEND_URL
+*13:      ? `${process.env.FRONTEND_URL.replace(/\/$/, '')}/api/v1/auth/google/callback`
+ 14:      : 'https://sporto.asia/api/v1/auth/google/callback'),
+ 15:  googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID || '',
+ 16:  googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || '',
+### env.validation.ts#0A25
+ 43:  }),
+*44:  FRONTEND_URL: Joi.when('NODE_ENV', {
+ 45:    is: 'production',
+ 46:    then: Joi.string()
+ 47:      .uri({ scheme: ['https'] })
+
+## modules/
+
+### auth/
+#### auth.controller.ts#49E9
+ 203:
+*204:    const frontendUrl =
+*205:      this.configService.get<string>('FRONTEND_URL') ||
+*206:      process.env.FRONTEND_URL ||
+ 207:      'http://localhost:3001';
+ 208:
+ 209:    try {
+...
+ 212:          return res.redirect(
+*213:            `${frontendUrl}/login?error=${encodeURIComponent('Không nhận được thông tin từ Google')}`,
+ 214:          );
+ 215:        }
+ 216:        return;
+...
+ 231:
+*232:      res.redirect(`${frontendUrl}/auth/callback`);
+ 233:    } catch (error: any) {
+ 234:      const errorMessage =
+ 235:        error?.response?.message ||
+...
+ 238:      res.redirect(
+*239:        `${frontendUrl}/login?error=${encodeURIComponent(errorMessage)}`,
+ 240:      );
+ 241:    }
+ 242:  }
+#### auth.service.ts#E31A
+ 717:
+*718:    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+*719:    const activationLink = `${frontendUrl}/auth/verify-email?token=${token}`;
+ 720:
+ 721:    // Add job to BullMQ queue
+ 722:    await this.emailQueue.add('send-verification', {
+...
+ 899:    // Gửi email đặt lại mật khẩu qua queue
+*900:    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${token}`;
+ 901:    await this.emailQueue.add('send-password-reset', {
+ 902:      to: email,
+ 903:      subject: 'Đặt lại mật khẩu - Sporto',
+#### participant-ranking-consent.service.ts#1BFF
+ 81:      );
+*82:      const frontendUrl = (
+*83:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3101'
+ 84:      ).replace(/\/+$/, '');
+*85:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+ 86:      const safeName = escapeHtml(participantName);
+ 87:      const safeTournamentName = escapeHtml(tournamentName);
+ 88:      const html = `
+
+#### guards/
+##### google-auth.guard.ts#2231
+ 42:      if (!response.headersSent) {
+*43:        const frontendUrl =
+*44:          this.configService.get<string>('FRONTEND_URL') ||
+*45:          this.configService.get<string>('auth.frontendUrl') ||
+ 46:          'https://sporto.asia';
+ 47:
+ 48:        const rawMsg =
+...
+ 63:        response.redirect(
+*64:          `${frontendUrl}/login?error=${encodeURIComponent(errorMessage)}`,
+ 65:        );
+ 66:      }
+ 67:      // Throw exception to stop NestJS from continuing to controller and causing ERR_HTTP_HEADERS_SENT
+
+### livestream/
+#### livestream.controller.ts#C3EA
+ 162:    );
+*163:    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3001';
+ 164:    response.redirect(
+*165:      `${frontendUrl}/organizer/livestream/facebook-callback?status=connected&communityId=${encodeURIComponent(connection.communityId)}`,
+ 166:    );
+ 167:  }
+ 168:
+
+### payments/
+#### payments.service.ts#6A31
+ 185:      .slice(0, 23);
+*186:    const frontendUrl =
+*187:      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
+ 188:
+ 189:    try {
+ 190:      const result = await this.payos.paymentRequests.create({
+...
+ 193:        description: `${prefix}${cleanName}`.slice(0, 25),
+*194:        cancelUrl: `${frontendUrl}/tournaments/${data.tournamentId}?payment_status=cancel&payment_id=${payment.id}`,
+*195:        returnUrl: `${frontendUrl}/tournaments/${data.tournamentId}?payment_status=return&payment_id=${payment.id}`,
+ 196:        expiredAt: Math.floor(expiresAt.getTime() / 1000),
+ 197:      });
+ 198:      return {
+
+### tournaments/
+#### tournaments-lite-pairing.spec.ts#3C0E
+ 173:      get: jest.fn().mockImplementation((key: string) => {
+*174:        if (key === 'FRONTEND_URL') return 'http://localhost:3001';
+ 175:        return undefined;
+ 176:      }),
+ 177:    };
+
+#### services/
+##### tournament-lite.service.ts#2A12
+ 988:
+*989:    // Build absolute joinUrl + qrPayload using FRONTEND_URL
+*990:    const frontendUrl = (
+*991:      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'
+ 992:    ).replace(/\/+$/, '');
+ 993:    // Club Lite keeps its compact one-tap URL. Public Quick is a full
+ 994:    // tournament after creation, so new QR/link shares must open the standard
+...
+ 1006:      inviteCode,
+*1007:      joinUrl: `${frontendUrl}${joinPath}`,
+*1008:      qrPayload: `${frontendUrl}${joinPath}`,
+ 1009:    };
+ 1010:  }
+ 1011:  async getLiteJoinStatus(inviteCode: string, userId?: string) {
+
+### region 11 (write, ~43 tok)
+
+[backend/src/modules/auth/auth.service.participant-consent.spec.ts#DB9C]
+Successfully wrote 2684 bytes to backend/src/modules/auth/auth.service.participant-consent.spec.ts
+
+### region 12 (bash, ~378 tok)
+
+FAIL src/modules/auth/auth.service.participant-consent.spec.ts
+  ● AuthService participant consent notifications › checks for matching participant emails after registration
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "user-1", "athlete@example.test", false
+
+    Number of calls: 0
+
+      50 |     });
+      51 |
+    > 52 |     expect(participantConsent.handleAccountAccess).toHaveBeenCalledWith(
+         |                                                    ^
+      53 |       newUser.id,
+      54 |       newUser.email,
+      55 |       false,
+
+      at Object.<anonymous> (modules/auth/auth.service.participant-consent.spec.ts:52:52)
+
+  ● AuthService participant consent notifications › checks for matching participant emails after login
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "user-2", "athlete@example.test", false
+
+    Number of calls: 0
+
+      72 |     await service.login({ email: user.email, password: 'password' });
+      73 |
+    > 74 |     expect(participantConsent.handleAccountAccess).toHaveBeenCalledWith(
+         |                                                    ^
+      75 |       user.id,
+      76 |       user.email,
+      77 |       false,
+
+      at Object.<anonymous> (modules/auth/auth.service.participant-consent.spec.ts:74:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        2.205 s
+[raw output: artifact://19]
+
+
+Wall time: 2.76 seconds
+
+Command exited with code 1
+
+### region 13 (read, ~2076 tok)
+
+[backend/src/modules/tournaments/services/tournament-import.service.ts#76E3]
+1:import {
+2:  BadRequestException,
+3:  ForbiddenException,
+4:  Injectable,
+5:  NotFoundException,
+6:  Optional,
+7:} from '@nestjs/common';
+8:import { TournamentsRepository } from '../tournaments.repository';
+9:import { TournamentAccessService } from './tournament-access.service';
+10:import { NotificationsService } from '../../notifications/notifications.service';
+11:import { MailService } from '../../../providers/mail/mail.service';
+12:import {
+13:  buildParticipantRegistrationPendingNotification,
+14:  buildParticipantRegistrationSuccessNotification,
+15:} from '../../notifications/notification-builder';
+16:import type { ImportParticipantsDto } from '../dto/import-participants.dto';
+17:import type { RosterImportDto } from '../dto/roster-import.dto';
+18:
+19:type RegistrationChangedBroadcaster = (
+20:  tournamentId: string,
+21:  payload: { divisionId?: string | null; action: string },
+22:) => void;
+23:
+24:@Injectable()
+25:export class TournamentImportService {
+26:  constructor(
+27:    private readonly tournamentsRepository: TournamentsRepository,
+28:    private readonly tournamentAccessService: TournamentAccessService,
+29:    private readonly notificationsService: NotificationsService,
+30:    @Optional() private readonly mailService?: MailService,
+31:  ) {}
+32:  /**
+33:   * Legacy import used by released clients: optional emails, `GOOGLE_FORM`
+34:   * provenance, invitation emails and the `emailsSent` counter stay intact.
+35:   */
+36:  async importParticipantsFromForm(
+37:    tournamentId: string,
+38:    userId: string,
+39:    systemRoles: string[],
+40:    dto: ImportParticipantsDto,
+41:    broadcastRegistrationChanged: RegistrationChangedBroadcaster,
+42:  ) {
+43:    const tournament = await this.assertImportable(
+44:      tournamentId,
+45:      userId,
+46:      systemRoles,
+47:    );
+48:
+49:    const result = await this.tournamentsRepository.importParticipants(
+50:      tournamentId,
+51:      userId,
+52:      dto.participants,
+53:      dto.divisionId,
+54:    );
+55:
+56:    await this.notifyLinkedAccounts(
+57:      tournamentId,
+58:      tournament.name,
+59:      dto.notifyLinkedAccounts === true,
+60:      result.linkedAccountNotifications,
+61:    );
+62:
+63:    await this.sendInvitationEmails(
+64:      tournament.name,
+65:      dto.sendInvitationEmail === true,
+66:      result.unregisteredEmails,
+67:    );
+68:
+69:    broadcastRegistrationChanged(tournamentId, {
+70:      divisionId: dto.divisionId,
+71:      action: 'IMPORT_PARTICIPANTS',
+72:    });
+73:
+74:    return {
+75:      message: `Đã nạp thành công ${result.importedCount} VĐV / Đội vào giải đấu!`,
+76:      importedCount: result.importedCount,
+77:      emailsSent: dto.sendInvitationEmail
+78:        ? (result.unregisteredEmails?.length ?? 0)
+79:        : 0,
+80:    };
+81:  }
+82:  /**
+83:   * Strict roster commit for the spreadsheet workflow: validated source, a
+84:   * player-one email on every row and eligible-only capacity accounting.
+85:   */
+86:  async importRosterFromForm(
+87:    tournamentId: string,
+88:    userId: string,
+89:    systemRoles: string[],
+90:    dto: RosterImportDto,
+91:    broadcastRegistrationChanged: RegistrationChangedBroadcaster,
+92:  ) {
+93:    const tournament = await this.assertImportable(
+94:      tournamentId,
+95:      userId,
+96:      systemRoles,
+97:    );
+98:
+99:    const result = await this.tournamentsRepository.importRosterRows(
+100:      tournamentId,
+101:      userId,
+102:      dto.participants,
+103:      dto.divisionId,
+104:    );
+105:
+106:    await this.notifyLinkedAccounts(
+107:      tournamentId,
+108:      tournament.name,
+109:      dto.notifyLinkedAccounts === true,
+110:      result.linkedAccountNotifications,
+111:    );
+112:
+113:    broadcastRegistrationChanged(tournamentId, {
+114:      divisionId: dto.divisionId,
+115:      action: 'IMPORT_PARTICIPANTS',
+116:    });
+117:
+118:    return {
+119:      message: `Đã thêm ${result.importedCount} VĐV / Đội vào giải đấu!`,
+120:      importedCount: result.importedCount,
+121:    };
+122:  }
+123:  private async assertImportable(
+124:    tournamentId: string,
+125:    userId: string,
+126:    systemRoles: string[],
+127:  ) {
+128:    const tournament = await this.tournamentsRepository.findById(tournamentId);
+129:    if (!tournament) throw new NotFoundException('Giải đấu không tồn tại');
+130:
+131:    const isAuthorized = await this.tournamentAccessService.isManager(
+132:      tournament,
+133:      userId,
+134:      systemRoles,
+135:    );
+136:    if (!isAuthorized) {
+137:      throw new ForbiddenException('Bạn không có quyền nhập danh sách VĐV');
+138:    }
+139:
+140:    if (tournament.status === 'COMPLETED') {
+141:      throw new BadRequestException('Giải đấu đã kết thúc');
+142:    }
+143:    if (
+144:      tournament.status === 'REGISTRATION_CLOSED' ||
+145:      tournament.isRegistrationLocked
+146:    ) {
+147:      throw new BadRequestException(
+148:        'Đăng ký đã được khóa. Không thể nhập thêm VĐV hoặc gửi lời mời mới.',
+149:      );
+150:    }
+151:
+152:    return tournament;
+153:  }
+154:  private async notifyLinkedAccounts(
+155:    tournamentId: string,
+156:    tournamentName: string,
+157:    requested: boolean,
+158:    recipients:
+159:      | Array<{
+160:          userId: string;
+161:          status: 'COMPLETE' | 'PENDING_APPROVAL';
+162:          divisionId: string | null;
+163:        }>
+164:      | undefined,
+165:  ): Promise<void> {
+166:    if (!requested || !recipients?.length) return;
+167:    for (const recipient of recipients) {
+168:      try {
+169:        const notification =
+170:          recipient.status === 'COMPLETE'
+171:            ? buildParticipantRegistrationSuccessNotification({
+172:                tournamentId,
+173:                tournamentName,
+174:                receiverId: recipient.userId,
+175:                divisionId: recipient.divisionId,
+176:              })
+177:            : buildParticipantRegistrationPendingNotification({
+178:                tournamentId,
+179:                tournamentName,
+180:                receiverId: recipient.userId,
+181:                divisionId: recipient.divisionId,
+182:              });
+183:        await this.notificationsService.sendNotification(notification);
+184:      } catch {
+185:        // A notification failure must not roll back a successful import.
+186:      }
+187:    }
+188:  }
+189:  private async sendInvitationEmails(
+190:    tournamentName: string,
+191:    requested: boolean,
+192:    recipients:
+193:      | Array<{ email: string; name?: string | null; teamName: string }>
+194:      | undefined,
+195:  ): Promise<void> {
+196:    if (!requested || !this.mailService || !recipients?.length) return;
+197:    for (const recipient of recipients) {
+198:      try {
+199:        const html = `
+200:          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+201:            <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 28px 24px; text-align: center;">
+202:              <h1 style="margin: 0; font-size: 22px; font-weight: bold; letter-spacing: 0.5px;">SPORTO - THƯ MỜI THI ĐẤU</h1>
+203:            </div>
+204:            <div style="padding: 28px 24px;">
+205:              <p style="font-size: 15px; margin-top: 0;">Xin chào <strong>${recipient.name || 'VĐV'}</strong>,</p>
+206:              <p style="font-size: 14px; color: #475569;">
+207:                Ban tổ chức đã ghi danh bạn tham gia giải đấu <strong>${tournamentName}</strong> (Tên đội / Cặp: <strong>${recipient.teamName}</strong>).
+208:              </p>
+…
+213:                <a href="https://sporto.asia/auth/register?email=${encodeURIComponent(recipient.email)}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+…
+224:        `;
+…
+230:      } catch {
+…
+232:      }
+233:    }
+234:  }
+235:}
+
+[Showing lines 1-208 of 235. Use :209 to continue]
+
+### region 14 (read, ~563 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-import.repository.ts#F74A]
+255:  async importRosterRows(
+…
+266:  ) {
+267:    return await this.db.transaction(async (tx) => {
+…
+341:      const rows: ImportPersistRow[] = items.map((item) => {
+…
+362:        return {
+…
+376:          partnerUserId:
+377:            isDoubles && player2Email
+…
+379:              : null,
+380:        };
+381:      });
+382:
+383:      const { participants, linkedAccountNotifications } =
+384:        await this.persistImportRows(tx, {
+385:          tournamentId,
+386:          managerUserId,
+387:          tournament,
+388:          divisionId,
+389:          rows,
+390:          strippedResponseKeys: IMPORT_OWNED_RESPONSE_KEYS,
+391:        });
+392:
+393:      return {
+394:        importedCount: participants.length,
+395:        linkedAccountNotifications,
+396:        participants,
+397:      };
+398:    });
+399:  }
+400:
+401:  /**
+402:   * Backward-compatible commit kept for the pre-roster endpoint: optional
+403:   * emails, `GOOGLE_FORM` provenance, phone-based account matching and the
+404:   * original doubles/singles row rules.
+405:   */
+406:  async importParticipants(
+407:    tournamentId: string,
+408:    managerUserId: string,
+409:    items: LegacyImportItem[],
+410:    divisionId?: string,
+411:  ) {
+412:    return await this.db.transaction(async (tx) => {
+413:      const tournament = await tx
+414:        .select()
+415:        .from(schema.tournaments)
+416:        .where(eq(schema.tournaments.id, tournamentId))
+417:        .limit(1)
+418:        .then((res) => res[0]);
+419:
+420:      if (!tournament) throw new BadRequestException('Giải đấu không tồn tại');
+421:
+422:      let divisionMatchType = tournament.matchType;
+423:      if (divisionId) {
+424:        const division = await tx
+425:          .select()
+426:          .from(schema.tournamentDivisions)
+427:          .where(
+428:            and(
+429:              eq(schema.tournamentDivisions.id, divisionId),
+430:              eq(schema.tournamentDivisions.tournamentId, tournamentId),
+431:            ),
+432:          )
+433:          .limit(1)
+434:          .then((res) => res[0]);
+…
+442:      }
+…
+569:    });
+570:  }
+
+[Showing lines 379-433 of 670. Use :434 to continue]
+
+### region 15 (read, ~1338 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-import.repository.ts#F74A]
+165:@Injectable()
+166:export class TournamentImportRepository {
+…
+423:      if (divisionId) {
+424:        const division = await tx
+…
+427:          .where(
+428:            and(
+…
+430:              eq(schema.tournamentDivisions.tournamentId, tournamentId),
+431:            ),
+432:          )
+433:          .limit(1)
+434:          .then((res) => res[0]);
+435:
+436:        if (!division) {
+437:          throw new BadRequestException(
+438:            'Nội dung thi đấu không thuộc giải này',
+439:          );
+440:        }
+441:        divisionMatchType = division.matchType;
+442:      }
+443:
+444:      const isDoubles =
+445:        divisionMatchType === 'DOUBLES' ||
+446:        divisionMatchType === 'MIXED_DOUBLES';
+447:
+448:      if (!items.length) {
+449:        throw new BadRequestException('Danh sách nhập không có dữ liệu hợp lệ');
+450:      }
+451:
+452:      await lockCapacityOwner(tx, { tournamentId, divisionId });
+453:      const limitCapacity = await readEffectiveCapacity(tx, {
+454:        tournamentId,
+455:        divisionId,
+456:      });
+457:      const capacityContext = {
+458:        tournamentConfig: tournament.tournamentConfig,
+459:      };
+460:      assertCapacityHasRoom(
+461:        limitCapacity,
+462:        items.reduce(
+463:          (requestedTeamSlots, item) =>
+464:            requestedTeamSlots +
+465:            calculateRequestedTeamSlots(
+466:              divisionMatchType,
+467:              item.player2Name?.trim() ? 2 : 1,
+468:              capacityContext,
+469:            ),
+470:          0,
+471:        ),
+472:      );
+473:
+474:      const rows: ImportPersistRow[] = [];
+475:      for (const [itemIndex, item] of items.entries()) {
+476:        const player1Name = item.player1Name?.trim();
+477:        const player2Name = item.player2Name?.trim() || '';
+478:        const teamName = item.teamName?.trim() || player1Name;
+479:        const p1Email = item.player1Email?.trim()?.toLowerCase();
+480:        const p2Email = item.player2Email?.trim()?.toLowerCase();
+481:        const p1Phone = item.player1Phone?.trim();
+482:        const p2Phone = item.player2Phone?.trim();
+483:        const hasPlayer2Data = Boolean(player2Name || p2Email || p2Phone);
+484:
+485:        if (!player1Name) {
+486:          throw new BadRequestException(
+487:            `Dòng ${itemIndex + 1} thiếu tên VĐV 1`,
+488:          );
+489:        }
+490:        if (isDoubles && !player2Name) {
+491:          throw new BadRequestException(
+492:            `Dòng ${itemIndex + 1} của nội dung đôi thiếu VĐV 2`,
+493:          );
+494:        }
+495:        if (!isDoubles && hasPlayer2Data) {
+496:          throw new BadRequestException(
+497:            `Dòng ${itemIndex + 1} của nội dung đơn có dữ liệu VĐV 2`,
+498:          );
+499:        }
+500:        if (
+501:          (p1Email && !ROSTER_EMAIL_PATTERN.test(p1Email)) ||
+502:          (p2Email && !ROSTER_EMAIL_PATTERN.test(p2Email))
+503:        ) {
+504:          throw new BadRequestException(
+505:            `Dòng ${itemIndex + 1} có email không hợp lệ`,
+506:          );
+507:        }
+508:        if (p1Email && p2Email && p1Email === p2Email) {
+509:          throw new BadRequestException(
+510:            `Dòng ${itemIndex + 1} dùng trùng email cho hai VĐV`,
+511:          );
+512:        }
+513:
+514:        const importMetadata: Record<string, unknown> = {
+515:          importedFrom: 'GOOGLE_FORM',
+516:        };
+517:        if (p1Email) importMetadata.player1Email = p1Email;
+518:        if (p1Phone) importMetadata.player1Phone = p1Phone;
+519:        if (player2Name) importMetadata.player2Name = player2Name;
+520:        if (p2Email) importMetadata.player2Email = p2Email;
+521:        if (p2Phone) importMetadata.player2Phone = p2Phone;
+522:
+523:        rows.push({
+524:          teamName: teamName || 'Đội đăng ký',
+525:          player1Name,
+526:          player1Email: p1Email ?? '',
+527:          player1Phone: p1Phone,
+528:          player2Name,
+529:          player2Email: p2Email ?? '',
+530:          player2Phone: p2Phone,
+531:          elo: item.elo,
+532:          isPaid: item.isPaid,
+533:          autoApprove: item.autoApprove,
+534:          customResponses: item.customResponses,
+535:          importMetadata,
+536:          registeredByUserId: await findLegacyUser(tx, p1Email ?? '', p1Phone),
+537:          partnerUserId:
+538:            isDoubles && hasPlayer2Data
+539:              ? await findLegacyUser(tx, p2Email ?? '', p2Phone)
+540:              : null,
+541:        });
+542:      }
+…
+580:  private async persistImportRows(
+…
+597:  }> {
+…
+621:    for (const row of rows) {
+…
+632:      const participant = await createTournamentParticipant(
+…
+650:      );
+651:
+652:      for (const linkedUserId of new Set(
+653:        [row.registeredByUserId, row.partnerUserId].filter(
+654:          (value): value is string => Boolean(value),
+655:        ),
+656:      )) {
+657:        linkedAccountNotifications.push({
+658:          userId: linkedUserId,
+659:          status: teamStatus,
+660:          divisionId: divisionId ?? null,
+661:        });
+662:      }
+663:
+664:      participants.push(participant);
+665:
+666:    }
+667:
+668:    return { participants, linkedAccountNotifications };
+669:  }
+670:}
+
+### region 16 (find, ~322 tok)
+
+4 hit(s) for "Tests asserting legacy tournament participant invitation emails or notifyLinkedAccounts behavior, to update when replacing rights invites with plain consent confirmations" in backend/src/modules/tournaments/ (τ 0.20), strongest first
+
+backend/src/modules/tournaments/services/tournament-import.service.spec.ts  0.80  185 lines judged
+  backend/src/modules/tournaments/services/tournament-import.service.spec.ts:1-185  0.80  import { BadRequestException } from '@nestjs/common';
+backend/src/modules/tournaments/repositories/tournament-import-email-link.spec.ts  0.66  202 lines judged, partial
+  backend/src/modules/tournaments/repositories/tournament-import-email-link.spec.ts:217-418  0.66            player1Name: 'Nguyen Van A',
+backend/src/modules/tournaments/services/tournament-lite-consent.spec.ts  0.46  84 lines judged
+  backend/src/modules/tournaments/services/tournament-lite-consent.spec.ts:1-84  0.46  import { BadRequestException } from '@nestjs/common';
+backend/src/modules/tournaments/services/tournament-import.service.ts  0.38  235 lines judged
+  backend/src/modules/tournaments/services/tournament-import.service.ts:1-208  0.38  import {
+
+listed 137 · judged 128 · read 20 files (44.8KB) · 8 requests · 33K tokens · $0.0014 · 912ms wall / 1.7s api
+
+### region 17 (read, ~554 tok)
+
+[backend/src/modules/tournaments/services/tournament-import.service.spec.ts#86E5]
+1:import { BadRequestException } from '@nestjs/common';
+2:import { NotificationsService } from '../../notifications/notifications.service';
+3:import { ImportParticipantsDto } from '../dto/import-participants.dto';
+4:import { RosterImportDto } from '../dto/roster-import.dto';
+5:import { TournamentsRepository } from '../tournaments.repository';
+6:import { TournamentAccessService } from './tournament-access.service';
+7:import { TournamentImportService } from './tournament-import.service';
+8:
+9:describe('TournamentImportService', () => {
+10-13:  const repositoryMock = { … };
+14:  const accessMock = { isManager: jest.fn() };
+15:  const repository = repositoryMock as unknown as TournamentsRepository;
+16:  const access = accessMock as unknown as TournamentAccessService;
+17:  const importer = new TournamentImportService(
+18:    repository,
+19:    access,
+20:    null as unknown as NotificationsService,
+21:  );
+22:
+23:  beforeEach(() => {
+24:    jest.clearAllMocks();
+25:  });
+26:
+27-49:  it('rejects imports after registration is locked before writing participants', async () => { … });
+50:});
+51:
+52:describe('TournamentImportService import contracts', () => {
+53-57:  const repositoryMock = { … };
+58:  const accessMock = { isManager: jest.fn() };
+59:  const mailMock = { sendMail: jest.fn() };
+60-65:  const openTournament = { … };
+66:
+67-72:  beforeEach(() => { … });
+73:
+74:  const buildImporter = () =>
+75:    new TournamentImportService(
+76:      repositoryMock as unknown as TournamentsRepository,
+77:      accessMock as unknown as TournamentAccessService,
+78:      null as unknown as NotificationsService,
+79:      mailMock as never,
+80:    );
+81:
+82-112:  it('keeps the legacy invitation-email behaviour and emailsSent counter', async () => { … });
+113:
+114-153:  it('commits declared roster rows through the strict repository path', async () => { … });
+154:
+155-184:  it('never invites unregistered contacts from the strict roster path', async () => { … });
+185:});
+
+[…129ln elided; re-read needed ranges, e.g. backend/src/modules/tournaments/services/tournament-import.service.spec.ts:10-13,27-49]
+
+### region 18 (read, ~1126 tok)
+
+[backend/src/modules/tournaments/services/tournament-import.service.spec.ts#86E5]
+51:
+52:describe('TournamentImportService import contracts', () => {
+53:  const repositoryMock = {
+54:    findById: jest.fn(),
+55:    importParticipants: jest.fn(),
+56:    importRosterRows: jest.fn(),
+57:  };
+58:  const accessMock = { isManager: jest.fn() };
+59:  const mailMock = { sendMail: jest.fn() };
+60:  const openTournament = {
+61:    id: 'tournament-1',
+62:    name: 'Giải mở rộng',
+63:    status: 'REGISTRATION_OPEN',
+64:    isRegistrationLocked: false,
+65:  };
+66:
+67:  beforeEach(() => {
+68:    jest.clearAllMocks();
+69:    repositoryMock.findById.mockResolvedValue(openTournament);
+70:    accessMock.isManager.mockResolvedValue(true);
+71:    mailMock.sendMail.mockResolvedValue(undefined);
+72:  });
+73:
+74:  const buildImporter = () =>
+75:    new TournamentImportService(
+76:      repositoryMock as unknown as TournamentsRepository,
+77:      accessMock as unknown as TournamentAccessService,
+78:      null as unknown as NotificationsService,
+79:      mailMock as never,
+80:    );
+81:
+82:  it('keeps the legacy invitation-email behaviour and emailsSent counter', async () => {
+83:    repositoryMock.importParticipants.mockResolvedValue({
+84:      importedCount: 1,
+85:      unregisteredEmails: [
+86:        { email: 'guest@example.test', name: 'Khách', teamName: 'Khách' },
+87:      ],
+88:      linkedAccountNotifications: [],
+89:    });
+90:
+91:    const dto = Object.assign(new ImportParticipantsDto(), {
+92:      participants: [{ teamName: 'Khách', player1Name: 'Khách' }],
+93:      sendInvitationEmail: true,
+94:    });
+95:
+96:    const result = await buildImporter().importParticipantsFromForm(
+97:      'tournament-1',
+98:      'organizer-1',
+99:      [],
+100:      dto,
+101:      jest.fn(),
+102:    );
+103:
+104:    expect(repositoryMock.importParticipants).toHaveBeenCalled();
+105:    expect(repositoryMock.importRosterRows).not.toHaveBeenCalled();
+106:    expect(mailMock.sendMail).toHaveBeenCalledWith(
+107:      'guest@example.test',
+108:      expect.stringContaining(openTournament.name),
+109:      expect.stringContaining('register'),
+110:    );
+111:    expect(result.emailsSent).toBe(1);
+112:  });
+113:
+114:  it('commits declared roster rows through the strict repository path', async () => {
+115:    repositoryMock.importRosterRows.mockResolvedValue({
+116:      importedCount: 2,
+117:      linkedAccountNotifications: [],
+118:    });
+119:
+120:    const dto = Object.assign(new RosterImportDto(), {
+121:      participants: [
+122:        {
+123:          teamName: 'VĐV 1',
+124:          player1Name: 'VĐV 1',
+125:          player1Email: 'a@example.test',
+126:          source: 'EXCEL',
+127:        },
+128:      ],
+129:    });
+130:    const broadcast = jest.fn();
+131:
+132:    const result = await buildImporter().importRosterFromForm(
+133:      'tournament-1',
+134:      'organizer-1',
+135:      [],
+136:      dto,
+137:      broadcast,
+138:    );
+139:
+140:    expect(repositoryMock.importRosterRows).toHaveBeenCalledWith(
+141:      'tournament-1',
+142:      'organizer-1',
+143:      dto.participants,
+144:      undefined,
+145:    );
+146:    expect(repositoryMock.importParticipants).not.toHaveBeenCalled();
+147:    expect(mailMock.sendMail).not.toHaveBeenCalled();
+148:    expect(result.importedCount).toBe(2);
+149:    expect(broadcast).toHaveBeenCalledWith('tournament-1', {
+150:      divisionId: undefined,
+151:      action: 'IMPORT_PARTICIPANTS',
+152:    });
+153:  });
+154:
+155:  it('never invites unregistered contacts from the strict roster path', async () => {
+156:    repositoryMock.importRosterRows.mockResolvedValue({
+157:      importedCount: 1,
+158:      unregisteredEmails: [
+159:        { email: 'guest@example.test', name: 'Khách', teamName: 'Khách' },
+160:      ],
+161:      linkedAccountNotifications: [],
+162:    });
+163:
+164:    const result = await buildImporter().importRosterFromForm(
+165:      'tournament-1',
+166:      'organizer-1',
+167:      [],
+168:      Object.assign(new RosterImportDto(), {
+169:        participants: [
+170:          {
+171:            teamName: 'Khách',
+172:            player1Name: 'Khách',
+173:            player1Email: 'guest@example.test',
+174:            source: 'EXCEL',
+175:          },
+176:        ],
+177:        sendInvitationEmail: true,
+178:      } as never),
+179:      jest.fn(),
+180:    );
+181:
+182:    expect(mailMock.sendMail).not.toHaveBeenCalled();
+183:    expect(result).not.toHaveProperty('emailsSent');
+184:  });
+185:});
+
+### region 19 (edit, ~280 tok)
+
+[backend/src/modules/auth/auth.module.ts#2FC7]
+13:import { AccountSanctionModule } from '../../common/services/account-sanction.module';
+14:
+15:import { MailModule } from '../../providers/mail/mail.module';
+16:import { ParticipantRankingConsentService } from './participant-ranking-consent.service';
+17:@Module({
+18:  imports: [
+20:    UsersModule,
+21:    AccountSanctionModule,
+22:    MailModule,
+23:    BullModule.registerQueue({
+24:      name: 'email-delivery',
+25:    }),
+
+38:  ],
+39:  controllers: [AuthController],
+40:  providers: [
+41:    AuthService,
+…
+47:  ],
+48:  exports: [AuthService, JwtModule, ParticipantRankingConsentService],
+49:export class AuthModule {}
+
+Warnings:
+This edit introduced a syntax error near line 14: the file parsed before the patch and no longer does. It was applied exactly as written, so a line number or range endpoint is likely wrong — re-read the touched region and re-issue a correcting edit.
+Warning: backend/src/modules/auth/auth.module.ts no longer parses after this edit. The change was applied; re-read the edited region and fix the syntax, or revert if unintended.
+
+### region 20 (read, ~505 tok)
+
+[backend/src/modules/auth/auth.module.ts#2FC7]
+1:import { Module } from '@nestjs/common';
+2:import { JwtModule } from '@nestjs/jwt';
+3:import { PassportModule } from '@nestjs/passport';
+4:import { ConfigModule, ConfigService } from '@nestjs/config';
+5:import { AuthService } from './auth.service';
+6:import { AuthController } from './auth.controller';
+7:import { AuthRepository } from './auth.repository';
+8:import { JwtStrategy } from './strategies/jwt.strategy';
+9:import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+10:import { GoogleStrategy } from './strategies/google.strategy';
+11:import { BullModule } from '@nestjs/bullmq';
+12:import { UsersModule } from '../users/users.module';
+13:import { AccountSanctionModule } from '../../common/services/account-sanction.module';
+14:
+15:import { MailModule } from '../../providers/mail/mail.module';
+16:import { ParticipantRankingConsentService } from './participant-ranking-consent.service';
+17:@Module({
+18:  imports: [
+19:    PassportModule,
+20:    UsersModule,
+21:    AccountSanctionModule,
+22:    MailModule,
+23:    BullModule.registerQueue({
+24:      name: 'email-delivery',
+25:    }),
+26:    JwtModule.registerAsync({
+27:      imports: [ConfigModule],
+28:      inject: [ConfigService],
+29:      useFactory: (configService: ConfigService) => {
+30:        const expiresIn = configService.get<string>('auth.jwtAccessExpiresIn') || '15m';
+31:        return {
+32:          secret: configService.get<string>('auth.jwtAccessSecret'),
+33:          // Safe cast: expiresIn string value is valid for JWT SignOptions
+34:          signOptions: { expiresIn: expiresIn as unknown as never },
+35:        };
+36:      },
+37:    }),
+38:  ],
+39:  controllers: [AuthController],
+40:  providers: [
+41:    AuthService,
+42:    AuthRepository,
+43:    ParticipantRankingConsentService,
+44:    JwtStrategy,
+45:    JwtRefreshStrategy,
+46:    GoogleStrategy,
+47:  ],
+48:  exports: [AuthService, JwtModule, ParticipantRankingConsentService],
+49:export class AuthModule {}
+
+### region 21 (edit, ~98 tok)
+
+[backend/src/modules/auth/auth.module.ts#1D44]
+15:import { MailModule } from '../../providers/mail/mail.module';
+16:import { ParticipantRankingConsentService } from './participant-ranking-consent.service';
+17:
+18:@Module({
+19:  imports: [
+
+39:  ],
+
+41:  providers: [
+
+48:  ],
+49:  exports: [AuthService, JwtModule, ParticipantRankingConsentService],
+50:});
+51:
+52:export class AuthModule {}
+
+### region 22 (edit, ~511 tok)
+
+[backend/src/modules/auth/auth.service.ts#9143]
+31:import { AccountSanctionService } from '../../common/services/account-sanction.service';
+32:
+33:import { ParticipantRankingConsentService } from './participant-ranking-consent.service';
+34:@Injectable()
+35:export class AuthService {
+
+39:  constructor(
+
+45:    @InjectQueue('email-delivery') private readonly emailQueue: Queue,
+46:    private readonly accountSanctionService: AccountSanctionService,
+47:    private readonly participantRankingConsentService: ParticipantRankingConsentService,
+48:  ) {
+49:    this.googleClient = new OAuth2Client(
+
+51:    );
+52:  }
+
+100:    try {
+
+102:    } catch (err) {
+
+104:    }
+105:
+106:    await this.participantRankingConsentService.handleAccountAccess(
+107:      newUser.id,
+…
+110:    );
+111:
+112:    delete (newUser as { passwordHash?: string | null }).passwordHash;
+113:    return newUser;
+141:    // Tạo userRanks mặc định nếu chưa có
+142:    await this.authRepository.createDefaultUserRanks(user.id);
+143:    await this.participantRankingConsentService.handleAccountAccess(
+144:      user.id,
+145:      user.email,
+146:      user.isMock === true,
+147:    );
+148:
+149:    return this.generateTokens(
+
+157:    );
+
+323:      if (existingUser && !existingUser.isEmailVerified && !isVirtualOAuthEmail) {
+
+327:        existingUser.isEmailVerified = true;
+328:      }
+329:      await this.participantRankingConsentService.handleAccountAccess(
+330:        existingProvider.userId,
+331:        oauthProfile.email || '',
+332:        existingUser?.isMock === true,
+333:      );
+334:
+335:      return this.generateTokens(
+
+343:      );
+
+457:    // this also covers an existing password account linked by OAuth.
+458:    await this.assertAccountCanAccess(user.id);
+459:    await this.participantRankingConsentService.handleAccountAccess(
+460:      user.id,
+461:      user.email,
+462:      user.isMock === true,
+463:    );
+464:    const roles = await this.authRepository.findUserRoles(user.id);
+465:    return this.generateTokens(
+
+473:    );
+
+992:}
+
+### region 23 (todo, ~396 tok)
+
+Remaining items (5):
+  - Thống nhất Excel và thêm thủ công qua luồng tạo participant chung, không cấp consent và gửi yêu cầu xác nhận. [in_progress] (Triển khai)
+  - Cập nhật biểu mẫu wildcard, luồng xác nhận Gmail, đăng ký/đăng nhập và ghi chú roster theo trạng thái. [pending] (Triển khai)
+  - Thêm hoặc cập nhật kiểm thử cho mọi đường dẫn bị tác động. [pending] (Triển khai)
+  - Chạy kiểm thử/build phù hợp, kiểm tra luồng thực tế và rà soát thay đổi. [pending] (Hoàn tất)
+  - Stage và commit toàn bộ thay đổi trên branch omp/issue-7. [pending] (Hoàn tất)
+Overall: 2/7 done, 5 open.
+Active phase 2/3 "Triển khai" (0/3).
+  Khảo sát:
+    - [X] Đọc các kỹ năng bắt buộc cho quy trình này và xác định phạm vi repository.
+    - [X] Kiểm chứng bốn điểm chưa xác minh, báo cáo kết quả trước mọi thay đổi mã nguồn.
+  Triển khai:
+    - [ ] Thống nhất Excel và thêm thủ công qua luồng tạo participant chung, không cấp consent và gửi yêu cầu xác nhận. (in progress)
+    - [ ] Cập nhật biểu mẫu wildcard, luồng xác nhận Gmail, đăng ký/đăng nhập và ghi chú roster theo trạng thái.
+    - [ ] Thêm hoặc cập nhật kiểm thử cho mọi đường dẫn bị tác động.
+  Hoàn tất:
+    - [ ] Chạy kiểm thử/build phù hợp, kiểm tra luồng thực tế và rà soát thay đổi.
+    - [ ] Stage và commit toàn bộ thay đổi trên branch omp/issue-7.
+
+### region 24 (read, ~1111 tok)
+
+[backend/src/modules/auth/auth.controller.ts#49E9]
+1:import {
+2:  Controller,
+3:  Post,
+4:  Body,
+5:  Req,
+6:  Res,
+7:  Get,
+8:  UseGuards,
+9:  HttpCode,
+10:  HttpStatus,
+11:  BadRequestException,
+12:} from '@nestjs/common';
+13:import { randomBytes } from 'crypto';
+14:import { ConfigService } from '@nestjs/config';
+15:import { AuthGuard } from '@nestjs/passport';
+16:import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+17:import type { Request, Response } from 'express';
+18:import { AuthService } from './auth.service';
+19:import { RegisterDto } from './dto/register.dto';
+20:import { LoginDto } from './dto/login.dto';
+21:
+22:import { Public } from '../../common/decorators/public.decorator';
+23:import { SkipAppKey } from '../../common/decorators/skip-app-key.decorator';
+24:import { CurrentUser } from '../../common/decorators/current-user.decorator';
+25:import type { JwtPayload } from './interfaces/jwt-payload.interface';
+26:import { JwtRefreshAuthGuard } from '../../common/guards/jwt-refresh-auth.guard';
+27:import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
+28:import { GoogleAuthGuard } from './guards/google-auth.guard';
+29:import { OAuthProfileDto } from './dto/oauth-profile.dto';
+30:
+31:@ApiTags('auth')
+32:@Controller('auth')
+33:export class AuthController {
+34:  constructor(
+35:    private readonly authService: AuthService,
+36:    private readonly configService: ConfigService,
+37:  ) {}
+38:
+39:  @Public()
+40:  @UseGuards(new RateLimitGuard(15, 60000))
+41:  @Post('register')
+42:  @ApiOperation({ summary: 'Register a new user' })
+43:  @ApiResponse({ status: 201, description: 'User successfully registered' })
+44:  @ApiResponse({ status: 400, description: 'Bad Request' })
+45:  async register(@Body() registerDto: RegisterDto) {
+46:    return await this.authService.register(registerDto);
+47:  }
+48:
+49:  @Public()
+50:  @UseGuards(new RateLimitGuard(30, 60000))
+51:  @Post('login')
+52:  @HttpCode(HttpStatus.OK)
+53:  @ApiOperation({ summary: 'Login user' })
+54:  @ApiResponse({ status: 200, description: 'User successfully logged in' })
+55:  @ApiResponse({ status: 401, description: 'Unauthorized' })
+56:  async login(@Body() loginDto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+57:    const userAgent = req.headers['user-agent'];
+58:    const ipAddress = req.ip;
+59:    const responseData = await this.authService.login(loginDto, userAgent, ipAddress);
+60:    
+61:    // Set Cookies
+62:    this.setTokensCookies(res, responseData.accessToken, responseData.refreshToken);
+63:    
+64:    // Delete tokens from response body for security
+65:    delete (responseData as { accessToken?: string }).accessToken;
+66:    delete (responseData as { refreshToken?: string }).refreshToken;
+67:    
+68:    return responseData;
+69:  }
+70:
+71:  @Public()
+72:  @UseGuards(JwtRefreshAuthGuard)
+73:  @Post('refresh')
+74:  @HttpCode(HttpStatus.OK)
+75:  @ApiOperation({ summary: 'Refresh access token' })
+76:  @ApiResponse({ status: 200, description: 'Tokens successfully refreshed' })
+77:  @ApiResponse({ status: 401, description: 'Unauthorized' })
+78:  async refresh(@Req() req: Request & { user: JwtPayload & { refreshToken: string } }, @Res({ passthrough: true }) res: Response) {
+79:    const refreshToken = req.user.refreshToken;
+80:
+81:    const userAgent = req.headers['user-agent'];
+82:    const ipAddress = req.ip;
+83:    const responseData = await this.authService.refreshToken(
+84:      refreshToken,
+85:      userAgent,
+86:      ipAddress,
+87:    );
+88:
+89:    // Set new cookies
+90:    this.setTokensCookies(res, responseData.accessToken, responseData.refreshToken);
+91:
+92:    // Delete tokens from body
+93:    delete (responseData as { accessToken?: string }).accessToken;
+94:    delete (responseData as { refreshToken?: string }).refreshToken;
+95:
+96:    return responseData;
+97:  }
+98:
+99:  @Public()
+100:  @Post('logout')
+101:  @HttpCode(HttpStatus.OK)
+102:  @ApiOperation({ summary: 'Logout user' })
+103:  @ApiResponse({ status: 200, description: 'User successfully logged out' })
+104:  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+105:    const refreshToken = req.cookies['refreshToken'];
+106:    if (refreshToken) {
+107:      try {
+108:        await this.authService.logout(refreshToken);
+109:      } catch (e) {
+…
+111:      }
+112:    }
+…
+135:  }
+…
+372:}
+
+[Showing lines 1-108 of 372. Use :109 to continue]
+
+### region 25 (read, ~1274 tok)
+
+[backend/src/modules/auth/auth.service.ts#9143]
+54:  async register(registerDto: RegisterDto) {
+…
+89:    if (!defaultRole) {
+90:      throw new InternalServerErrorException('Hệ thống chưa thiết lập vai trò người chơi (PLAYER).');
+91:    }
+92:
+93:    const newUser = await this.authRepository.createUserWithProfile(
+94:      { email, passwordHash: hashedPassword },
+95:      { fullName: registerDto.fullName, userId: '' }, // userId will be populated in repository
+96:      defaultRole.id,
+97:    );
+98:
+99:    // Tạo userRanks mặc định (ELO 1000) cho tất cả category (bọc try/catch an toàn)
+100:    try {
+101:      await this.authRepository.createDefaultUserRanks(newUser.id);
+102:    } catch (err) {
+103:      this.logger.warn(`Không thể tạo userRank mặc định cho user ${newUser.id}: ${err.message}`);
+104:    }
+105:
+106:    await this.participantRankingConsentService.handleAccountAccess(
+107:      newUser.id,
+108:      email,
+109:      newUser.isMock === true,
+110:    );
+111:
+112:    delete (newUser as { passwordHash?: string | null }).passwordHash;
+113:    return newUser;
+114:  }
+115:
+116:  async login(loginDto: LoginDto, userAgent?: string, ipAddress?: string) {
+117:    const email = loginDto.email.toLowerCase().trim();
+118:    const user = await this.authRepository.findUserByEmail(email);
+119:    if (!user) {
+120:      throw new InvalidCredentialsException();
+121:    }
+122:
+123:    if (!user.passwordHash) {
+124:      throw new BadRequestException(
+125:        'Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.',
+126:      );
+127:    }
+128:
+129:    const isPasswordValid = await bcrypt.compare(
+130:      loginDto.password,
+131:      user.passwordHash,
+132:    );
+133:    if (!isPasswordValid) {
+134:      throw new InvalidCredentialsException();
+135:    }
+136:
+137:    await this.assertAccountCanAccess(user.id);
+138:
+139:    const roles = await this.authRepository.findUserRoles(user.id);
+140:
+141:    // Tạo userRanks mặc định nếu chưa có
+142:    await this.authRepository.createDefaultUserRanks(user.id);
+143:    await this.participantRankingConsentService.handleAccountAccess(
+144:      user.id,
+145:      user.email,
+146:      user.isMock === true,
+147:    );
+148:
+149:    return this.generateTokens(
+150:      user.id,
+151:      user.email,
+152:      roles,
+153:      userAgent,
+154:      ipAddress,
+155:      user.isEmailVerified,
+…
+157:    );
+158:  }
+…
+278:  async oauthLogin(
+…
+282:  ) {
+…
+294:    if (existingProvider) {
+…
+312:      const [existingUser] = await this.db
+…
+315:        .where(eq(schema.users.id, existingProvider.userId))
+316:        .limit(1);
+317:
+318:      // Đăng nhập bằng OAuth là đã chứng minh sở hữu email → tự động xác minh
+319:      // cho tài khoản liên kết từ trước (trước khi có logic auto-verify ở nhánh
+320:      // dưới), nếu không những tài khoản này bị kẹt "Chưa xác minh" vĩnh viễn.
+321:      // Bỏ qua email ảo @vndcsport.vn vì không phải email thật.
+322:      const isVirtualOAuthEmail = (oauthProfile.email || '').endsWith('@vndcsport.vn');
+323:      if (existingUser && !existingUser.isEmailVerified && !isVirtualOAuthEmail) {
+324:        await this.db.update(schema.users)
+325:          .set({ isEmailVerified: true })
+326:          .where(eq(schema.users.id, existingProvider.userId));
+327:        existingUser.isEmailVerified = true;
+328:      }
+329:      await this.participantRankingConsentService.handleAccountAccess(
+330:        existingProvider.userId,
+331:        oauthProfile.email || '',
+332:        existingUser?.isMock === true,
+333:      );
+334:
+335:      return this.generateTokens(
+336:        existingProvider.userId,
+337:        oauthProfile.email || '',
+338:        roles,
+339:        userAgent,
+340:        ipAddress,
+341:        existingUser?.isEmailVerified,
+342:        existingUser?.isMock,
+343:      );
+344:    }
+345:
+…
+445:    await this.authRepository.createAuthProvider({
+…
+450:      providerAvatarUrl: oauthProfile.avatarUrl,
+451:      providerDisplayName: oauthProfile.displayName,
+452:      accessToken: oauthProfile.accessToken,
+453:      refreshToken: oauthProfile.refreshToken,
+454:    });
+455:
+456:    // 5. Generate tokens. The existing-provider branch was checked above;
+457:    // this also covers an existing password account linked by OAuth.
+458:    await this.assertAccountCanAccess(user.id);
+459:    await this.participantRankingConsentService.handleAccountAccess(
+460:      user.id,
+461:      user.email,
+462:      user.isMock === true,
+463:    );
+464:    const roles = await this.authRepository.findUserRoles(user.id);
+465:    return this.generateTokens(
+466:      user.id,
+467:      user.email,
+468:      roles,
+469:      userAgent,
+470:      ipAddress,
+471:      user.isEmailVerified,
+472:      user.isMock,
+473:    );
+474:  }
+475:
+476:  private async assertAccountCanAccess(userId: string): Promise<void> {
+477:    if (await this.accountSanctionService.hasActiveAccessBan(userId)) {
+…
+479:    }
+480:  }
+
+### region 26 (read, ~1568 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#1BFF]
+57:@Injectable()
+58:export class ParticipantRankingConsentService {
+…
+67:  async sendConfirmation(
+68:    participantId: string,
+69:    recipientEmail: string,
+70:    participantName: string,
+71:    tournamentName: string,
+72:  ): Promise<boolean> {
+73:    const email = normalizedEmail(recipientEmail);
+74:    if (!email) return false;
+75:
+76:    try {
+77:      const token = jwt.sign(
+78:        { purpose: TOKEN_PURPOSE, participantId, email },
+79:        this.jwtSecret(),
+80:        { expiresIn: '7d' },
+81:      );
+82:      const frontendUrl = (
+83:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3101'
+84:      ).replace(/\/+$/, '');
+85:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+86:      const safeName = escapeHtml(participantName);
+87:      const safeTournamentName = escapeHtml(tournamentName);
+88:      const html = `
+89:        <p>Xin chào ${safeName},</p>
+90:        <p>Ban tổ chức đã ghi nhận bạn tham gia giải <strong>${safeTournamentName}</strong>.</p>
+91:        <p><strong>Bạn đã tham gia giải này chưa? Có phải bạn không?</strong></p>
+92:        <p>Chỉ khi bạn chủ động xác nhận, kết quả các trận đấu sau đó mới được tính vào bảng xếp hạng ELO. Trận đã diễn ra trước lúc xác nhận sẽ không được tính.</p>
+93:        <p><a href="${confirmUrl}">Xác nhận tôi đã tham gia</a></p>
+94:        <p>Nếu chưa có tài khoản, hãy đăng ký hoặc đăng nhập bằng email này trước khi xác nhận.</p>
+95:      `;
+96:
+97:      return await this.mailService.sendMail(
+98:        email,
+99:        `Xác nhận tham gia giải ${tournamentName}`,
+100:        html,
+101:      );
+102:    } catch {
+103:      this.logger.warn('Không gửi được email xác nhận consent ELO.');
+104:      return false;
+105:    }
+106:  }
+107:
+108:  async handleAccountAccess(userId: string, emailValue: string): Promise<number> {
+109:    const email = normalizedEmail(emailValue);
+110:    if (!email) return 0;
+111:
+112:    try {
+113:      const rows = await this.db
+114:        .select({
+115:          participantId: schema.tournamentParticipants.id,
+116:          participantName: schema.tournamentParticipants.teamName,
+117:          tournamentName: schema.tournaments.name,
+118:          customResponses: schema.tournamentParticipants.customResponses,
+119:        })
+120:        .from(schema.tournamentParticipants)
+121:        .innerJoin(
+122:          schema.tournaments,
+123:          eq(schema.tournamentParticipants.tournamentId, schema.tournaments.id),
+124:        )
+125:        .where(
+126:          and(
+127:            eq(schema.tournamentParticipants.rankingConsent, false),
+128:            eq(schema.tournamentParticipants.isMock, false),
+129:            or(
+130:              sql`lower(${schema.tournamentParticipants.customResponses}->>'player1Email') = ${email}`,
+131:              sql`lower(${schema.tournamentParticipants.customResponses}->>'player2Email') = ${email}`,
+132:            ),
+133:          ),
+134:        );
+135:
+136:      let notifiedCount = 0;
+137:      for (const row of rows) {
+138:        if (!participantEmails(row.customResponses).includes(email)) continue;
+139:        await this.linkRosterAccount(row.participantId, userId);
+140:        if (
+141:          await this.sendConfirmation(
+142:            row.participantId,
+143:            email,
+144:            row.participantName,
+145:            row.tournamentName,
+146:          )
+147:        ) {
+148:          notifiedCount += 1;
+149:        }
+150:      }
+151:      return notifiedCount;
+152:    } catch {
+153:      this.logger.warn('Không xử lý được email participant consent sau khi đăng nhập.');
+154:      return 0;
+155:    }
+156:  }
+157:
+158:  async confirm(token: string): Promise<{ confirmed: true }> {
+159:    let claims: ConsentToken;
+160:    try {
+…
+171:    } catch {
+…
+173:    }
+…
+175:    const email = normalizedEmail(claims.email);
+176:    if (!email) {
+177:      throw new BadRequestException('Email xác nhận không hợp lệ.');
+178:    }
+179:
+180:    const [participant] = await this.db
+181:      .select({
+182:        participantId: schema.tournamentParticipants.id,
+183:        rankingConsent: schema.tournamentParticipants.rankingConsent,
+184:        isMock: schema.tournamentParticipants.isMock,
+185:        customResponses: schema.tournamentParticipants.customResponses,
+186:      })
+187:      .from(schema.tournamentParticipants)
+188:      .where(eq(schema.tournamentParticipants.id, claims.participantId))
+189:      .limit(1);
+190:
+191:    if (
+192:      !participant ||
+193:      participant.isMock ||
+194:      !participantEmails(participant.customResponses).includes(email)
+195:    ) {
+196:      throw new BadRequestException('Không tìm thấy participant đăng ký bằng email này.');
+197:    }
+198:
+199:    const [user] = await this.db
+200:      .select({ id: schema.users.id })
+201:      .from(schema.users)
+202:      .where(sql`lower(${schema.users.email}) = ${email}`)
+203:      .limit(1);
+204:
+205:    if (!user) {
+206:      throw new BadRequestException(
+207:        'Vui lòng đăng ký hoặc đăng nhập bằng email này trước khi xác nhận.',
+208:      );
+209:    }
+210:
+211:    await this.linkRosterAccount(participant.participantId, user.id);
+212:    if (!participant.rankingConsent) {
+213:      await this.db
+214:        .update(schema.tournamentParticipants)
+215:        .set({ rankingConsent: true })
+216:        .where(eq(schema.tournamentParticipants.id, claims.participantId));
+217:    }
+218:
+219:    return { confirmed: true };
+220:  }
+221:
+222:  private async linkRosterAccount(participantId: string, userId: string): Promise<void> {
+223:    await this.db
+224:      .insert(schema.tournamentRosters)
+225:      .values({ participantId, userId, role: 'MAIN' })
+226:      .onConflictDoNothing();
+227:  }
+228:
+229:  private jwtSecret(): string {
+230:    const secret = this.configService.get<string>('auth.jwtAccessSecret');
+231:    if (!secret) throw new Error('JWT access secret is not configured');
+232:    return secret;
+233:  }
+234:}
+
+### region 27 (read, ~875 tok)
+
+.
+  - sitemap.ts             8.5KB     40m ago
+  - page.tsx               93.3KB    40m ago
+  - robots.ts              1.4KB     40m ago
+  - runtime-config/                  40m ago
+    - route.ts             554B      40m ago
+  - organizer/                       40m ago
+    - tournaments/                   40m ago
+    - series/                        40m ago
+    - page.tsx             225B      40m ago
+    - payouts/                       40m ago
+    - layout.tsx           5.7KB     40m ago
+  - moderation/                      40m ago
+    - change-requests/               40m ago
+    - communities/                   40m ago
+    - disputes/                      40m ago
+    - layout.tsx           6.9KB     40m ago
+    - page.tsx             7.4KB     40m ago
+    - reports/                       40m ago
+    - tournaments/                   40m ago
+    - verification/                  40m ago
+  - not-found.tsx          1.3KB     40m ago
+  - live/                            40m ago
+    - page.tsx             15.3KB    40m ago
+  - loading.tsx            518B      40m ago
+  - manifest.ts            1.1KB     40m ago
+  - lite/                            40m ago
+    - tournaments/                   40m ago
+  - globals.css            8.4KB     40m ago
+  - icon.png               54.3KB    40m ago
+  - layout.tsx             5.1KB     40m ago
+  - error.tsx              1.1KB     40m ago
+  - favicon.ico            54.3KB    40m ago
+  - fonts/                           40m ago
+    - InterVariable.woff2  344.0KB   40m ago
+  - communities/                     40m ago
+    - [id]/                          40m ago
+  - auth/                            40m ago
+    - callback/                      40m ago
+    - login/                         40m ago
+    - verify-email/                  40m ago
+  - api/                             40m ago
+    - config/                        40m ago
+  - apple-icon.png         54.3KB    40m ago
+  - admin/                           40m ago
+    - tournaments/                   40m ago
+    - transactions/                  40m ago
+    - verification/                  40m ago
+    - rankings/                      40m ago
+    - reports/                       40m ago
+    - support/                       40m ago
+    - layout.tsx           8.5KB     40m ago
+    - moderation/                    40m ago
+    - notifications/                 40m ago
+    - page.tsx             22.0KB    40m ago
+    - payouts/                       40m ago
+    - … 5 more
+    - disputes/                      40m ago
+  - (public)/                        40m ago
+    - users/                         40m ago
+    - tournaments/                   40m ago
+    - social/                        40m ago
+    - terms/                         40m ago
+    - series/                        40m ago
+    - s/                             40m ago
+    - privacy/                       40m ago
+    - register/                      40m ago
+    - reset-password/                40m ago
+    - matches/                       40m ago
+    - login/                         40m ago
+    - … 5 more
+    - communities/                   40m ago
+  - (player)/                        40m ago
+    - reports/                       40m ago
+    - profile/                       40m ago
+    - payments/                      40m ago
+    - football-teams/                40m ago
+    - notifications/                 40m ago
+    - chat/                          40m ago
+    - dashboard/                     40m ago
+
+### region 28 (grep, ~298 tok)
+
+# web/src/features/auth/
+## api.ts#1E51
+ 4:
+*5:export const authApi = {
+ 6:  register: <T>(data: T) => api.post<{ user: User }>('/auth/register', data),
+ 7:  login: <T>(data: T) => api.post<{ user: User }>('/auth/login', data),
+ 8:  logout: (data: { refreshToken: string }) => api.post<{ success: boolean }>('/auth/logout', data),
+
+## components/
+### LoginForm.tsx#55D5
+ 13:import toast from "react-hot-toast";
+*14:import { authApi } from "@/features/auth/api";
+ 15:import { useAuthStore } from "@/lib/zustand/authStore";
+ 16:
+ 17:import { getBaseUrl } from "@/lib/axios";
+...
+ 48:    try {
+*49:      const response = await authApi.login(data);
+ 50:      const user = response.user;
+ 51:
+ 52:      if (!user) {
+### RegisterForm.tsx#277F
+ 12:import toast from "react-hot-toast";
+*13:import { authApi } from "@/features/auth/api";
+ 14:import { getBaseUrl } from "@/lib/axios";
+ 15:import { getErrorMessage } from '@/utils/error';
+ 16:
+...
+ 51:      const { confirmPassword, ...registerData } = data;
+*52:      await authApi.register({
+ 53:        email: registerData.email,
+ 54:        password: registerData.password,
+ 55:        fullName: registerData.name, // Mapping 'name' to 'fullName'
+
+### region 29 (edit, ~169 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#D2BF]
+67:  async sendConfirmation(
+
+72:  ): Promise<boolean> {
+
+77:      const token = jwt.sign(
+
+80:        { expiresIn: '7d' },
+81:      );
+82:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'
+83:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+84:      const safeName = escapeHtml(participantName);
+104:  }
+105:
+106:  async handleAccountAccess(
+107:    userId: string,
+…
+110:  ): Promise<number> {
+111:    if (isMock) return 0;
+112:    const email = normalizedEmail(emailValue);
+113:    if (!email) return 0;
+
+159:  }
+
+### region 30 (read, ~546 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#D2BF]
+67:  async sendConfirmation(
+…
+72:  ): Promise<boolean> {
+…
+76:    try {
+77:      const token = jwt.sign(
+78:        { purpose: TOKEN_PURPOSE, participantId, email },
+79:        this.jwtSecret(),
+80:        { expiresIn: '7d' },
+81:      );
+82:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'
+83:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+84:      const safeName = escapeHtml(participantName);
+85:      const safeTournamentName = escapeHtml(tournamentName);
+86:      const html = `
+87:        <p>Xin chào ${safeName},</p>
+88:        <p>Ban tổ chức đã ghi nhận bạn tham gia giải <strong>${safeTournamentName}</strong>.</p>
+89:        <p><strong>Bạn đã tham gia giải này chưa? Có phải bạn không?</strong></p>
+90:        <p>Chỉ khi bạn chủ động xác nhận, kết quả các trận đấu sau đó mới được tính vào bảng xếp hạng ELO. Trận đã diễn ra trước lúc xác nhận sẽ không được tính.</p>
+91:        <p><a href="${confirmUrl}">Xác nhận tôi đã tham gia</a></p>
+92:        <p>Nếu chưa có tài khoản, hãy đăng ký hoặc đăng nhập bằng email này trước khi xác nhận.</p>
+93:      `;
+94:
+…
+100:    } catch {
+…
+103:    }
+104:  }
+105:
+106:  async handleAccountAccess(
+107:    userId: string,
+108:    emailValue: string,
+109:    isMock = false,
+110:  ): Promise<number> {
+111:    if (isMock) return 0;
+112:    const email = normalizedEmail(emailValue);
+113:    if (!email) return 0;
+114:
+115:    try {
+116:      const rows = await this.db
+117:        .select({
+118:          participantId: schema.tournamentParticipants.id,
+119:          participantName: schema.tournamentParticipants.teamName,
+120:          tournamentName: schema.tournaments.name,
+121:          customResponses: schema.tournamentParticipants.customResponses,
+122:        })
+123:        .from(schema.tournamentParticipants)
+124:        .innerJoin(
+…
+127:        )
+128:        .where(
+…
+137:        );
+…
+155:    } catch {
+…
+158:    }
+159:  }
+
+### region 31 (edit, ~115 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.ts#0745]
+77:      const token = jwt.sign(
+
+80:        { expiresIn: '7d' },
+81:      );
+82:      const frontendUrl = (
+83:        this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'
+84:      ).replace(/\/+$/, '');
+85:      const confirmUrl = `${frontendUrl}/tournaments/ranking-consent?token=${encodeURIComponent(token)}`;
+86:      const safeName = escapeHtml(participantName);
+
+### region 32 (read, ~286 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.spec.ts#AC2C]
+51:    const configService = {
+52:      get: jest.fn((key: string) =>
+53:        key === 'auth.jwtAccessSecret' ? 'test-secret' : 'http://localhost:3101',
+54:      ),
+55:    };
+56:    const service = new ParticipantRankingConsentService(
+57:      db as never,
+58:      configService as never,
+59:      mailService as never,
+60:    );
+61:
+62:    await service.handleAccountAccess(USER_ID, EMAIL);
+63:
+64:    expect(mailService.sendMail).toHaveBeenCalledWith(
+65:      EMAIL,
+66:      expect.stringContaining('xác nhận'),
+67:      expect.stringContaining('Có phải bạn không?'),
+68:    );
+69:    expect(insertValues).toEqual([
+70:      expect.objectContaining({ participantId: PARTICIPANT_ID, userId: USER_ID }),
+71:    ]);
+72:    expect(updateValues).toEqual([]);
+73:
+74:    const html = mailService.sendMail.mock.calls[0][2] as string;
+75:    const token = new URL(html.match(/href="([^"]+)"/)?.[1] ?? '').searchParams.get('token');
+76:    expect(token).toBeTruthy();
+77:
+78:    await service.confirm(token!);
+
+[Showing lines 52-78 of 117. Use :79 to continue]
+
+### region 33 (edit, ~68 tok)
+
+[backend/src/modules/auth/participant-ranking-consent.service.spec.ts#3543]
+64:    expect(mailService.sendMail).toHaveBeenCalledWith(
+65:      EMAIL,
+66:      expect.stringContaining('Xác nhận'),
+67:      expect.stringContaining('Có phải bạn không?'),
+68:    );
+
+### region 34 (write, ~42 tok)
+
+[backend/src/modules/auth/dto/confirm-participant-consent.dto.ts#90F8]
+Successfully wrote 287 bytes to backend/src/modules/auth/dto/confirm-participant-consent.dto.ts
+
+### region 35 (read, ~262 tok)
+
+[backend/src/modules/auth/auth.service.ts#9143]
+278:  async oauthLogin(
+…
+282:  ) {
+…
+465:    return this.generateTokens(
+…
+469:      userAgent,
+470:      ipAddress,
+471:      user.isEmailVerified,
+472:      user.isMock,
+473:    );
+474:  }
+475:
+476:  private async assertAccountCanAccess(userId: string): Promise<void> {
+477:    if (await this.accountSanctionService.hasActiveAccessBan(userId)) {
+478:      throw new ForbiddenException('Tài khoản của bạn đang bị hạn chế truy cập.');
+479:    }
+480:  }
+481:
+482:  private async generateTokens(
+483:    userId: string,
+484:    email: string,
+485:    roles: string[],
+486:    userAgent?: string,
+487:    ipAddress?: string,
+488:    isEmailVerified?: boolean,
+489:    isMock?: boolean,
+490:  ) {
+491:    const payload = {
+492:      sub: userId,
+493:      email,
+494:      roles,
+495:      jti: crypto.randomUUID(),
+496:      isEmailVerified: isEmailVerified ?? false,
+497:      isMock: isMock ?? false,
+498:    };
+…
+555:  }
+
+[Showing lines 469-498 of 992. Use :499 to continue]
+
+### region 36 (edit, ~112 tok)
+
+[backend/src/modules/auth/auth.service.ts#844D]
+476:  private async assertAccountCanAccess(userId: string): Promise<void> {
+477:    if (await this.accountSanctionService.hasActiveAccessBan(userId)) {
+
+479:    }
+480:  }
+481:  async confirmParticipantRankingConsent(token: string) {
+482:    return this.participantRankingConsentService.confirm(token);
+483:  }
+484:
+485:
+486:  private async generateTokens(
+487:    userId: string,
+
+494:  ) {
+
+559:  }
+
+### region 37 (edit, ~128 tok)
+
+[backend/src/modules/auth/auth.controller.ts#5CE9]
+19:import { RegisterDto } from './dto/register.dto';
+20:import { LoginDto } from './dto/login.dto';
+21:import { ConfirmParticipantConsentDto } from './dto/confirm-participant-consent.dto';
+22:
+23:import { Public } from '../../common/decorators/public.decorator';
+71:
+72:  @Public()
+73:  @UseGuards(new RateLimitGuard(10, 60000))
+74:  @Post('participant-ranking-consent/confirm')
+…
+81:
+82:  @Public()
+83:  @UseGuards(JwtRefreshAuthGuard)
+84:  @Post('refresh')

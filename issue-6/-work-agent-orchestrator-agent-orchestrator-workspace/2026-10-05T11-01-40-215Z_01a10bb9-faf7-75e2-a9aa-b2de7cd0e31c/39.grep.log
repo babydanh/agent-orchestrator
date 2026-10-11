@@ -1,0 +1,1044 @@
+# web/src/app/organizer/
+## layout.tsx
+ 57|          </div>
+*58|          <h2 className="text-xl font-bold text-slate-900">{translate('loginRequiredTitle')}</h2>
+*59|          <p className="mt-2 text-sm text-slate-500">{translate('loginRequiredDesc')}</p>
+ 60|          <div className="mt-6 flex justify-center gap-3">
+ 61|            <Link
+ 62|              href="/login"
+...
+ 64|            >
+*65|              {translate('loginAction')}
+ 66|              <ArrowRight className="h-4 w-4" />
+ 67|            </Link>
+ 68|          </div>
+...
+ 81|          </div>
+*82|          <h2 className="text-xl font-extrabold text-slate-900">{translate('roleOrganizerNotAssignedTitle')}</h2>
+ 83|          <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+*84|            {translate('roleOrganizerNotAssignedDesc')}
+ 85|          </p>
+ 86|          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+ 87|            <Link
+...
+ 91|              <Home className="h-4 w-4" />
+*92|              {translate('backToHomeAction')}
+ 93|            </Link>
+ 94|          </div>
+ 95|        </div>
+...
+ 107|          </div>
+*108|          <h2 className="text-xl font-extrabold text-slate-900">{translate('verificationBannerTitle')}</h2>
+ 109|          <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+*110|            {translate('roleOrganizerVerifyEmailFirstDesc')}
+ 111|          </p>
+ 112|          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+ 113|            <Link
+...
+ 116|            >
+*117|              {translate('upgradeToOrganizerAction')}
+ 118|              <ArrowRight className="h-4 w-4" />
+ 119|            </Link>
+ 120|            <Link
+...
+ 124|              <Home className="h-4 w-4" />
+*125|              {translate('backToHomeAction')}
+ 126|            </Link>
+ 127|          </div>
+ 128|        </div>
+
+## payouts/
+### page.tsx
+ 32|const createPayoutSchema = (translate: (key: string) => string) => z.object({
+*33|  tournamentId: z.string().min(1, translate('selectTournament')),
+*34|  amountRequested: z.number().min(10000, translate('minimumAmount')),
+*35|  bankName: z.string().min(2, translate('bankNameRequired')),
+*36|  bankAccountNumber: z.string().min(5, translate('bankAccountRequired')),
+*37|  bankAccountName: z.string().min(2, translate('accountHolderRequired')),
+ 38|});
+ 39|
+ 40|type PayoutFormValues = z.infer<ReturnType<typeof createPayoutSchema>>;
+...
+ 87|    if (!isOrg) {
+*88|      toast.error(translate('accessDenied'));
+ 89|      router.push('/dashboard');
+ 90|      return;
+ 91|    }
+...
+ 133|
+*134|      toast.success(translate('submitSuccess'));
+ 135|
+ 136|      // Update local state
+ 137|      setPayouts(prev => [newPayout, ...prev]);
+...
+ 152|        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+*153|        <p className="text-slate-500 font-medium">{translate('loadingHistory')}</p>
+ 154|      </div>
+ 155|    );
+ 156|  }
+...
+ 165|            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+*166|              <Landmark className="w-6 h-6 text-blue-600" /> {translate('pageTitle')}
+ 167|            </h1>
+*168|            <p className="text-slate-500 text-sm mt-1">{translate('pageDescription')}</p>
+ 169|          </div>
+ 170|
+ 171|          {!isOpenForm && tournaments.length > 0 && (
+...
+ 175|            >
+*176|              <PlusCircle className="w-4 h-4" /> {translate('requestWithdrawal')}
+ 177|            </Button>
+ 178|          )}
+ 179|        </div>
+...
+ 194|                >
+*195|                  <option value="">-- {translate('selectTournament')} --</option>
+ 196|                  {tournaments.map(t => (
+ 197|                    <option key={t.id} value={t.id}>{t.name}</option>
+ 198|                  ))}
+...
+ 204|                <div className="md:col-span-2 bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+*205|                  {translate('balanceHint')}
+ 206|                </div>
+ 207|              )}
+ 208|
+...
+ 248|                >
+*249|                  {translate('cancel')}
+ 250|                </Button>
+ 251|                <Button
+ 252|                  type="submit"
+...
+ 255|                >
+*256|                  {submitting ? translate('submitting') : translate('submit')}
+ 257|                </Button>
+ 258|              </div>
+ 259|            </form>
+...
+ 267|            <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">
+*268|              {translate('requestCount', { count: payouts.length })}
+ 269|            </span>
+ 270|          </div>
+ 271|
+...
+ 274|              <Wallet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+*275|              <p className="text-slate-500 font-semibold">{translate('empty')}</p>
+ 276|            </div>
+ 277|          ) : (
+ 278|            <div className="overflow-x-auto">
+...
+ 300|                        <td className="py-4 px-6 font-bold text-slate-800 max-w-[200px] truncate">
+*301|                          {p.tournament?.name || translate('unknownTournament')}
+ 302|                        </td>
+ 303|                        <td className="py-4 px-6 font-bold text-slate-900">
+ 304|                          {formatCurrency(Number(p.amountRequested))}
+
+## series/
+### page.tsx
+ 34|      } catch (err: unknown) {
+*35|        toast.error(seriesTranslate('loadError'));
+ 36|      } finally {
+ 37|        setIsLoading(false);
+ 38|      }
+...
+ 46|      case 'DRAFT':
+*47|        return <Badge className="bg-slate-100 text-slate-700 border-slate-200">{commonTranslate('statusDraft')}</Badge>;
+ 48|      case 'ACTIVE':
+*49|        return <Badge className="bg-blue-50 text-blue-700 border-blue-200">{seriesTranslate('active')}</Badge>;
+ 50|      case 'COMPLETED':
+*51|        return <Badge className="bg-purple-50 text-purple-700 border-purple-200">{seriesTranslate('completed')}</Badge>;
+ 52|      case 'CANCELLED':
+*53|        return <Badge className="bg-rose-50 text-rose-700 border-rose-200">{commonTranslate('statusCancelled')}</Badge>;
+ 54|      default:
+ 55|        return <Badge>{status}</Badge>;
+ 56|    }
+...
+ 63|          <LoadingSpinner className="w-10 h-10 text-blue-600 animate-spin" />
+*64|          <p className="text-slate-500 font-medium">{commonTranslate('loading')}</p>
+ 65|        </div>
+ 66|      </div>
+ 67|    );
+...
+ 76|          <div>
+*77|            <h1 className="text-3xl font-bold text-slate-900">{seriesTranslate('title')}</h1>
+*78|            <p className="text-slate-500 mt-1 font-medium">{seriesTranslate('description')}</p>
+ 79|          </div>
+ 80|          <Link href="/organizer/series/create">
+ 81|            <Button className="font-semibold flex items-center gap-2 px-5 py-2.5 shadow-md shadow-blue-500/20">
+*82|              <Plus className="w-5 h-5" /> {seriesTranslate('createAction')}
+ 83|            </Button>
+ 84|          </Link>
+ 85|        </div>
+...
+ 91|            </div>
+*92|            <h3 className="text-xl font-bold text-slate-900">{seriesTranslate('emptyTitle')}</h3>
+*93|            <p className="text-slate-500 mt-2 font-medium max-w-sm">{seriesTranslate('emptyHint')}</p>
+ 94|            <Link href="/organizer/series/create" className="mt-6">
+*95|              <Button className="px-6">{seriesTranslate('createFirstAction')}</Button>
+ 96|            </Link>
+ 97|          </div>
+ 98|        ) : (
+...
+ 127|                  <p className="text-slate-500 text-sm mt-2 line-clamp-2 h-10 font-medium">
+*128|                    {series.description || seriesTranslate('noDescription')}
+ 129|                  </p>
+ 130|
+ 131|                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-100 text-slate-500 text-xs font-semibold">
+...
+ 134|                      <span>
+*135|                        {series.startDate ? new Date(series.startDate).toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US') : seriesTranslate('notScheduled')}
+ 136|                      </span>
+ 137|                    </div>
+ 138|                    <div className="flex items-center gap-1.5 font-bold text-blue-600">
+ 139|                      <Layers className="w-4 h-4 text-blue-400" />
+*140|                      <span>{seriesTranslate('legCount', { count: series._count?.legs || 0 })}</span>
+ 141|                    </div>
+ 142|                  </div>
+ 143|                </div>
+...
+ 148|                    <Button variant="outline" className="w-full text-slate-700 border-slate-200 hover:bg-slate-100 flex items-center justify-center gap-1.5 font-bold">
+*149|                      <Settings className="w-4 h-4" /> {commonTranslate('configurationOverview')}
+ 150|                    </Button>
+ 151|                  </Link>
+ 152|                  <Link href={`/series/${series.slug}`} target="_blank" className="flex-1">
+ 153|                    <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 flex items-center justify-center gap-1.5 font-bold">
+*154|                      <Eye className="w-4 h-4" /> {opsTranslate('viewTournamentPage')}
+ 155|                    </Button>
+ 156|                  </Link>
+ 157|                </div>
+
+### [id]/manage/
+#### page.tsx
+ 66|    } catch (err: unknown) {
+*67|      toast.error(translate('loadError'));
+ 68|      router.push('/organizer/series');
+ 69|    } finally {
+ 70|      setIsLoading(false);
+...
+ 103|      setEditingLeg(null);
+*104|      setLegName(translate('defaultLegName', { count: legs.length + 1 }));
+ 105|      setLegOrder(legs.length + 1);
+ 106|      setLegStartDate('');
+ 107|      setLegEndDate('');
+...
+ 116|    if (!legName) {
+*117|      toast.error(translate('legNameRequired'));
+ 118|      return;
+ 119|    }
+ 120|
+...
+ 132|        await seriesApi.updateLeg(id, editingLeg.id, payload);
+*133|        toast.success(translate('updateLegSuccess'));
+ 134|      } else {
+ 135|        const newLeg = await seriesApi.createLeg(id, payload);
+*136|        toast.success(translate('createLegSuccess'));
+ 137|        setSelectedLegId(newLeg.id);
+ 138|      }
+ 139|      setIsLegModalOpen(false);
+...
+ 141|    } catch (err: unknown) {
+*142|      toast.error(getErrorMessage(err, translate('legActionError')));
+ 143|    }
+ 144|  };
+ 145|
+ 146|  const handleDeleteLeg = async (legId: string) => {
+*147|    if (!confirm(translate('deleteLegConfirm'))) return;
+ 148|    try {
+ 149|      await seriesApi.deleteLeg(id, legId);
+*150|      toast.success(translate('deleteLegSuccess'));
+ 151|      if (selectedLegId === legId) {
+ 152|        setSelectedLegId('');
+ 153|      }
+...
+ 155|    } catch (err: unknown) {
+*156|      toast.error(translate('deleteLegError'));
+ 157|    }
+ 158|  };
+ 159|
+...
+ 161|    if (legs.length === 0) {
+*162|      toast.error(translate('createLegFirst'));
+ 163|      return;
+ 164|    }
+ 165|
+...
+ 170|    if (available.length === 0) {
+*171|      toast.error(translate('noAvailableTournaments'));
+ 172|      return;
+ 173|    }
+ 174|
+...
+ 185|    if (!targetTournamentId || !selectedLegId) {
+*186|      toast.error(translate('validSelectionRequired'));
+ 187|      return;
+ 188|    }
+ 189|
+...
+ 198|
+*199|      toast.success(translate('linkSuccess'));
+ 200|      setIsLinkModalOpen(false);
+ 201|      fetchDetail();
+ 202|    } catch (err: unknown) {
+*203|      toast.error(getErrorMessage(err, translate('linkError')));
+ 204|    } finally {
+ 205|      setIsLinking(false);
+ 206|    }
+...
+ 209|  const handleUnlinkTournament = async (eventId: string) => {
+*210|    if (!confirm(translate('unlinkConfirm'))) return;
+ 211|    try {
+ 212|      await seriesApi.unlinkEvent(id, selectedLegId, eventId);
+*213|      toast.success(translate('unlinkSuccess'));
+ 214|      fetchDetail();
+ 215|    } catch (err: unknown) {
+*216|      toast.error(translate('unlinkError'));
+ 217|    }
+ 218|  };
+ 219|
+...
+ 224|          <LoadingSpinner className="w-10 h-10 text-blue-600 animate-spin" />
+*225|          <p className="text-slate-500 font-medium">{translate('loadingSeries')}</p>
+ 226|        </div>
+ 227|      </div>
+ 228|    );
+...
+ 243|        >
+*244|          <ArrowLeft className="w-4 h-4" /> {translate('backToSeries')}
+ 245|        </Link>
+ 246|
+ 247|        {/* Dashboard Header */}
+...
+ 254|              <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold uppercase border border-blue-100 tracking-wider">
+*255|                {translate('manageSeriesBadge')}
+ 256|              </span>
+ 257|              <h1 className="text-xl md:text-2xl font-bold text-slate-900 mt-1">{series.name}</h1>
+ 258|            </div>
+
+### create/
+#### page.tsx
+ 35|  const [exclusionScope, setExclusionScope] = useState<ExclusionScope>('CATEGORY');
+*36|  const [rulesDescription, setRulesDescription] = useState(translate('defaultRulesDescription'));
+ 37|
+ 38|  // Ranks points configuration
+ 39|  const [pointsByRank, setPointsByRank] = useState<Array<{ rank: number; points: number }>>([
+...
+ 62|    if (!name) {
+*63|      toast.error(translate('nameRequiredError'));
+ 64|      return;
+ 65|    }
+ 66|
+...
+ 97|      const res = await seriesApi.createSeries(payload);
+*98|      toast.success(translate('createSuccess'));
+ 99|      router.push(`/organizer/series/${res.id}/manage`);
+ 100|    } catch (err: unknown) {
+*101|      toast.error(getErrorMessage(err, translate('createError')));
+ 102|    } finally {
+ 103|      setIsSubmitting(false);
+ 104|    }
+...
+ 114|        >
+*115|          <ArrowLeft className="w-4 h-4" /> {translate('backToList')}
+ 116|        </Link>
+ 117|
+ 118|        {/* Header Title */}
+...
+ 126|          <div>
+*127|            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{translate('pageTitle')}</h1>
+*128|            <p className="text-xs text-slate-500 mt-0.5">{translate('pageDescription')}</p>
+ 129|          </div>
+ 130|        </div>
+ 131|
+...
+ 134|          <div className="bg-white p-6 md:p-8 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-6">
+*135|            <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">{translate('generalInfo')}</h2>
+ 136|
+ 137|            <div className="flex flex-col gap-1.5">
+*138|              <label className="text-xs font-bold text-slate-700">{translate('nameLabel')}</label>
+ 139|              <Input
+*140|                placeholder={translate('namePlaceholder')}
+ 141|                value={name}
+ 142|                onChange={(e) => setName(e.target.value)}
+ 143|                required
+...
+ 147|            <div className="flex flex-col gap-1.5">
+*148|              <label className="text-xs font-bold text-slate-700">{translate('descriptionLabel')}</label>
+ 149|              <textarea
+ 150|                rows={3}
+*151|                placeholder={translate('descriptionPlaceholder')}
+ 152|                value={description}
+ 153|                onChange={(e) => setDescription(e.target.value)}
+ 154|                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+...
+ 160|                <DateTimePicker
+*161|                  label={translate('startDateLabel')}
+ 162|                  value={startDate}
+ 163|                  onChange={setStartDate}
+ 164|                />
+...
+ 168|                <DateTimePicker
+*169|                  label={translate('endDateLabel')}
+ 170|                  value={endDate}
+ 171|                  onChange={setEndDate}
+ 172|                />
+...
+ 175|              <div className="flex flex-col gap-1.5">
+*176|                <label className="text-xs font-bold text-slate-700">{translate('prizeLabel')}</label>
+ 177|                <Input
+ 178|                  type="number"
+*179|                  placeholder={translate('prizePlaceholder')}
+ 180|                  value={totalPrize}
+ 181|                  onChange={(e) => setTotalPrize(e.target.value)}
+ 182|                />
+...
+ 187|              <div className="flex flex-col gap-1.5">
+*188|                <label className="text-xs font-bold text-slate-700">{translate('bannerLabel')}</label>
+ 189|                <Input
+*190|                  placeholder={translate('bannerPlaceholder')}
+ 191|                  value={bannerUrl}
+ 192|                  onChange={(e) => setBannerUrl(e.target.value)}
+ 193|                />
+...
+ 196|              <div className="flex flex-col gap-1.5">
+*197|                <label className="text-xs font-bold text-slate-700">{translate('logoLabel')}</label>
+ 198|                <Input
+*199|                  placeholder={translate('logoPlaceholder')}
+ 200|                  value={logoUrl}
+ 201|                  onChange={(e) => setLogoUrl(e.target.value)}
+ 202|                />
+
+## tournaments/[id]/manage/components/
+### BasicInfoTab.tsx
+ 120|    try {
+*121|      toast.loading(translate('uploadingLogo'), { id: 'logo-upload' });
+ 122|      const file = new File([croppedBlob], 'tournament_logo.png', { type: 'image/png' });
+ 123|      const res = await uploadApi.uploadImage(file);
+ 124|      if (res && res.url) {
+...
+ 129|        }
+*130|        toast.success(translate('logoUploaded'), { id: 'logo-upload' });
+ 131|        fetchTournamentData();
+ 132|      }
+ 133|    } catch (err) {
+...
+ 139|    if (!newContactValue.trim()) {
+*140|      toast.error(translate('contactValueRequired'));
+ 141|      return;
+ 142|    }
+ 143|    const finalKey = newContactType === 'custom' ? newContactLabel.trim() : newContactType;
+ 144|    if (!finalKey) {
+*145|      toast.error(translate('contactLabelRequired'));
+ 146|      return;
+ 147|    }
+ 148|    if (finalKey.toLowerCase() === 'phone' || finalKey.toLowerCase() === 'email') {
+*149|      toast.error(translate('contactDuplicatePhoneEmail'));
+ 150|      return;
+ 151|    }
+ 152|    setContactInfo({
+...
+ 157|    setNewContactLabel('');
+*158|    toast.success(translate('contactAdded'));
+ 159|  };
+ 160|
+ 161|  const handleRemoveContactLink = (key: string) => {
+...
+ 164|    setContactInfo(next);
+*165|    toast.success(translate('contactRemoved'));
+ 166|  };
+ 167|
+ 168|  const [isAddingGalleryImage, setIsAddingGalleryImage] = React.useState(false);
+...
+ 174|      await tournamentsApi.addTournamentGalleryImage(id, newGalleryUrl.trim());
+*175|      toast.success(translate('galleryUploaded'));
+ 176|      setNewGalleryUrl('');
+ 177|      fetchTournamentData();
+ 178|    } catch (err) {
+...
+ 185|  const handleRemoveGalleryImage = async (index: number) => {
+*186|    if (!confirm(translate('removeGalleryConfirm'))) return;
+ 187|    try {
+ 188|      await tournamentsApi.removeTournamentGalleryImage(id, index);
+*189|      toast.success(translate('galleryImageRemoved'));
+ 190|      fetchTournamentData();
+ 191|    } catch (err) {
+ 192|      toast.error(getErrorMessage(err));
+...
+ 198|      <div className="border-b pb-4">
+*199|        <h2 className="text-xl font-bold text-slate-900">{translate('title')}</h2>
+*200|        <p className="text-xs text-slate-450 mt-1 font-semibold">{translate('description')}</p>
+ 201|      </div>
+ 202|
+ 203|      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
+...
+ 216|            <Settings className="w-4 h-4" />
+*217|            <span>{translate('tabs.general')}</span>
+ 218|          </button>
+ 219|          <button
+ 220|            type="button"
+...
+ 229|            <ImageIcon className="w-4 h-4" />
+*230|            <span>{translate('tabs.branding')}</span>
+ 231|          </button>
+ 232|          <button
+ 233|            type="button"
+...
+ 242|            <Gift className="w-4 h-4" />
+*243|            <span>{translate('tabs.prizes')}</span>
+ 244|          </button>
+ 245|          <button
+ 246|            type="button"
+...
+ 255|            <Users className="w-4 h-4" />
+*256|            <span>{translate('tabs.contact')}</span>
+ 257|          </button>
+ 258|          <button
+ 259|            type="button"
+...
+ 267|            <Handshake className="w-4 h-4" />
+*268|            <span>{translate('tabs.sponsors')}</span>
+ 269|          </button>
+ 270|        </div>
+ 271|
+...
+ 276|              <div>
+*277|                <h3 className="font-bold text-slate-850 text-base">{translate('generalTitle')}</h3>
+*278|                <p className="text-xs text-slate-450 mt-0.5 font-semibold">{translate('generalDescription')}</p>
+ 279|              </div>
+ 280|
+ 281|              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+...
+ 283|                  data-testid="manage-tournament-name-input"
+*284|                  label={translate('tournamentName')}
+ 285|                  value={name}
+ 286|                  onChange={(e) => setName(e.target.value)}
+ 287|                />
+### BracketSetupModal.tsx
+ 179|  const modalSummary = bracketSetup.variant === 'GROUP_STAGE_KNOCKOUT'
+*180|    ? translate('compactGroupStageSummary', {
+ 181|        groups: bracketSetup.groups,
+ 182|        teams: bracketSetup.teamsPerGroup,
+ 183|        advancing: bracketSetup.teamsAdvancing,
+...
+ 186|    : bracketSetup.variant === 'ROUND_ROBIN'
+*187|      ? translate('compactRoundRobinSummary', { rounds: bracketSetup.roundsToPlay })
+*188|      : translate('compactKnockoutSummary', { count: bracketSetup.participantCount });
+ 189|
+ 190|  // Track team assignment: Map groupIndex (0, 1, 2...) -> Array of ParticipantItem
+ 191|  const [groupAssignments, setGroupAssignments] = useState<Record<number, ParticipantItem[]>>(() => {
+...
+ 409|                <ModalTitle className="text-lg font-bold text-slate-900 tracking-tight">
+*410|                  {translate('setupBracketModalTitle')}
+ 411|                </ModalTitle>
+ 412|                {selectedDivision?.name && (
+ 413|                  <span className="rounded-md bg-blue-100/80 px-2 py-0.5 text-xs font-bold text-blue-700">
+...
+ 433|                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+*434|                    {translate('visualDistributionPreviewTitle')}
+ 435|                  </h3>
+ 436|                </div>
+ 437|                <p className="text-xs text-slate-500 mt-0.5">
+*438|                  {translate('poolArrangementSubtitle')}
+ 439|                </p>
+ 440|              </div>
+ 441|
+...
+ 455|                    >
+*456|                      {opt} {translate('twoGroups').replace('2 ', '')}
+ 457|                    </button>
+ 458|                  ))}
+ 459|                </div>
+...
+ 468|                  <RefreshCw className="w-3 h-3 text-slate-500" />
+*469|                  <span>{translate('rearrange')}</span>
+ 470|                </Button>
+ 471|                <Button
+ 472|                  type="button"
+...
+ 478|                  <Shuffle className="w-3 h-3 text-blue-600" />
+*479|                  <span>{translate('randomize')}</span>
+ 480|                </Button>
+ 481|                <Button
+ 482|                  type="button"
+...
+ 488|                  <UserCheck className="w-3 h-3 text-emerald-600" />
+*489|                  <span>{translate('seedByElo')}</span>
+ 490|                </Button>
+ 491|              </div>
+ 492|            </div>
+...
+ 506|                      <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+*507|                        {translate('unassignedTeams', { count: unassignedTeams.length })}
+ 508|                      </h4>
+ 509|                    </div>
+ 510|                  </div>
+ 511|                  <p className="text-xs text-slate-400 mt-1 leading-snug">
+*512|                    {translate('unassignedDescription')}
+ 513|                  </p>
+ 514|                </div>
+ 515|
+...
+ 527|                          <span className="text-xs font-bold text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+*528|                            {translate('freeTag')}
+ 529|                          </span>
+ 530|                          <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500" />
+ 531|                        </div>
+...
+ 569|                        <span className={`font-bold text-xs ${color.title}`}>
+*570|                          {translate('groupName', { name: groupName })}
+ 571|                        </span>
+ 572|                        <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${color.badge}`}>
+*573|                          {assignedTeams.length} {translate('teamsCount', { count: assignedTeams.length }).replace(`${assignedTeams.length} `, '')}
+ 574|                        </span>
+ 575|                      </div>
+ 576|
+...
+ 609|                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+*610|                                title={translate('moveToUnassigned')}
+ 611|                              >
+ 612|                                <X className="w-3.5 h-3.5" />
+ 613|                              </button>
+...
+ 624|                          <Plus className="w-4 h-4 mb-0.5" />
+*625|                          <span className="text-xs font-semibold">{translate('dropHere')}</span>
+ 626|                        </div>
+ 627|                      </div>
+ 628|                    </div>
+...
+ 656|                <Loader2 className="w-4 h-4 animate-spin" />
+*657|                <span>{translate('initializing')}</span>
+ 658|              </>
+ 659|            ) : (
+ 660|              <>
+ 661|                <Sparkles className="w-4 h-4" />
+*662|                <span>{translate('confirmAndGenerateBracket')}</span>
+ 663|              </>
+ 664|            )}
+ 665|          </Button>
+### BracketTab.tsx
+ 230|    const fromEnd = totalRounds - 1 - roundIndex;
+*231|    if (fromEnd === 0) return translate('stageFinal');
+*232|    if (fromEnd === 1) return translate('stageSemifinal');
+*233|    if (fromEnd === 2) return translate('stageQuarterfinal');
+*234|    if (fromEnd === 3) return translate('roundOf', { round: 16 });
+*235|    if (fromEnd === 4) return translate('roundOf', { round: 32 });
+*236|    if (fromEnd === 5) return translate('roundOf', { round: 64 });
+*237|    return translate('roundOf', { round: 2 ** fromEnd });
+ 238|  };
+ 239|
+ 240|  const getKnockoutBracketSize = (teamCount: number) => {
+...
+ 289|          const name = round.isGrandFinal
+*290|? translate('stageFinal')
+ 291|            : getKnockoutRoundLabel(0, totalRounds, translate);
+ 292|          return {
+ 293|            stage,
+...
+ 437|    if (sourceMatch?.status?.toUpperCase() === 'COMPLETED' || targetMatch?.status?.toUpperCase() === 'COMPLETED') {
+*438|      toast(translate('bracketCompletedDragWarning'));
+ 439|    }
+ 440|
+ 441|    setParticipantOverrides(nextOverrides);
+...
+ 462|      }
+*463|      toast.success(translate('bracketSlotsSaved'));
+ 464|    } catch (error) {
+ 465|      setParticipantOverrides(previousOverrides);
+ 466|      setTrayParticipants(previousTray);
+*467|      toast.error(getErrorMessage(error) || translate('bracketSlotsSaveFailed'));
+ 468|    } finally {
+ 469|      setIsSavingBracketSlots(false);
+ 470|    }
+...
+ 545|    gskAdvancingTotal >= 32
+*546|      ? translate('roundOf', { round: 32 })
+ 547|      : gskAdvancingTotal >= 16
+*548|        ? translate('roundOf', { round: 16 })
+ 549|        : gskAdvancingTotal >= 8
+*550|          ? translate('stageQuarterfinal')
+ 551|          : gskAdvancingTotal >= 4
+*552|            ? translate('stageSemifinal')
+ 553|            : gskAdvancingTotal >= 2
+*554|              ? translate('stageFinal')
+*555|              : translate('roundInsufficientTeams');
+ 556|
+ 557|  // ─── Participant count for smart suggestions ───
+ 558|  const gskKnockoutBracketSize = getKnockoutBracketSize(gskAdvancingTotal);
+...
+ 561|    ? getKnockoutRoundLabel(0, gskKnockoutRoundCount, translate)
+*562|    : translate('roundInsufficientTeams');
+ 563|  const gskDraftStage: BracketStage = {
+ 564|    id: '__draft_gsk_knockout__',
+*565|    name: translate('draftKnockout'),
+ 566|    type: gskPlayoffType ?? 'SINGLE_ELIMINATION',
+ 567|    order: 2,
+ 568|    groups: [],
+...
+ 572|    id: '__draft_gsk_group__',
+*573|    name: translate('draftGroupStage'),
+ 574|    type: 'ROUND_ROBIN',
+ 575|    order: 1,
+ 576|    groups: [],
+### ConfigTab.tsx
+ 91|      <div className="flex items-center justify-between border-b pb-2 mb-4">
+*92|        <h2 className="text-xl font-bold text-slate-900">{translate('configurationTitle')}</h2>
+ 93|      </div>
+ 94|
+ 95|      {tournament.inviteCode && (
+...
+ 100|          <div className="space-y-2 text-center md:text-left flex-1">
+*101|            <h3 className="text-lg font-bold text-blue-900">{translate('inviteCodeTitle')}</h3>
+ 102|            <p className="text-sm text-blue-800 leading-relaxed">
+*103|              {translate('inviteCodeDescription', { code: tournament.inviteCode })}
+ 104|            </p>
+ 105|          </div>
+ 106|        </div>
+...
+ 111|          <div className="flex items-center justify-between">
+*112|            <label className="text-sm font-semibold text-slate-700">{translate('registrationLimit')}</label>
+ 113|            <input
+ 114|              type="checkbox"
+ 115|              checked={isLimitEnabled}
+...
+ 121|            <Input
+*122|              label={translate('maxRegistrationTeams')}
+ 123|              type="text"
+ 124|              inputMode="numeric"
+ 125|              pattern="[0-9]*"
+...
+ 132|          {!isLimitEnabled && (
+*133|            <p className="text-xs font-semibold text-slate-400 mt-2">{translate('unlimitedRegistration')}</p>
+ 134|          )}
+ 135|        </div>
+ 136|
+ 137|        <div className="flex flex-col gap-1.5 bg-slate-50 border p-4 rounded-lg">
+*138|          <label className="text-sm font-semibold text-slate-700">{translate('matchContent')}</label>
+ 139|          <select
+ 140|            value={matchType}
+ 141|            onChange={(e) => setMatchType(e.target.value)}
+...
+ 144|          >
+*145|            <option value="MALE_SINGLES">{translate('maleSingles')}</option>
+*146|            <option value="FEMALE_SINGLES">{translate('femaleSingles')}</option>
+*147|            <option value="MALE_DOUBLES">{translate('maleDoubles')}</option>
+*148|            <option value="FEMALE_DOUBLES">{translate('femaleDoubles')}</option>
+*149|            <option value="MIXED_DOUBLES">{translate('mixedDoubles')}</option>
+ 150|          </select>
+ 151|          {isRegistrationOpen && (
+ 152|            <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1">
+*153|              <span>⚠</span> {translate('cannotChangeContent')}
+ 154|            </p>
+ 155|          )}
+ 156|        </div>
+...
+ 158|        <div className="flex flex-col gap-1.5 bg-slate-50 border p-4 rounded-lg">
+*159|          <label className="text-sm font-semibold text-slate-700">{translate('formatTitle')}</label>
+ 160|          <select
+ 161|            value={bracketTypeState}
+ 162|            onChange={(e) => setBracketTypeState(e.target.value as 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION' | 'ROUND_ROBIN' | 'GROUP_STAGE_KNOCKOUT')}
+...
+ 165|          >
+*166|            <option value="SINGLE_ELIMINATION">{translate('singleEliminationFormat')}</option>
+*167|            <option value="DOUBLE_ELIMINATION">{translate('doubleEliminationFormat')}</option>
+*168|            <option value="ROUND_ROBIN">{translate('roundRobinFormat')}</option>
+*169|            <option value="GROUP_STAGE_KNOCKOUT">{translate('groupStagePlayoffFormat')}</option>
+ 170|          </select>
+ 171|          {isRegistrationOpen && (
+ 172|            <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1">
+*173|              <span>⚠</span> {translate('cannotChangeFormat')}
+ 174|            </p>
+ 175|          )}
+ 176|          {bracketTypeState === 'ROUND_ROBIN' && isLimitEnabled && maxParticipants > 15 && (
+...
+ 179|              <div className="text-xs text-amber-900 leading-relaxed font-medium">
+*180|                <strong className="font-bold text-amber-950">⚠️ {translate('registrationLimit')}:</strong> {translate('roundRobinWarning', { participants: maxParticipants })}
+ 181|              </div>
+ 182|            </div>
+ 183|          )}
+### CourtScheduleBoard.tsx
+ 4683|            role="region"
+*4684|            aria-label={t('matchSchedule.court')}
+ 4685|            tabIndex={0}
+ 4686|          >
+ 4687|            <div
+...
+ 5902|                      <Eye className="h-3.5 w-3.5 text-blue-600" aria-hidden="true" />
+*5903|                      {t('scorePreview')}
+ 5904|                    </span>
+ 5905|                    <ChevronDown
+ 5906|                      className={cn('h-3 w-3 text-blue-500 transition-transform', isScorePreviewOpen && 'rotate-180')}
+...
+ 5917|                        <p className="text-label-sm font-medium text-slate-500">
+*5918|                          {t('scoreBoardEmpty')}
+ 5919|                        </p>
+ 5920|                      ) : (
+ 5921|                        <table className="w-full table-fixed border-collapse text-label-sm">
+*5922|                          <caption className="sr-only">{t('scorePreview')}</caption>
+ 5923|                          <thead>
+ 5924|                            <tr>
+ 5925|                              <th scope="col" className="w-1/2 pb-1 text-left font-medium text-slate-500">
+...
+ 5933|                                >
+*5934|                                  {t('scoreBoardSet', { n: setIndex + 1 })}
+ 5935|                                </th>
+ 5936|                              ))}
+ 5937|                            </tr>
+...
+ 5972|                      <PenLine className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+*5973|                      {t('scoreEdit')}
+ 5974|                    </span>
+ 5975|                  </button>
+ 5976|
+### CourtSetup.tsx
+ 76|          <div className="flex items-center gap-2">
+*77|            <h3 id="court-setup-title" className="text-lg font-bold text-slate-900">{t('courtSetupTitle')}</h3>
+ 78|            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-extrabold text-blue-700">
+ 79|              {courts.length} sân
+ 80|            </span>
+ 81|          </div>
+*82|          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{t('courtSetupHint')}</p>
+ 83|        </div>
+ 84|        <MapPin className="hidden h-5 w-5 shrink-0 text-blue-600 sm:block" aria-hidden="true" />
+ 85|      </div>
+...
+ 89|          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+*90|          <p>{t('createVenueFirst')}</p>
+ 91|        </div>
+ 92|      ) : (
+ 93|        <>
+...
+ 172|              <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+*173|              {isSaving ? t('matchSchedule.saving') : 'Thêm sân'}
+ 174|            </Button>
+ 175|          </div>
+ 176|
+...
+ 182|          ) : (
+*183|            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-label={t('matchSchedule.court')}>
+ 184|              {courts.map((court, idx) => (
+ 185|                <div
+ 186|                  key={court.id}
+### CourtWorkspace.tsx
+ 274|            <h3 className="truncate text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+*275|              {venueName || t('venueNotSet')}
+ 276|            </h3>
+ 277|            <p className="text-xs text-slate-500 leading-tight">
+ 278|              Đã xếp <strong className="text-blue-700 font-bold">{scheduledMatchesCount}/{scopedMatches.length}</strong> trận
+...
+ 293|          >
+*294|            <option value="all">{t('allDivisions')}</option>
+ 295|            {divisionOptions.map((division) => (
+ 296|              <option key={division.id} value={division.id}>
+ 297|                {division.name}
+...
+ 310|            >
+*311|              <option value="all">{t('allStages')}</option>
+ 312|              {stageOptions.map((stage) => (
+ 313|                <option key={stage.id} value={stage.id}>
+ 314|                  {stage.name}
+...
+ 325|            >
+*326|              <option value="all">{usesLegFilter ? t('allLegs') : t('allRounds')}</option>
+ 327|              {roundOptions.map((round) => (
+ 328|                <option key={round} value={String(round)}>
+ 329|                  {roundLabel(round)}
+...
+ 344|            <LayoutGrid className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+*345|            {t('chooseCourts')} ({visibleCourts.length}/{courts.length})
+ 346|          </Button>
+ 347|          {/* The overlay already fills the screen, so expanding again would
+ 348|              only cover it with a second fullscreen shell. */}
+...
+ 428|          <ModalHeader>
+*429|            <ModalTitle className="text-base font-bold text-slate-900">{t('chooseCourts')}</ModalTitle>
+*430|            <ModalDescription className="text-xs text-slate-500">{t('selectedCourtsHint')}</ModalDescription>
+ 431|          </ModalHeader>
+ 432|          <div className="grid gap-2 sm:grid-cols-2 py-2">
+ 433|            {courts.map((court) => {
+...
+ 457|          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+*458|            <span>{t('selectedCourtCount', { count: visibleCourts.length })}</span>
+ 459|            <button
+ 460|              type="button"
+ 461|              onClick={() => setSelectedCourtIds(allCourtsSelected ? [] : courts.map((court) => court.id))}
+...
+ 463|            >
+*464|              {allCourtsSelected ? t('clearAllCourts') : t('selectAllCourts')}
+ 465|            </button>
+ 466|          </div>
+ 467|          <ModalFooter className="pt-3">
+...
+ 469|              <Button type="button" variant="outline" className="h-8 rounded-lg text-xs font-semibold border-slate-300">
+*470|                {t('close')}
+ 471|              </Button>
+ 472|            </ModalClose>
+ 473|            <ModalClose asChild>
+...
+ 478|              >
+*479|                {t('applyCourtSelection')}
+ 480|              </Button>
+ 481|            </ModalClose>
+ 482|          </ModalFooter>
+### CreateDivisionModal.tsx
+ 160|          <ModalTitle className="text-lg font-bold">
+*161|            {editingDivision ? translate('createDivision.editTitle') : translate('createDivision.addTitle')}
+ 162|          </ModalTitle>
+ 163|        </ModalHeader>
+ 164|
+...
+ 180|                <Settings className="h-4 w-4 text-blue-600" aria-hidden="true" />
+*181|                <h3 id="division-rules-label" className="text-sm font-bold text-slate-900">{translate('createDivision.rulesSummary')}</h3>
+ 182|              </div>
+ 183|              <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-blue-700 shadow-sm">
+*184|                {newDivisionIsLiteMode ? translate('createDivision.liteLabel') : translate('createDivision.standardLabel')}
+ 185|              </span>
+ 186|            </div>
+ 187|
+...
+ 200|              >
+*201|                <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-amber-500" />{translate('createDivision.liteLabel')}</span>
+*202|                <span className="mt-1 block text-xs font-normal text-slate-500">{ruleTranslate('liteShortDesc')}</span>
+ 203|              </button>
+ 204|              <button
+ 205|                type="button"
+...
+ 215|              >
+*216|                <span className="flex items-center gap-1.5"><Settings className="h-3.5 w-3.5 text-slate-500" />{translate('createDivision.standardLabel')}</span>
+*217|                <span className="mt-1 block text-xs font-normal text-slate-500">{ruleTranslate('strictShortDesc')}</span>
+ 218|              </button>
+ 219|            </div>
+ 220|
+...
+ 298|            <Button variant="outline" onClick={onCancel} disabled={isCreatingDivision}>
+*299|              {translate('createDivision.cancel')}
+ 300|            </Button>
+ 301|            <Button onClick={onSubmit} disabled={isCreatingDivision} className="bg-blue-600 px-4 text-white hover:bg-blue-700">
+ 302|              {isCreatingDivision ? <Loader2 className="h-4 w-4 animate-spin" /> : editingDivision ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+*303|              {editingDivision ? translate('createDivision.saveChanges') : translate('createDivision.add')}
+ 304|            </Button>
+ 305|          </div>
+ 306|        </div>
+### CreateVenueModal.tsx
+ 179|              <div>
+*180|                <p className="text-xs font-bold text-slate-800">{translate('savedVenueTitle')}</p>
+*181|                <p className="mt-0.5 text-xs text-slate-500">{translate('savedVenueHint')}</p>
+ 182|              </div>
+ 183|              <select
+ 184|                value={selectedExistingVenueId}
+...
+ 187|              >
+*188|                <option value="">{translate('savedVenuePlaceholder')}</option>
+ 189|                {availableVenues.map((venue) => (
+ 190|                  <option key={venue.id} value={venue.id}>
+ 191|                    {venue.name} — {venue.locationAddress || 'Chưa có địa chỉ'}
+...
+ 201|                >
+*202|                  {isAttachingExisting ? translate('attachingSavedVenue') : translate('attachSavedVenue')}
+ 203|                </Button>
+ 204|              )}
+ 205|            </div>
+### DivisionConstraintsSection.tsx
+ 49|          <input id="division-limit" type="checkbox" checked={limitEnabled} onChange={(event) => setLimitEnabled(event.target.checked)} disabled={isCreating} className="h-4 w-4 accent-blue-600" />
+*50|          {translate('createDivision.participantLimitShort')}
+ 51|        </label>
+ 52|        {limitEnabled && (
+*53|          <input aria-label={translate('createDivision.maxCount')} type="text" inputMode="numeric" pattern="[0-9]*" value={maxParticipants} onChange={(event) => setMaxParticipants(event.target.value.replace(/[^0-9]/g, '').slice(0, 3))} onBlur={() => { const parsed = Number(maxParticipants); const normalized = Number.isFinite(parsed) && parsed > 0 ? Math.min(128, Math.max(2, parsed)) : 2; setMaxParticipants(String(normalized)); }} disabled={isCreating} className="w-16 rounded-md border border-slate-200 bg...
+ 54|        )}
+ 55|      </div>
+ 56|
+...
+ 59|          <input id="division-elo" type="checkbox" checked={eloEnabled} onChange={(event) => setEloEnabled(event.target.checked)} disabled={isCreating} className="h-4 w-4 accent-blue-600" />
+*60|          {translate('createDivision.eloLimitShort')}
+ 61|        </label>
+ 62|        {eloEnabled && (
+ 63|          <div className="mt-2 grid grid-cols-2 gap-2">
+*64|            <input aria-label={translate('createDivision.minElo')} type="number" min={0} max={3000} value={minElo ?? ''} onChange={(event) => setMinElo(event.target.value === '' ? null : Number(event.target.value))} disabled={isCreating} placeholder={translate('createDivision.noLimit')} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+*65|            <input aria-label={translate('createDivision.maxElo')} type="number" min={0} max={3000} value={maxElo ?? ''} onChange={(event) => setMaxElo(event.target.value === '' ? null : Number(event.target.value))} disabled={isCreating} placeholder={translate('createDivision.noLimit')} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+ 66|          </div>
+ 67|        )}
+ 68|      </div>
+...
+ 72|          <input id="division-entry-fee-override" type="checkbox" checked={entryFeeOverrideEnabled} onChange={(event) => setEntryFeeOverrideEnabled(event.target.checked)} disabled={isCreating} className="h-4 w-4 accent-blue-600" />
+*73|          {translate('createDivision.entryFeeOverrideShort')}
+ 74|        </label>
+ 75|        {entryFeeOverrideEnabled ? (
+*76|          <input aria-label={translate('createDivision.entryFeeOverrideShort')} type="text" inputMode="numeric" value={entryFee} onChange={(event) => setEntryFee(event.target.value.replace(/[^0-9]/g, '').slice(0, 12))} disabled={isCreating} placeholder={translate('createDivision.entryFeeOverridePlaceholder')} className="mt-2 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+ 77|        ) : (
+*78|          <p className="mt-2 text-xs leading-tight text-slate-500">{translate('createDivision.entryFeeOverrideHint')}</p>
+ 79|        )}
+ 80|      </div>
+ 81|    </div>
+### DivisionGroupStageSettings.tsx
+ 57|        <div className="mb-2 flex items-center justify-between gap-2">
+*58|          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-800">{translate('createDivision.stage1Short')}</h4>
+*59|          <span className="text-xs font-semibold text-slate-500">{translate('createDivision.configuredTeams', { count: numGroups * teamsPerGroup })}</span>
+ 60|        </div>
+ 61|        <div className="grid flex-1 grid-cols-2 items-stretch gap-2 sm:grid-cols-4">
+ 62|          <label className="flex min-h-[68px] flex-col rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-600">
+*63|            {ruleTranslate('numberOfGroups')}
+ 64|            <input type="number" min={2} max={32} value={numGroups} onChange={(event) => updateNumber(event.target.value, setNumGroups, 2, 32)} disabled={isCreating} className="mt-auto w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+ 65|          </label>
+ 66|          <label className="flex min-h-[68px] flex-col rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-600">
+*67|            {ruleTranslate('groupStageRounds')}
+ 68|            <input
+ 69|              type="number"
+ 70|              min={1}
+...
+ 81|          <label className="flex min-h-[68px] flex-col rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-600">
+*82|            {ruleTranslate('teamsPerGroup')}
+ 83|            <input
+ 84|              type="number"
+ 85|              min={2}
+...
+ 97|          <label className="flex min-h-[68px] flex-col rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs font-semibold text-slate-600">
+*98|            {ruleTranslate('teamsAdvancing')}
+ 99|            <input type="number" min={1} max={Math.max(1, teamsPerGroup - 1)} value={teamsAdvancing} onChange={(event) => updateNumber(event.target.value, setTeamsAdvancing, 1, Math.max(1, teamsPerGroup - 1))} disabled={isCreating} className="mt-auto w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+ 100|          </label>
+ 101|        </div>
+*102|        <p className="mt-2 text-xs font-semibold text-blue-700">{translate('createDivision.advanceSummary', { groups: numGroups, advancing: teamsAdvancing, total: advancingTotal })}</p>
+ 103|        {quickSuggestion && (
+ 104|          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-blue-50 px-2.5 py-2">
+*105|            <span className="text-xs font-semibold text-blue-800">{translate('createDivision.quickSuggestion', { groups: quickSuggestion.groups ?? 0, teams: quickSuggestion.teamsPerGroup ?? 0, advancing: quickSuggestion.teamsAdvancing ?? 0 })}</span>
+ 106|            <button type="button" onClick={() => { if (quickSuggestion.groups) setNumGroups(quickSuggestion.groups); if (quickSuggestion.teamsPerGroup) setTeamsPerGroup(quickSuggestion.teamsPerGroup); if (quickSuggestion.teamsAdvancing) setTeamsAdvancing(quickSuggestion.teamsAdvancing); }} disabled={isCreating} className="rounded-md bg-blue-600 px-2 py-1 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50">
+*107|              {translate('createDivision.applySuggestion')}
+ 108|            </button>
+ 109|          </div>
+ 110|        )}
+...
+ 114|        <div className="mb-2 flex items-center justify-between gap-2">
+*115|          <h4 className="text-xs font-bold uppercase tracking-wide text-slate-800">{translate('createDivision.stage2Short')}</h4>
+*116|          <span className="text-xs font-semibold text-slate-500">{translate('createDivision.configuredTeams', { count: advancingTotal })}</span>
+ 117|        </div>
+ 118|        <div className="flex flex-1 flex-col justify-between gap-2">
+ 119|          <div>
+*120|            <span className="mb-1 block text-xs font-semibold text-slate-500">{ruleTranslate('playoffFormat')}</span>
+ 121|            <div className="grid grid-cols-2 gap-2">
+ 122|              {([
+*123|                ['SINGLE_ELIMINATION', ruleTranslate('singleElimination')],
+*124|                ['DOUBLE_ELIMINATION', ruleTranslate('doubleElimination')],
+ 125|              ] as const).map(([value, label]) => (
+ 126|                <button key={value} type="button" aria-pressed={playoffType === value} onClick={() => setPlayoffType(value)} disabled={isCreating} className={cn('rounded-lg border px-2.5 py-2 text-left text-xs font-bold transition-colors', playoffType === value ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-slate-200 text-slate-600 hover:border-amber-300')}>
+ 127|                  {label}
+...
+ 132|          <div>
+*133|            <span className="mb-1 block text-xs font-semibold text-slate-500">{ruleTranslate('seedingType')}</span>
+ 134|            <div className="grid grid-cols-2 gap-2">
+ 135|              {([
+*136|                ['SEEDED', ruleTranslate('seededByElo')],
+*137|                ['RANDOM', ruleTranslate('randomSeeding')],
+ 138|              ] as const).map(([value, label]) => (
+ 139|                <button key={value} type="button" aria-pressed={seedingType === value} onClick={() => setSeedingType(value)} disabled={isCreating} className={cn('flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-left text-xs font-bold transition-colors', seedingType === value ? 'border-amber-500 bg-amber-50 text-amber-800' : 'border-slate-200 text-slate-600 hover:border-amber-300')}>
+ 140|                  {value === 'RANDOM' ? <Shuffle className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+### DivisionIdentitySection.tsx
+ 59|      <section aria-labelledby="division-type-label">
+*60|        <h3 id="division-type-label" className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{translate('createDivision.typeLabel')}</h3>
+*61|        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label={translate('createDivision.typeLabel')}>
+ 62|          {availableMatchFormatOptions.map((option) => {
+ 63|            const Icon = getEventIcon(option.value);
+ 64|            const selected = matchType === option.value;
+...
+ 75|      <div>
+*76|        <label htmlFor="division-custom-name" className="mb-1.5 block text-xs font-bold text-slate-500">{translate('createDivision.nameShort')}</label>
+*77|        <input id="division-custom-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={translate('createDivision.namePlaceholder')} maxLength={255} disabled={isCreating} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+ 78|      </div>
+ 79|
+ 80|      <section aria-labelledby="division-bracket-label">

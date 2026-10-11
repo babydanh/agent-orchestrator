@@ -1,0 +1,820 @@
+$ node --env-file-if-exists=.env.playwright node_modules/@playwright/test/cli.js test -- test/e2e/registration-session-bootstrap.spec.ts -g 'registered payment visibility follows its fee snapshot' --workers=1
+.env.playwright not found. Continuing without it.
+
+Running 169 tests using 1 worker
+
+.env.playwright not found. Continuing without it.
+(node:14943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    1 [chromium] › test/e2e/admin-cursor-pagination.spec.ts:6:3 › Admin user cursor pagination › replaces Xem thêm with cursor page navigation (2ms)
+.env.playwright not found. Continuing without it.
+(node:14958) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    2 [chromium] › test/e2e/admin-cursor-pagination.spec.ts:6:3 › Admin user cursor pagination › replaces Xem thêm with cursor page navigation (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:14970) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    3 [chromium] › test/e2e/admin-cursor-pagination.spec.ts:6:3 › Admin user cursor pagination › replaces Xem thêm with cursor page navigation (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:14982) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    4 [chromium] › test/e2e/club-match-session-contract.spec.ts:8:1 › club match consumer unwraps detail and cursor envelopes (7ms)
+  ✘    5 [chromium] › test/e2e/court-camera-live-controls.spec.ts:682:1 › T-01 visibility toggle renders only for a match with a playback stream (1ms)
+.env.playwright not found. Continuing without it.
+(node:14994) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    6 [chromium] › test/e2e/court-camera-live-controls.spec.ts:682:1 › T-01 visibility toggle renders only for a match with a playback stream (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15009) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    7 [chromium] › test/e2e/court-camera-live-controls.spec.ts:682:1 › T-01 visibility toggle renders only for a match with a playback stream (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    8 [chromium] › test/e2e/court-camera-live-controls.spec.ts:723:1 › T-02 court selector places one match by keyboard, agrees with drag, confirms a clash and clears (2ms)
+.env.playwright not found. Continuing without it.
+(node:15033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘    9 [chromium] › test/e2e/court-camera-live-controls.spec.ts:723:1 › T-02 court selector places one match by keyboard, agrees with drag, confirms a clash and clears (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15045) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   10 [chromium] › test/e2e/court-camera-live-controls.spec.ts:723:1 › T-02 court selector places one match by keyboard, agrees with drag, confirms a clash and clears (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15057) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   11 [chromium] › test/e2e/court-camera-live-controls.spec.ts:835:1 › T-03 collapse unmounts the player, announces it locally and requests nothing (3ms)
+.env.playwright not found. Continuing without it.
+(node:15069) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   12 [chromium] › test/e2e/court-camera-live-controls.spec.ts:835:1 › T-03 collapse unmounts the player, announces it locally and requests nothing (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   13 [chromium] › test/e2e/court-camera-live-controls.spec.ts:835:1 › T-03 collapse unmounts the player, announces it locally and requests nothing (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15093) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   14 [chromium] › test/e2e/court-camera-live-controls.spec.ts:896:1 › T-04 an in-flight court change drops the second one and a failure rolls back (3ms)
+.env.playwright not found. Continuing without it.
+(node:15105) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   15 [chromium] › test/e2e/court-camera-live-controls.spec.ts:896:1 › T-04 an in-flight court change drops the second one and a failure rolls back (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15117) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   16 [chromium] › test/e2e/court-camera-live-controls.spec.ts:896:1 › T-04 an in-flight court change drops the second one and a failure rolls back (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15129) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   17 [chromium] › test/e2e/court-camera-live-controls.spec.ts:983:1 › T-05 route reuse suppresses stale playback and resets visibility on every match transition (3ms)
+.env.playwright not found. Continuing without it.
+(node:15141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   18 [chromium] › test/e2e/court-camera-live-controls.spec.ts:983:1 › T-05 route reuse suppresses stale playback and resets visibility on every match transition (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   19 [chromium] › test/e2e/court-camera-live-controls.spec.ts:983:1 › T-05 route reuse suppresses stale playback and resets visibility on every match transition (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   20 [chromium] › test/e2e/court-camera-live-controls.spec.ts:1064:1 › T-06 court board layout omits the control without courts and fits 360px with it (3ms)
+.env.playwright not found. Continuing without it.
+(node:15177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   21 [chromium] › test/e2e/court-camera-live-controls.spec.ts:1064:1 › T-06 court board layout omits the control without courts and fits 360px with it (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15189) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   22 [chromium] › test/e2e/court-camera-live-controls.spec.ts:1064:1 › T-06 court board layout omits the control without courts and fits 360px with it (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15201) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   23 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #1 (Vận động viên 1) (3ms)
+  -   24 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #2 (Vận động viên 2)
+  -   25 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #3 (Vận động viên 3)
+.env.playwright not found. Continuing without it.
+(node:15213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   26 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #1 (Vận động viên 1) (retry #1) (3ms)
+  -   27 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #2 (Vận động viên 2) (retry #1)
+  -   28 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #3 (Vận động viên 3) (retry #1)
+.env.playwright not found. Continuing without it.
+(node:15225) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   29 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #1 (Vận động viên 1) (retry #2) (2ms)
+  -   30 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #2 (Vận động viên 2) (retry #2)
+  -   31 [chromium] › test/e2e/create-players.spec.ts:36:5 › Register 3 user accounts automation flow › Register and verify user account #3 (Vận động viên 3) (retry #2)
+.env.playwright not found. Continuing without it.
+(node:15237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   32 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › DOUBLES invite join requires and submits a normalized team name (2ms)
+.env.playwright not found. Continuing without it.
+(node:15249) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   33 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › DOUBLES invite join requires and submits a normalized team name (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   34 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › DOUBLES invite join requires and submits a normalized team name (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   35 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › MIXED_DOUBLES invite join requires and submits a normalized team name (3ms)
+.env.playwright not found. Continuing without it.
+(node:15285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   36 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › MIXED_DOUBLES invite join requires and submits a normalized team name (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15297) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   37 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:93:3 › MIXED_DOUBLES invite join requires and submits a normalized team name (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   38 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:118:1 › team-sport invite join keeps and normalizes the team-name field (3ms)
+.env.playwright not found. Continuing without it.
+(node:15324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   39 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:118:1 › team-sport invite join keeps and normalizes the team-name field (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   40 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:118:1 › team-sport invite join keeps and normalizes the team-name field (retry #2) (5ms)
+.env.playwright not found. Continuing without it.
+(node:15348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   41 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_APPROVAL status (2ms)
+.env.playwright not found. Continuing without it.
+(node:15360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   42 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_APPROVAL status (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   43 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_APPROVAL status (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15384) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   44 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows COMPLETE status (5ms)
+.env.playwright not found. Continuing without it.
+(node:15396) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   45 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows COMPLETE status (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   46 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows COMPLETE status (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   47 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_PARTNER status (3ms)
+.env.playwright not found. Continuing without it.
+(node:15432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   48 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_PARTNER status (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   49 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows PENDING_PARTNER status (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15456) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   50 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows WAITLISTED status (3ms)
+.env.playwright not found. Continuing without it.
+(node:15468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   51 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows WAITLISTED status (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   52 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:324:3 › doubles registration shows WAITLISTED status (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15492) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   53 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:346:1 › restores pending registration when its saved division is unassigned (3ms)
+.env.playwright not found. Continuing without it.
+(node:15504) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   54 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:346:1 › restores pending registration when its saved division is unassigned (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   55 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:346:1 › restores pending registration when its saved division is unassigned (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   56 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:372:1 › restores a pending application from a non-default division after delayed division loading (3ms)
+.env.playwright not found. Continuing without it.
+(node:15540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   57 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:372:1 › restores a pending application from a non-default division after delayed division loading (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   58 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:372:1 › restores a pending application from a non-default division after delayed division loading (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   59 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:408:1 › approved organizer entries remain in the BTC queue when default mode is self-invite (2ms)
+.env.playwright not found. Continuing without it.
+(node:15577) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   60 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:408:1 › approved organizer entries remain in the BTC queue when default mode is self-invite (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15589) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   61 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:408:1 › approved organizer entries remain in the BTC queue when default mode is self-invite (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15601) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   62 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:421:1 › approval-mode organizer pairing waits for approval, then displays both players after pairing (2ms)
+.env.playwright not found. Continuing without it.
+(node:15613) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   63 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:421:1 › approval-mode organizer pairing waits for approval, then displays both players after pairing (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15625) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   64 [chromium] › test/e2e/doubles-invite-name-pairing.spec.ts:421:1 › approval-mode organizer pairing waits for approval, then displays both players after pairing (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15637) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   65 [chromium] › test/e2e/entity-brand-avatar.spec.ts:241:1 › fallback candidate state survives equivalent array props and resets when URLs change (8ms)
+  ✘   66 [chromium] › test/e2e/entity-brand-avatar.spec.ts:257:1 › homepage match group keeps a fitted semi-bold title without enlarging compact badges (2ms)
+.env.playwright not found. Continuing without it.
+(node:15649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   67 [chromium] › test/e2e/entity-brand-avatar.spec.ts:257:1 › homepage match group keeps a fitted semi-bold title without enlarging compact badges (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15661) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   68 [chromium] › test/e2e/entity-brand-avatar.spec.ts:257:1 › homepage match group keeps a fitted semi-bold title without enlarging compact badges (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15673) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   69 [chromium] › test/e2e/entity-brand-avatar.spec.ts:269:1 › homepage athlete profile name uses body-md typography and stays on one line (3ms)
+.env.playwright not found. Continuing without it.
+(node:15685) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   70 [chromium] › test/e2e/entity-brand-avatar.spec.ts:269:1 › homepage athlete profile name uses body-md typography and stays on one line (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15697) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   71 [chromium] › test/e2e/entity-brand-avatar.spec.ts:269:1 › homepage athlete profile name uses body-md typography and stays on one line (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15709) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   72 [chromium] › test/e2e/entity-brand-avatar.spec.ts:304:1 › homepage tournament avatar advances from a failed logo to the banner (2ms)
+.env.playwright not found. Continuing without it.
+(node:15721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   73 [chromium] › test/e2e/entity-brand-avatar.spec.ts:304:1 › homepage tournament avatar advances from a failed logo to the banner (retry #1) (4ms)
+.env.playwright not found. Continuing without it.
+(node:15733) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   74 [chromium] › test/e2e/entity-brand-avatar.spec.ts:304:1 › homepage tournament avatar advances from a failed logo to the banner (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15745) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   75 [chromium] › test/e2e/entity-brand-avatar.spec.ts:314:1 › homepage tournament avatar uses the SportO asset when logo and banner are missing (2ms)
+.env.playwright not found. Continuing without it.
+(node:15757) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   76 [chromium] › test/e2e/entity-brand-avatar.spec.ts:314:1 › homepage tournament avatar uses the SportO asset when logo and banner are missing (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15769) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   77 [chromium] › test/e2e/entity-brand-avatar.spec.ts:314:1 › homepage tournament avatar uses the SportO asset when logo and banner are missing (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15781) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   78 [chromium] › test/e2e/entity-brand-avatar.spec.ts:320:1 › homepage tournament avatar advances from a broken banner to the SportO asset (2ms)
+.env.playwright not found. Continuing without it.
+(node:15793) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   79 [chromium] › test/e2e/entity-brand-avatar.spec.ts:320:1 › homepage tournament avatar advances from a broken banner to the SportO asset (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   80 [chromium] › test/e2e/entity-brand-avatar.spec.ts:320:1 › homepage tournament avatar advances from a broken banner to the SportO asset (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15817) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   81 [chromium] › test/e2e/entity-brand-avatar.spec.ts:330:1 › homepage tournament avatar keeps the initial fallback if every image fails (2ms)
+.env.playwright not found. Continuing without it.
+(node:15829) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   82 [chromium] › test/e2e/entity-brand-avatar.spec.ts:330:1 › homepage tournament avatar keeps the initial fallback if every image fails (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   83 [chromium] › test/e2e/entity-brand-avatar.spec.ts:330:1 › homepage tournament avatar keeps the initial fallback if every image fails (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15853) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   84 [chromium] › test/e2e/entity-brand-avatar.spec.ts:337:1 › tournament identity renders the logo, never the banner, when both exist (2ms)
+.env.playwright not found. Continuing without it.
+(node:15865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   85 [chromium] › test/e2e/entity-brand-avatar.spec.ts:337:1 › tournament identity renders the logo, never the banner, when both exist (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15877) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   86 [chromium] › test/e2e/entity-brand-avatar.spec.ts:337:1 › tournament identity renders the logo, never the banner, when both exist (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15889) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   87 [chromium] › test/e2e/entity-brand-avatar.spec.ts:348:1 › tournament identity falls back to the initial letter, not the banner, when the logo is missing (3ms)
+.env.playwright not found. Continuing without it.
+(node:15901) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   88 [chromium] › test/e2e/entity-brand-avatar.spec.ts:348:1 › tournament identity falls back to the initial letter, not the banner, when the logo is missing (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15913) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   89 [chromium] › test/e2e/entity-brand-avatar.spec.ts:348:1 › tournament identity falls back to the initial letter, not the banner, when the logo is missing (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15925) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   90 [chromium] › test/e2e/entity-brand-avatar.spec.ts:361:1 › tournament identity falls back to the initial letter, not the banner, when the logo fails to load (2ms)
+.env.playwright not found. Continuing without it.
+(node:15937) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   91 [chromium] › test/e2e/entity-brand-avatar.spec.ts:361:1 › tournament identity falls back to the initial letter, not the banner, when the logo fails to load (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15949) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   92 [chromium] › test/e2e/entity-brand-avatar.spec.ts:361:1 › tournament identity falls back to the initial letter, not the banner, when the logo fails to load (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   93 [chromium] › test/e2e/entity-brand-avatar.spec.ts:375:1 › a surface that opted out of the fallback renders no identity box for a logo-less entity (3ms)
+.env.playwright not found. Continuing without it.
+(node:15973) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   94 [chromium] › test/e2e/entity-brand-avatar.spec.ts:375:1 › a surface that opted out of the fallback renders no identity box for a logo-less entity (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:15985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   95 [chromium] › test/e2e/entity-brand-avatar.spec.ts:375:1 › a surface that opted out of the fallback renders no identity box for a logo-less entity (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:15997) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   96 [chromium] › test/e2e/homepage-friends-posts.spec.ts:45:1 › authenticated home activity feed omits friends posts and their API request (3ms)
+.env.playwright not found. Continuing without it.
+(node:16009) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   97 [chromium] › test/e2e/homepage-friends-posts.spec.ts:45:1 › authenticated home activity feed omits friends posts and their API request (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16021) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   98 [chromium] › test/e2e/homepage-friends-posts.spec.ts:45:1 › authenticated home activity feed omits friends posts and their API request (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   99 [chromium] › test/e2e/homepage-friends-posts.spec.ts:78:1 › home activity feed shows public social sessions for the selected date (3ms)
+.env.playwright not found. Continuing without it.
+(node:16045) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  100 [chromium] › test/e2e/homepage-friends-posts.spec.ts:78:1 › home activity feed shows public social sessions for the selected date (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16057) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  101 [chromium] › test/e2e/homepage-friends-posts.spec.ts:78:1 › home activity feed shows public social sessions for the selected date (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16069) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  102 [chromium] › test/e2e/homepage-friends-posts.spec.ts:146:1 › home activity feed keeps community items when social sessions fail (2ms)
+.env.playwright not found. Continuing without it.
+(node:16081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  103 [chromium] › test/e2e/homepage-friends-posts.spec.ts:146:1 › home activity feed keeps community items when social sessions fail (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16093) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  104 [chromium] › test/e2e/homepage-friends-posts.spec.ts:146:1 › home activity feed keeps community items when social sessions fail (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16105) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  105 [chromium] › test/e2e/homepage-friends-posts.spec.ts:189:1 › header nests Community and Social under Explore with Social second (2ms)
+.env.playwright not found. Continuing without it.
+(node:16117) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  106 [chromium] › test/e2e/homepage-friends-posts.spec.ts:189:1 › header nests Community and Social under Explore with Social second (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16129) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  107 [chromium] › test/e2e/homepage-friends-posts.spec.ts:189:1 › header nests Community and Social under Explore with Social second (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  108 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #1 (user7@gmail.com): Login and Join First Tournament (3ms)
+  -  109 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #2 (user8@gmail.com): Login and Join First Tournament
+  -  110 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #3 (user9@gmail.com): Login and Join First Tournament
+.env.playwright not found. Continuing without it.
+(node:16154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  111 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #1 (user7@gmail.com): Login and Join First Tournament (retry #1) (5ms)
+  -  112 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #2 (user8@gmail.com): Login and Join First Tournament (retry #1)
+  -  113 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #3 (user9@gmail.com): Login and Join First Tournament (retry #1)
+.env.playwright not found. Continuing without it.
+(node:16166) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  114 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #1 (user7@gmail.com): Login and Join First Tournament (retry #2) (3ms)
+  -  115 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #2 (user8@gmail.com): Login and Join First Tournament (retry #2)
+  -  116 [chromium] › test/e2e/join-tournament.spec.ts:47:5 › Join First Tournament (3 Existing Configured Accounts) › Player #3 (user9@gmail.com): Login and Join First Tournament (retry #2)
+.env.playwright not found. Continuing without it.
+(node:16181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  117 [chromium] › test/e2e/live-score-entry-mode.spec.ts:77:1 › legacy scoring link opens as viewer, then authorized user opens set two manually (2ms)
+.env.playwright not found. Continuing without it.
+(node:16193) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  118 [chromium] › test/e2e/live-score-entry-mode.spec.ts:77:1 › legacy scoring link opens as viewer, then authorized user opens set two manually (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16205) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  119 [chromium] › test/e2e/live-score-entry-mode.spec.ts:77:1 › legacy scoring link opens as viewer, then authorized user opens set two manually (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  120 [chromium] › test/e2e/open-format-labels.spec.ts:86:1 › public tournament cards label unrestricted singles and doubles as open (3ms)
+.env.playwright not found. Continuing without it.
+(node:16229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  121 [chromium] › test/e2e/open-format-labels.spec.ts:86:1 › public tournament cards label unrestricted singles and doubles as open (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16241) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  122 [chromium] › test/e2e/open-format-labels.spec.ts:86:1 › public tournament cards label unrestricted singles and doubles as open (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16253) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  123 [chromium] › test/e2e/open-format-labels.spec.ts:104:1 › player profile labels unrestricted singles and doubles as open (2ms)
+.env.playwright not found. Continuing without it.
+(node:16265) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  124 [chromium] › test/e2e/open-format-labels.spec.ts:104:1 › player profile labels unrestricted singles and doubles as open (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16277) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  125 [chromium] › test/e2e/open-format-labels.spec.ts:104:1 › player profile labels unrestricted singles and doubles as open (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16289) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  126 [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing (2ms)
+.env.playwright not found. Continuing without it.
+(node:16301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  127 [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  128 [chromium] › test/e2e/organizer-add-athlete.spec.ts:6:1 › organizer keeps a one-time guest handoff link available until finishing (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16325) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  129 [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division (3ms)
+.env.playwright not found. Continuing without it.
+(node:16337) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  130 [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  131 [chromium] › test/e2e/organizer-add-athlete.spec.ts:48:1 › organizer can add a directly entered athlete without a division (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16362) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  132 [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves (2ms)
+.env.playwright not found. Continuing without it.
+(node:16374) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  133 [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16386) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  134 [chromium] › test/e2e/organizer-add-athlete.spec.ts:74:1 › organizer can add a football squad with required starters and optional reserves (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16398) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  135 [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves (3ms)
+.env.playwright not found. Continuing without it.
+(node:16410) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  136 [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16422) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  137 [chromium] › test/e2e/organizer-add-athlete.spec.ts:116:1 › organizer assigns registered football candidates to starters and reserves (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16434) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  138 [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information (2ms)
+.env.playwright not found. Continuing without it.
+(node:16446) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  139 [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16458) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  140 [chromium] › test/e2e/organizer-add-athlete.spec.ts:162:1 › organizer can add a searched friend without exposing contact information (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16470) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  141 [chromium] › test/e2e/organizer-add-athlete.spec.ts:196:1 › player claims a guest roster with the URL fragment and the fragment is removed (3ms)
+.env.playwright not found. Continuing without it.
+(node:16482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  142 [chromium] › test/e2e/organizer-add-athlete.spec.ts:196:1 › player claims a guest roster with the URL fragment and the fragment is removed (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16494) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  143 [chromium] › test/e2e/organizer-add-athlete.spec.ts:196:1 › player claims a guest roster with the URL fragment and the fragment is removed (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  144 [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token (2ms)
+.env.playwright not found. Continuing without it.
+(node:16518) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  145 [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  146 [chromium] › test/e2e/organizer-add-athlete.spec.ts:211:1 › shows a neutral error and clears a rejected claim token (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16542) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  147 [chromium] › test/e2e/organizer-add-athlete.spec.ts:230:1 › does not show payment status without a positive fee snapshot (2ms)
+.env.playwright not found. Continuing without it.
+(node:16554) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  148 [chromium] › test/e2e/organizer-add-athlete.spec.ts:230:1 › does not show payment status without a positive fee snapshot (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16567) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  149 [chromium] › test/e2e/organizer-add-athlete.spec.ts:230:1 › does not show payment status without a positive fee snapshot (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  150 [chromium] › test/e2e/organizer-auto-save.spec.ts:40:1 › autosaves registrationMode inside tournamentConfig (3ms)
+.env.playwright not found. Continuing without it.
+(node:16591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  151 [chromium] › test/e2e/organizer-auto-save.spec.ts:40:1 › autosaves registrationMode inside tournamentConfig (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  152 [chromium] › test/e2e/organizer-auto-save.spec.ts:40:1 › autosaves registrationMode inside tournamentConfig (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  153 [chromium] › test/e2e/organizer-ops-match-scope.spec.ts:58:1 › Ops waits for metadata and suppresses stale scope on tournament route reuse (3ms)
+.env.playwright not found. Continuing without it.
+(node:16628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  154 [chromium] › test/e2e/organizer-ops-match-scope.spec.ts:58:1 › Ops waits for metadata and suppresses stale scope on tournament route reuse (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  155 [chromium] › test/e2e/organizer-ops-match-scope.spec.ts:58:1 › Ops waits for metadata and suppresses stale scope on tournament route reuse (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  156 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:120:1 › organizer sees forbidden participant-list failures and can retry to pending rows (2ms)
+.env.playwright not found. Continuing without it.
+(node:16667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  157 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:120:1 › organizer sees forbidden participant-list failures and can retry to pending rows (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  158 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:120:1 › organizer sees forbidden participant-list failures and can retry to pending rows (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  159 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:148:1 › organizer sees an empty state only after a successful participant-list response (2ms)
+.env.playwright not found. Continuing without it.
+(node:16703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  160 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:148:1 › organizer sees an empty state only after a successful participant-list response (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16715) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  161 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:148:1 › organizer sees an empty state only after a successful participant-list response (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16727) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  162 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:161:1 › organizer opens the division containing pending applications by default (3ms)
+.env.playwright not found. Continuing without it.
+(node:16739) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  163 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:161:1 › organizer opens the division containing pending applications by default (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16751) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  164 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:161:1 › organizer opens the division containing pending applications by default (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  165 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:186:1 › organizer URL division selection takes priority over pending auto-focus (3ms)
+.env.playwright not found. Continuing without it.
+(node:16775) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  166 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:186:1 › organizer URL division selection takes priority over pending auto-focus (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16787) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  167 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:186:1 › organizer URL division selection takes priority over pending auto-focus (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  168 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:210:1 › organizer keeps the first division when no pending applications exist (2ms)
+.env.playwright not found. Continuing without it.
+(node:16811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  169 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:210:1 › organizer keeps the first division when no pending applications exist (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16823) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  170 [chromium] › test/e2e/organizer-registration-visibility.spec.ts:210:1 › organizer keeps the first division when no pending applications exist (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  171 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:162:1 › organizer can attach an unattached saved venue and it leaves the picker afterward (2ms)
+.env.playwright not found. Continuing without it.
+(node:16848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  172 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:162:1 › organizer can attach an unattached saved venue and it leaves the picker afterward (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  173 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:162:1 › organizer can attach an unattached saved venue and it leaves the picker afterward (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  174 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:183:1 › court counts are bold on the schedule and venue selector (2ms)
+.env.playwright not found. Continuing without it.
+(node:16884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  175 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:183:1 › court counts are bold on the schedule and venue selector (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  176 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:183:1 › court counts are bold on the schedule and venue selector (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16908) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  177 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:208:1 › organizer can extend the deadline during an open, unlocked registration window (3ms)
+.env.playwright not found. Continuing without it.
+(node:16920) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  178 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:208:1 › organizer can extend the deadline during an open, unlocked registration window (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:16932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  179 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:208:1 › organizer can extend the deadline during an open, unlocked registration window (retry #2) (6ms)
+.env.playwright not found. Continuing without it.
+(node:16944) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  180 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:224:1 › organizer can extend a closed registration deadline without reopening registration (2ms)
+.env.playwright not found. Continuing without it.
+(node:16956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  181 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:224:1 › organizer can extend a closed registration deadline without reopening registration (retry #1) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  182 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:224:1 › organizer can extend a closed registration deadline without reopening registration (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:16980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  183 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:253:1 › registration-specific lock keeps deadline editing disabled (2ms)
+.env.playwright not found. Continuing without it.
+(node:16992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  184 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:253:1 › registration-specific lock keeps deadline editing disabled (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  185 [chromium] › test/e2e/organizer-venue-registration-settings.spec.ts:253:1 › registration-specific lock keeps deadline editing disabled (retry #2) (3ms)
+.env.playwright not found. Continuing without it.
+(node:17016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  186 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:11:1 › the introduction tab stays in the page column and opens no dialog (2ms)
+.env.playwright not found. Continuing without it.
+(node:17028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  187 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:11:1 › the introduction tab stays in the page column and opens no dialog (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  188 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:11:1 › the introduction tab stays in the page column and opens no dialog (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  189 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:19:1 › uses four top operation tabs and a compact left selector while keeping sponsors inline (2ms)
+.env.playwright not found. Continuing without it.
+(node:17064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  190 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:19:1 › uses four top operation tabs and a compact left selector while keeping sponsors inline (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  191 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:19:1 › uses four top operation tabs and a compact left selector while keeping sponsors inline (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  192 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:77:1 › clicking outside an operation modal returns to introduction and clears the tab query (2ms)
+.env.playwright not found. Continuing without it.
+(node:17100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  193 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:77:1 › clicking outside an operation modal returns to introduction and clears the tab query (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  194 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:77:1 › clicking outside an operation modal returns to introduction and clears the tab query (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  195 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:89:1 › keeps the two-pane modal usable on mobile and has a large close target (2ms)
+.env.playwright not found. Continuing without it.
+(node:17136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  196 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:89:1 › keeps the two-pane modal usable on mobile and has a large close target (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  197 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:89:1 › keeps the two-pane modal usable on mobile and has a large close target (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  198 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:116:1 › the participant tab opens in a full-width dialog instead of the narrow column (2ms)
+.env.playwright not found. Continuing without it.
+(node:17172) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  199 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:116:1 › the participant tab opens in a full-width dialog instead of the narrow column (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  200 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:116:1 › the participant tab opens in a full-width dialog instead of the narrow column (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  201 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:144:1 › Escape and the close button return operation dialogs to the introduction (2ms)
+.env.playwright not found. Continuing without it.
+(node:17208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  202 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:144:1 › Escape and the close button return operation dialogs to the introduction (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  203 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:144:1 › Escape and the close button return operation dialogs to the introduction (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  204 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:171:1 › closing the overlay unmounts the court schedule instead of leaving it hidden (2ms)
+.env.playwright not found. Continuing without it.
+(node:17244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  205 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:171:1 › closing the overlay unmounts the court schedule instead of leaving it hidden (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17257) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  206 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:171:1 › closing the overlay unmounts the court schedule instead of leaving it hidden (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  207 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:185:1 › a deep link to a wide tab lands with its overlay open (2ms)
+.env.playwright not found. Continuing without it.
+(node:17281) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  208 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:185:1 › a deep link to a wide tab lands with its overlay open (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17293) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  209 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:185:1 › a deep link to a wide tab lands with its overlay open (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  210 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:191:1 › shows the simplified camera page and opens its accessible setup dialog without divisions (2ms)
+.env.playwright not found. Continuing without it.
+(node:17317) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  211 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:191:1 › shows the simplified camera page and opens its accessible setup dialog without divisions (retry #1) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17329) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  212 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:191:1 › shows the simplified camera page and opens its accessible setup dialog without divisions (retry #2) (2ms)
+.env.playwright not found. Continuing without it.
+(node:17341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  213 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:226:1 › shows PUSH publish details outside the dialog after camera creation (2ms)
+.env.playwright not found. Continuing without it.
+(node:17353) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  214 [chromium] › test/e2e/organizer-wide-tab-overlay.spec.ts:226:1 › shows PUSH publish details outside the dialog after camera creation (retry #1) (2ms)
+.env.playwright not found. Continuing without it.

@@ -1,0 +1,241 @@
+? Verifying lockfile against supply-chain policies (1064 entries)...
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /home/runner/.local/share/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 936, reused 0, downloaded 428, added 416
+Downloading tesseract.js-core@7.0.0: 0.00 B/16.93 MB
+Downloading @img/sharp-libvips-linux-x64@1.3.3: 0.00 B/8.17 MB
+Progress: resolved 936, reused 0, downloaded 935, added 928
+✓ Lockfile passes supply-chain policies (1064 entries in 3.7s)
+Lockfile is up to date, resolution step is skipped
+Packages: +936
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 936, reused 0, downloaded 936, added 936, done
+.../node_modules/msgpackr-extract install$ node-gyp-build-optional-packages
+.../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+.../node_modules/@scarf/scarf postinstall$ node ./report.js
+.../esbuild@0.28.0/node_modules/esbuild postinstall$ node install.js
+.../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+.../node_modules/@nestjs/core postinstall: Done
+.../esbuild@0.18.20/node_modules/esbuild postinstall$ node install.js
+.../node_modules/msgpackr-extract install: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+.../esbuild@0.28.0/node_modules/esbuild postinstall: Done
+.../bcrypt@6.0.0/node_modules/bcrypt install: Done
+.../node_modules/@firebase/util postinstall$ node ./postinstall.js
+.../node_modules/protobufjs postinstall$ node scripts/postinstall
+.../node_modules/@firebase/util postinstall: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+.../node_modules/protobufjs postinstall: Done
+.../node_modules/unrs-resolver postinstall$ node postinstall.js
+.../node_modules/tesseract.js postinstall$ opencollective-postinstall || true
+.../esbuild@0.18.20/node_modules/esbuild postinstall: Done
+.../node_modules/unrs-resolver postinstall: Done
+.../node_modules/tesseract.js postinstall: Done
+.../node_modules/@scarf/scarf postinstall: Done
+
+dependencies:
++ @moderation-api/unicode-spoofing 0.4.0
++ @nestjs/bullmq 11.0.4
++ @nestjs/common 11.1.24
++ @nestjs/config 4.0.4
++ @nestjs/core 11.1.24
++ @nestjs/jwt 11.0.2
++ @nestjs/mapped-types 2.1.1
++ @nestjs/passport 11.0.5
++ @nestjs/platform-express 11.1.24
++ @nestjs/platform-socket.io 11.1.24
++ @nestjs/schedule 6.1.3
++ @nestjs/swagger 11.4.4
++ @nestjs/throttler 6.5.0
++ @nestjs/websockets 11.1.24
++ @payos/node 2.0.5
++ @scalar/nestjs-api-reference 1.1.20
++ @sentry/nestjs 10.73.0
++ @zxing/library 0.23.0
++ bcrypt 6.0.0
++ bullmq 5.79.1
++ class-transformer 0.5.1
++ class-validator 0.15.1
++ cloudinary 2.10.0
++ cookie-parser 1.4.7
++ dotenv 17.4.2
++ drizzle-orm 0.45.2
++ firebase-admin 13.10.0
++ google-auth-library 10.7.0
++ helmet 8.2.0
++ ioredis 5.11.1
++ joi 18.2.1
++ jsonwebtoken 9.0.3
++ nodemailer 9.0.1
++ openai 6.44.0
++ passport 0.7.0
++ passport-google-oauth20 2.0.0
++ passport-jwt 4.0.1
++ pg 8.23.0
++ postgres 3.4.9
++ reflect-metadata 0.2.2
++ rxjs 7.8.2
++ sharp 0.35.4
++ socket.io 4.8.3
++ streamifier 0.1.1
++ tesseract.js 7.0.0
+
+devDependencies:
++ @eslint/eslintrc 3.3.5
++ @eslint/js 9.39.4
++ @nestjs/cli 11.0.21
++ @nestjs/schematics 11.1.0
++ @nestjs/testing 11.1.24
++ @types/bcrypt 6.0.0
++ @types/cookie-parser 1.4.10
++ @types/express 5.0.6
++ @types/jest 30.0.0
++ @types/jsonwebtoken 9.0.10
++ @types/multer 2.1.0
++ @types/node 24.12.4
++ @types/nodemailer 8.0.1
++ @types/passport-google-oauth20 2.0.17
++ @types/passport-jwt 4.0.1
++ @types/streamifier 0.1.2
++ @types/supertest 7.2.0
++ drizzle-kit 0.31.10
++ eslint 9.39.4
++ eslint-config-prettier 10.1.8
++ eslint-plugin-prettier 5.5.6
++ globals 17.6.0
++ jest 30.4.2
++ prettier 3.8.3
++ source-map-support 0.5.21
++ supertest 7.2.2
++ ts-jest 29.4.11
++ ts-loader 9.6.0
++ ts-node 10.9.2
++ tsconfig-paths 4.2.0
++ typescript 5.9.3
++ typescript-eslint 8.60.1
+
+Done in 7.5s using pnpm v12.9.1
+$ jest
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   DEBUG [AiService] AI tournament parse usage: prompt=10, completion=10, total=20
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   ERROR [AiService] AI tournament parse provider failed with status 500
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM   ERROR [AiService] AI tournament parse provider failed with status 503
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:13 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 3458  - 10/04/2026, 5:12:15 PM    WARN [ChatService] Unable to verify direct messaging eligibility for user-a and user-b; denying direct messaging.
+[Nest] 3458  - 10/04/2026, 5:12:15 PM    WARN [ChatService] database unavailable
+[Nest] 3458  - 10/04/2026, 5:12:16 PM    WARN [EloOutboxProcessor] ELO outbox retry (attempt 2/5) for match m1: db timeout
+[Nest] 3458  - 10/04/2026, 5:12:16 PM   ERROR [EloOutboxProcessor] ELO outbox FAILED (terminal) for match m1: roster missing
+[Nest] 3452  - 10/04/2026, 5:12:18 PM     LOG [CommunitiesService] Gán tag cho thành viên 33333333-3333-4333-8333-333333333333 trong cộng đồng 11111111-1111-4111-8111-111111111111 (bởi 22222222-2222-4222-8222-222222222222)
+[Nest] 3451  - 10/04/2026, 5:12:18 PM     LOG [MailService] SMTP connection verified.
+[Nest] 3451  - 10/04/2026, 5:12:18 PM     LOG [MailService] Email successfully sent.
+[Nest] 3451  - 10/04/2026, 5:12:18 PM    WARN [MailService] SMTP credentials are missing; production email delivery is disabled.
+[Nest] 3452  - 10/04/2026, 5:12:19 PM    WARN [StorageService] Storage provider config is missing! Upload might fail.
+[Nest] 3452  - 10/04/2026, 5:12:19 PM   DEBUG [StorageService] Retained storage asset referenced by club media
+[Nest] 3452  - 10/04/2026, 5:12:19 PM    WARN [StorageService] Storage provider config is missing! Upload might fail.
+[Nest] 3452  - 10/04/2026, 5:12:19 PM   DEBUG [StorageService] Retained storage asset referenced by club media
+[Nest] 3452  - 10/04/2026, 5:12:19 PM    WARN [StorageService] Storage provider config is missing! Upload might fail.
+[Nest] 3452  - 10/04/2026, 5:12:19 PM    WARN [StorageService] Storage provider config is missing! Upload might fail.
+[Nest] 3452  - 10/04/2026, 5:12:20 PM     LOG [TournamentSchedulerService] Running auto-open registration cron job...
+
+Test Suites: 127 passed, 127 total
+Tests:       1000 passed, 1000 total
+Snapshots:   0 total
+Time:        15.067 s
+Ran all test suites.
+$ jest --config ./test/jest-e2e.json
+FAIL test/app.e2e-spec.ts (6.767 s)
+  ● AppController (e2e) › / (GET)
+
+    Config validation error: "DB_HOST" is required. "DB_USERNAME" is required. "DB_PASSWORD" is required. "DB_DATABASE" is required. "JWT_ACCESS_SECRET" is required. "JWT_REFRESH_SECRET" is required. "REDIS_HOST" is required
+
+      55 |   imports: [
+      56 |     SentryModule.forRoot(),
+    > 57 |     ConfigModule.forRoot({
+         |                  ^
+      58 |       isGlobal: true,
+      59 |       load: [databaseConfig, authConfig, aiConfig],
+      60 |       validationSchema: envValidationSchema,
+
+      at Function.forRoot (../node_modules/.pnpm/@nestjs+config@4.0.4_@nestjs+common@11.1.24_class-transformer@0.5.1_class-validator@0.1_dc0abe66ae80ad68042488aff8959330/node_modules/@nestjs/config/dist/config.module.js:96:23)
+      at Object.<anonymous> (../src/app.module.ts:57:18)
+      at Object.<anonymous> (app.e2e-spec.ts:5:1)
+
+  ● AppController (e2e) › / (GET)
+
+    TypeError: Cannot read properties of undefined (reading 'close')
+
+      25 |
+      26 |   afterEach(async () => {
+    > 27 |     await app.close();
+         |               ^
+      28 |   });
+      29 | });
+      30 |
+
+      at Object.<anonymous> (app.e2e-spec.ts:27:15)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        6.98 s
+Ran all test suites.
+[ELIFECYCLE] Command failed with exit code 1.

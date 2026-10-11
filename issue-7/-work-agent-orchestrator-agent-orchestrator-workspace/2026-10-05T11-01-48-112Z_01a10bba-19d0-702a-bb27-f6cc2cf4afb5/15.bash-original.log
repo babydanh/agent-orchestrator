@@ -1,0 +1,33 @@
+$ jest -- roster-import.dto.spec.ts tournament-import-email-link.spec.ts
+FAIL src/modules/tournaments/repositories/tournament-import-email-link.spec.ts
+  ● wildcard requests stay annotations › records the request as metadata without granting a wildcard slot
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "entryType": "WILD_CARD_REQUEST",
+        "importedFrom": "EXCEL",
+        "note": "khách quen",
+        "player1Email": "athlete.unknown@example.test",
+    +   "player1Name": "VĐV đặc cách",
+      }
+
+      562 |
+      563 |     const [participant] = insertsOf(harness.inserts, 'participants');
+    > 564 |     expect(participant.values.customResponses).toEqual({
+          |                                                ^
+      565 |       note: 'khách quen',
+      566 |       importedFrom: 'EXCEL',
+      567 |       player1Email: UNKNOWN_CONTACT_EMAIL,
+
+      at Object.<anonymous> (modules/tournaments/repositories/tournament-import-email-link.spec.ts:564:48)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       1 failed, 16 passed, 17 total
+Snapshots:   0 total
+Time:        1.81 s, estimated 2 s
+Ran all test suites matching roster-import.dto.spec.ts|tournament-import-email-link.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

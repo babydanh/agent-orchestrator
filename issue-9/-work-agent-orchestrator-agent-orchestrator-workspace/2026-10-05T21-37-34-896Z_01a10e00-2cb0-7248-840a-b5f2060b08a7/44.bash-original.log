@@ -1,0 +1,292 @@
+FAIL src/modules/tournaments/services/ranking-consent.service.spec.ts
+  ● RankingConsentService.sendDueReminders › does not notify a player with unverified email
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › does not notify a player with removed roster row
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › does not notify a player with completed tournament
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › does not notify a player with ended tournament
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › escapes user-controlled names in the email body
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;"
+    Received string:    "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào <img src=x onerror=\"alert(1)\">,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup <script>alert(1)</script></strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      210 |
+      211 |     const html = mailService.sendMail.mock.calls[0][2];
+    > 212 |     expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+          |                  ^
+      213 |     expect(html).toContain('Cup &lt;script&gt;alert(1)&lt;/script&gt;');
+      214 |     expect(html).not.toContain('<script>');
+      215 |   });
+
+      at Object.<anonymous> (modules/tournaments/services/ranking-consent.service.spec.ts:212:18)
+
+  ● RankingConsentService.sendDueReminders › rejects unsafe frontend URL schemes before sending
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"javascript:alert(1)/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      223 |       await service.sendConfirmationRequest('r1');
+      224 |
+    > 225 |       expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                        ^
+      226 |     } finally {
+      227 |       if (previousFrontendUrl === undefined) {
+      228 |         delete process.env.FRONTEND_URL;
+
+      at Object.<anonymous> (modules/tournaments/services/ranking-consent.service.spec.ts:225:40)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 7 passed, 13 total
+Snapshots:   0 total
+Time:        0.632 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/ranking-consent.service.spec.ts.

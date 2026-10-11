@@ -1,0 +1,41 @@
+$ jest -- tournament-football-roster-consent.spec.ts
+FAIL src/modules/tournaments/services/tournament-football-roster-consent.spec.ts
+  ● TournamentFootballRosterService.assignReservedSlot › creates an unlinked contact participant and sends the plain confirmation
+
+    NotFoundException: Không tìm thấy tài khoản Sporto cho người chơi thứ nhất
+
+      360 |       await this.tournamentsRepository.findUserByEmailOrPhone(userEmailOrPhone);
+      361 |     if (!foundUser) {
+    > 362 |       throw new NotFoundException(
+          |             ^
+      363 |         'Không tìm thấy tài khoản Sporto cho người chơi thứ nhất',
+      364 |       );
+      365 |     }
+
+      at TournamentFootballRosterService.assignReservedSlot (modules/tournaments/services/tournament-football-roster.service.ts:362:13)
+      at Object.<anonymous> (modules/tournaments/services/tournament-football-roster-consent.spec.ts:28:5)
+
+  ● TournamentFootballRosterService.assignReservedSlot › requires at least one contact address but does not require Gmail specifically
+
+    expect(received).rejects.toBeInstanceOf(expected)
+
+    Expected constructor: BadRequestException
+    Received constructor: NotFoundException
+
+      70 |         'organizer-1',
+      71 |       ),
+    > 72 |     ).rejects.toBeInstanceOf(BadRequestException);
+         |               ^
+      73 |     expect(repository.assignReservedSlot).not.toHaveBeenCalled();
+      74 |   });
+      75 | });
+
+      at Object.toBeInstanceOf (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (modules/tournaments/services/tournament-football-roster-consent.spec.ts:72:15)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        2.689 s
+Ran all test suites matching tournament-football-roster-consent.spec.ts.
+[ELIFECYCLE] Test failed. See above for more details.

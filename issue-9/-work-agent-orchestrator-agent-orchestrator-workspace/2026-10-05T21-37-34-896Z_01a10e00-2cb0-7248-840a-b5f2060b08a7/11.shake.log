@@ -1,0 +1,1595 @@
+### region 1 (todo, ~1815 tok)
+
+Remaining items (20):
+  - Lập thiết kế kiến trúc dựa trên checklist; trình bày các lựa chọn/rủi ro và chờ người dùng duyệt trước khi tạo spec/plan hoặc sửa code. [in_progress] (Khảo sát & duyệt thiết kế)
+  - Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow. [pending] (Workflow artifacts)
+  - Hoàn thiện Feature Impact Review trước implementation. [pending] (Workflow artifacts)
+  - Hoàn thiện button/screen/cross-platform matrices. [pending] (Workflow artifacts)
+  - Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý. [pending] (Workflow artifacts)
+  - Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng. [pending] (Workflow artifacts)
+  - Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả. [pending] (Workflow artifacts)
+  - Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi. [pending] (Backend implementation)
+  - Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích. [pending] (Backend implementation)
+  - Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval. [pending] (Backend implementation)
+  - Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate. [pending] (Backend implementation)
+  - Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC. [pending] (Backend implementation)
+  - Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn. [pending] (Backend implementation)
+  - Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái. [pending] (Web & Flutter implementation)
+  - Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ. [pending] (Web & Flutter implementation)
+  - Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật. [pending] (Xác minh & bàn giao)
+  - Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng. [pending] (Xác minh & bàn giao)
+  - Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline. [pending] (Xác minh & bàn giao)
+  - Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt. [pending] (Xác minh & bàn giao)
+  - Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII. [pending] (Xác minh & bàn giao)
+Overall: 2/22 done, 20 open.
+Active phase 1/5 "Khảo sát & duyệt thiết kế" (2/3).
+  Khảo sát & duyệt thiết kế:
+    - [X] Xác nhận branch omp/issue-9 ở backend/Web/Flutter; kiểm tra workflow artifacts và strict validator đang có hay thiếu.
+    - [X] Đối chiếu API avatar, schema dữ liệu và hợp đồng hiện hữu giữa Web/Flutter; giữ tên field/optional cũ.
+    - [ ] Lập thiết kế kiến trúc dựa trên checklist; trình bày các lựa chọn/rủi ro và chờ người dùng duyệt trước khi tạo spec/plan hoặc sửa code. (in progress)
+  Workflow artifacts:
+    - [ ] Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow.
+    - [ ] Hoàn thiện Feature Impact Review trước implementation.
+    - [ ] Hoàn thiện button/screen/cross-platform matrices.
+    - [ ] Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý.
+    - [ ] Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng.
+    - [ ] Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả.
+  Backend implementation:
+    - [ ] Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi.
+    - [ ] Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích.
+    - [ ] Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval.
+    - [ ] Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate.
+    - [ ] Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC.
+    - [ ] Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn.
+  Web & Flutter implementation:
+    - [ ] Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái.
+    - [ ] Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ.
+  Xác minh & bàn giao:
+    - [ ] Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật.
+    - [ ] Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng.
+    - [ ] Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline.
+    - [ ] Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt.
+    - [ ] Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII.
+
+### region 2 (todo, ~1793 tok)
+
+Remaining items (19):
+  - Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow. [in_progress] (Workflow artifacts)
+  - Hoàn thiện Feature Impact Review trước implementation. [pending] (Workflow artifacts)
+  - Hoàn thiện button/screen/cross-platform matrices. [pending] (Workflow artifacts)
+  - Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý. [pending] (Workflow artifacts)
+  - Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng. [pending] (Workflow artifacts)
+  - Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả. [pending] (Workflow artifacts)
+  - Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi. [pending] (Backend implementation)
+  - Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích. [pending] (Backend implementation)
+  - Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval. [pending] (Backend implementation)
+  - Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate. [pending] (Backend implementation)
+  - Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC. [pending] (Backend implementation)
+  - Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn. [pending] (Backend implementation)
+  - Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái. [pending] (Web & Flutter implementation)
+  - Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ. [pending] (Web & Flutter implementation)
+  - Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật. [pending] (Xác minh & bàn giao)
+  - Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng. [pending] (Xác minh & bàn giao)
+  - Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline. [pending] (Xác minh & bàn giao)
+  - Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt. [pending] (Xác minh & bàn giao)
+  - Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII. [pending] (Xác minh & bàn giao)
+Overall: 2/22 done, 19 open, 1 blocked.
+Active phase 2/5 "Workflow artifacts" (0/6).
+  Khảo sát & duyệt thiết kế:
+    - [X] Xác nhận branch omp/issue-9 ở backend/Web/Flutter; kiểm tra workflow artifacts và strict validator đang có hay thiếu.
+    - [X] Đối chiếu API avatar, schema dữ liệu và hợp đồng hiện hữu giữa Web/Flutter; giữ tên field/optional cũ.
+    - [ ] Lập thiết kế kiến trúc dựa trên checklist; trình bày các lựa chọn/rủi ro và chờ người dùng duyệt trước khi tạo spec/plan hoặc sửa code. (blocked: Cổng bắt buộc của brainstorming cho thay đổi kiến trúc; đang chờ người dùng duyệt thiết kế đề xuất.)
+  Workflow artifacts:
+    - [ ] Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow. (in progress)
+    - [ ] Hoàn thiện Feature Impact Review trước implementation.
+    - [ ] Hoàn thiện button/screen/cross-platform matrices.
+    - [ ] Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý.
+    - [ ] Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng.
+    - [ ] Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả.
+  Backend implementation:
+    - [ ] Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi.
+    - [ ] Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích.
+    - [ ] Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval.
+    - [ ] Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate.
+    - [ ] Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC.
+    - [ ] Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn.
+  Web & Flutter implementation:
+    - [ ] Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái.
+    - [ ] Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ.
+  Xác minh & bàn giao:
+    - [ ] Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật.
+    - [ ] Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng.
+    - [ ] Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline.
+    - [ ] Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt.
+    - [ ] Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII.
+
+### region 3 (developer, ~760 tok)
+
+<system-reminder>
+You stopped with 19 incomplete todo item(s):
+- Workflow artifacts
+  - Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow.
+  - Hoàn thiện Feature Impact Review trước implementation.
+  - Hoàn thiện button/screen/cross-platform matrices.
+  - Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý.
+  - Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng.
+  - Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả.
+- Backend implementation
+  - Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi.
+  - Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích.
+  - Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval.
+  - Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate.
+  - Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC.
+  - Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn.
+- Web & Flutter implementation
+  - Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái.
+  - Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ.
+- Xác minh & bàn giao
+  - Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật.
+  - Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng.
+  - Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline.
+  - Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt.
+  - Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII.
+
+Please continue working on these tasks or mark them complete if finished.
+(Reminder 1/3)
+</system-reminder>
+
+### region 4 (find, ~418 tok)
+
+6 hit(s) for "Unit and integration test cases for roster import email linking or unverified user matching" in backend/src/modules/tournaments/ (τ 0.20), strongest first
+
+backend/src/modules/tournaments/repositories/tournament-import-email-link.spec.ts  0.86  663 lines judged
+  backend/src/modules/tournaments/repositories/tournament-import-email-link.spec.ts:1-663  0.86  import { BadRequestException } from '@nestjs/common';
+backend/src/modules/tournaments/validation/roster-import.spec.ts  0.72  235 lines judged, partial
+  backend/src/modules/tournaments/validation/roster-import.spec.ts:1-235  0.72  import { validateRosterRows } from './roster-import';
+backend/src/modules/tournaments/services/tournament-import.service.spec.ts  0.68  187 lines judged
+  backend/src/modules/tournaments/services/tournament-import.service.spec.ts:1-187  0.68  import { BadRequestException } from '@nestjs/common';
+backend/src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts  0.56  110 lines judged, partial
+  backend/src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts:232-341  0.56              teamName: 'VĐV 1',
+backend/src/modules/tournaments/validation/roster-import.ts  0.24  396 lines judged
+  backend/src/modules/tournaments/validation/roster-import.ts:1-224  0.24  /**
+backend/src/modules/tournaments/repositories/tournament-import-capacity.spec.ts  0.22  232 lines judged, partial
+  backend/src/modules/tournaments/repositories/tournament-import-capacity.spec.ts:239-470  0.22            entryFee: 0,
+
+listed 136 · judged 128 · read 20 files (98.2KB) · 13 requests · 48K tokens · $0.0020 · 1.6s wall / 5.6s api
+
+### region 5 (find, ~393 tok)
+
+4 hit(s) for "Web test that ensures tournament registration requires or optionally records ELO consent" in web/src/ (τ 0.20), strongest first
+
+web/src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx  0.49  326 lines judged, partial
+  web/src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx:342-521  0.49            const part = normalizeRegistrationParticipant(res.data.participant, undefined, res.data.pa
+  web/src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx:833-978  0.29                        variant="outline"
+web/src/app/(public)/tournaments/[id]/components/RegisterModal.tsx  0.45  159 lines judged
+  web/src/app/(public)/tournaments/[id]/components/RegisterModal.tsx:1-159  0.45  'use client';
+web/src/app/(public)/tournaments/[id]/register/components/TeamRegistrationFlow.tsx  0.41  263 lines judged
+  web/src/app/(public)/tournaments/[id]/register/components/TeamRegistrationFlow.tsx:1-263  0.41  'use client';
+web/src/app/(public)/tournaments/[id]/register/page.tsx  0.39  790 lines judged, partial
+  web/src/app/(public)/tournaments/[id]/register/page.tsx:167-720  0.39    const registerValidationSchema = createRegisterSchema({ teamNameMinLength: registrationTranslate('
+  web/src/app/(public)/tournaments/[id]/register/page.tsx:1228-1347  0.30                                className="flex-2 bg-blue-600 hover:bg-blue-700 text-white font-bold p
+
+listed 468 · judged 128 · read 20 files (113.0KB) · 10 requests · 55K tokens · $0.0023 · 1.6s wall / 3.4s api
+
+### region 6 (find, ~126 tok)
+
+1 hit(s) for "Flutter widget or unit tests for registration rankingConsent checkbox or tournament registration submit" in app/test/ (τ 0.20), strongest first
+
+app/test/features/doubles_registration_saved_status_test.dart  0.84  138 lines judged
+  app/test/features/doubles_registration_saved_status_test.dart:1-138  0.84  import 'package:app_quanly_giaidau/core/config/app_theme.dart';
+
+listed 100 · judged 100 · read 20 files (15.1KB) · 4 requests · 17K tokens · $0.0007 · 1.7s wall / 1.9s api
+
+### region 7 (find, ~190 tok)
+
+2 hit(s) for "Ranking consent service tests for retry, send counters, HTML escaping, and duplicate concurrent reminder execution" in backend/src/modules/tournaments/ (τ 0.20), strongest first
+
+backend/src/modules/tournaments/services/ranking-consent.service.spec.ts  0.81  152 lines judged
+  backend/src/modules/tournaments/services/ranking-consent.service.spec.ts:1-152  0.81  import {
+backend/src/modules/tournaments/services/ranking-consent.service.ts  0.50  194 lines judged, partial
+  backend/src/modules/tournaments/services/ranking-consent.service.ts:1-194  0.50  import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+
+listed 136 · judged 128 · read 20 files (45.6KB) · 7 requests · 34K tokens · $0.0014 · 2.1s wall / 2.7s api
+
+### region 8 (find, ~10 tok)
+
+Path not found: backend;web/src;app/lib
+
+### region 9 (read, ~589 tok)
+
+[web/package.json#2C06]
+1:{
+2:  "name": "frontend-web_qlgiaidau",
+3:  "version": "0.1.1",
+4:  "private": true,
+5:  "type": "module",
+6:  "scripts": {
+7:    "dev": "next dev --turbo -p 3001",
+8:    "build": "next build",
+9:    "start": "next start",
+10:    "lint": "eslint",
+11:    "i18n:check": "node scripts/check-i18n-messages.mjs",
+12:    "test:e2e": "node --env-file-if-exists=.env.playwright node_modules/@playwright/test/cli.js test"
+13:  },
+14:  "dependencies": {
+15:    "@dnd-kit/core": "^6.3.1",
+16:    "@dnd-kit/sortable": "^10.0.0",
+17:    "@dnd-kit/utilities": "^3.2.2",
+18:    "@editorjs/editorjs": "^2.31.6",
+19:    "@editorjs/header": "^2.8.9",
+20:    "@editorjs/image": "^2.10.3",
+21:    "@editorjs/list": "^2.0.9",
+22:    "@g-loot/react-tournament-brackets": "1.0.31-rc",
+23:    "@hookform/resolvers": "^5.4.0",
+24:    "@radix-ui/react-avatar": "^1.1.11",
+25:    "@radix-ui/react-dialog": "^1.1.15",
+26:    "@radix-ui/react-dropdown-menu": "^2.1.16",
+27:    "@radix-ui/react-select": "^2.2.6",
+28:    "@radix-ui/react-slot": "^1.2.4",
+29:    "@sentry/nextjs": "^10.73.0",
+30:    "@types/mapbox-gl": "^3.5.0",
+31:    "axios": "^1.16.1",
+32:    "bracketry": "^1.1.3",
+33:    "clsx": "^2.1.1",
+34:    "date-fns-tz": "^3.2.0",
+35:    "exceljs": "^4.4.0",
+36:    "framer-motion": "^12.40.0",
+37:    "hls.js": "^1.6.16",
+38:    "lucide-react": "^1.17.0",
+39:    "mammoth": "^1.13.0",
+40:    "mapbox-gl": "^3.24.0",
+41:    "mpegts.js": "^1.8.2",
+42:    "next": "16.2.7",
+43:    "next-intl": "^4.13.4",
+44:    "qrcode.react": "^4.2.0",
+45:    "react": "19.2.4",
+46:    "react-dom": "19.2.4",
+47:    "react-hook-form": "^7.77.0",
+48:    "react-hot-toast": "^2.6.0",
+49:    "react-map-gl": "^8.1.1",
+50:    "react-markdown": "^10.1.0",
+51:    "recharts": "^3.8.1",
+52:    "remark-gfm": "^4.0.1",
+53:    "socket.io-client": "^4.8.3",
+54:    "tailwind-merge": "^3.6.0",
+55:    "tailwindcss-animate": "^1.0.7",
+56:    "xlsx": "^0.18.5",
+57:    "zod": "^4.4.3",
+58:    "zustand": "^5.0.14"
+59:  },
+60:  "devDependencies": {
+61:    "@playwright/test": "^1.62.1",
+62:    "@tailwindcss/postcss": "^4",
+63:    "@types/hls.js": "^1.0.0",
+64:    "@types/node": "^20",
+65:    "@types/react": "^19",
+66:    "@types/react-dom": "^19",
+67:    "eslint": "^9",
+68:    "eslint-config-next": "16.2.7",
+69:    "tailwindcss": "^4",
+70:    "typescript": "^5"
+71:  }
+72:}
+
+### region 10 (read, ~647 tok)
+
+[app/pubspec.yaml#3052]
+1:name: app_quanly_giaidau
+2:description: "Ứng dụng Quản lý Giải đấu Thể thao"
+3:publish_to: 'none'
+4:version: 1.0.27+30
+5:
+6:flutter_launcher_icons:
+7:  android: true
+8:  ios: true
+9:  image_path: "assets/logos/icon.png"
+10:  remove_alpha_ios: true
+11:  adaptive_icon_background: "#FFFFFF"
+12:  adaptive_icon_foreground: "assets/logos/icon.png"
+13:
+14:environment:
+15:  sdk: ^3.10.3
+16:  flutter: ">=3.41.0"
+17:
+18:dependencies:
+19:  # Live video (HLS): phat duoc tren ca Android (ExoPlayer) va iOS (AVPlayer)
+20:  video_player: ^2.9.2
+21:  flutter:
+22:    sdk: flutter
+23:
+24:  cupertino_icons: ^1.0.8
+25:
+26:  flutter_localizations:
+27:    sdk: flutter
+28:
+29:  # State Management
+30:  flutter_riverpod: ^3.3.1
+31:
+32:  # Navigation
+33:  go_router: ^17.2.3
+34:
+35:  # UI
+36:  google_fonts: ^8.1.0
+37:  flutter_animate: ^4.5.2
+38:  shimmer: ^3.0.0
+39:  flutter_svg: ^2.3.0
+40:  flutter_widget_from_html: ^0.15.2
+41:  webview_flutter: ^4.10.0
+42:
+43:  # Import/Export
+44:  excel: ^4.0.6
+45:  csv: ^8.0.0
+46:  file_picker: ^12.0.0-beta.5
+47:  pdf: ^3.11.1
+48:  printing: ^5.13.2
+49:
+50:  # QR Code
+51:  qr_flutter: ^4.1.0
+52:  mobile_scanner: ^7.2.0
+53:
+54:  # Utils
+55:  uuid: ^4.5.1
+56:  crypto: ^3.0.6
+57:  intl: ^0.20.2
+58:  share_plus: ^13.1.0
+59:  wakelock_plus: ^1.2.10
+60:  shared_preferences: ^2.3.4
+61:  flutter_dotenv: ^6.0.1
+62:  path_provider: ^2.1.5
+63:  flutter_cache_manager: ^3.4.1
+64:  package_info_plus: ^10.2.0
+65:  graphview: ^1.5.1
+66:  dio: ^5.4.0
+67:  flutter_secure_storage: ^10.3.1
+68:  google_sign_in: ^6.2.1
+69:  google_sign_in_platform_interface: ^2.5.0
+70:
+71:  sign_in_with_apple: ^7.0.1
+72:  image_picker: ^1.1.2
+73:  image: ^4.3.0
+74:  socket_io_client: ^3.1.6
+75:  url_launcher: ^6.3.2
+76:  fl_chart: ^0.69.2
+77:  phosphor_flutter: ^2.1.0
+78:  shadcn_ui: ^0.53.6
+79:
+80:  # Firebase & Push Notifications
+81:  firebase_core: ^3.12.1
+82:  firebase_messaging: ^15.2.4
+83:  flutter_local_notifications: ^18.0.1
+84:  sentry_flutter: ^9.30.0
+85:  lucide_icons_flutter: ^3.1.20
+86:  liquid_glass_widgets: ^1.7.2
+87:
+88:  # Location (Social gần bạn: xin quyền khi vào tab Social, ghim map khi tạo kèo)
+89:  geolocator: ^13.0.4
+90:  permission_handler: ^11.4.0
+91:  flutter_map: ^7.0.2
+92:  latlong2: ^0.9.1
+93:
+94:dev_dependencies:
+95:  flutter_test:
+96:    sdk: flutter
+97:  flutter_lints: ^6.0.0
+98:  mocktail: ^1.0.4
+99:  build_runner: ^2.4.0
+100:  flutter_launcher_icons: ^0.14.4
+101:
+102:flutter:
+103:  uses-material-design: true
+…
+111:    - assets/logos/
+
+[Showing lines 1-103 of 111. Use :104 to continue]
+
+### region 11 (grep, ~622 tok)
+
+# backend/src/modules/tournaments/
+## tournaments.controller.ts#1EDE
+ 1221:  })
+*1222:  async myRegistration(
+ 1223:    @Param('id', ParseUUIDPipe) id: string,
+ 1224:    @CurrentUser() user: JwtPayload,
+ 1225:    @Query('divisionId') divisionId?: string,
+ 1226:  ) {
+*1227:    return this.tournamentsService.myRegistration(id, user.sub, divisionId);
+ 1228:  }
+ 1229:
+ 1230:  @Post(':id/regenerate-invite')
+...
+ 1640:
+*1641:  @Post(':id/participants/me/ranking-consent')
+ 1642:  @Verified()
+ 1643:  @ApiBearerAuth()
+ 1644:  @ApiOperation({
+## tournaments.repository.ts#036C
+ 832:
+*833:  myRegistration(
+*834:    ...args: Parameters<TournamentRegistrationRepository['myRegistration']>
+ 835:  ) {
+*836:    return this.tournamentRegistrationRepository.myRegistration(...args);
+ 837:  }
+ 838:
+ 839:  processPendingRegistrationsTimeout(
+## tournaments.service.ts#CEB5
+ 1195:
+*1196:  async myRegistration(
+ 1197:    tournamentId: string,
+ 1198:    userId: string,
+ 1199:    divisionId?: string,
+ 1200:  ) {
+*1201:    return this.tournamentRegistrationService.myRegistration(
+ 1202:      tournamentId,
+ 1203:      userId,
+ 1204:      divisionId,
+
+## repositories/
+### tournament-registration.repository.ts#7C50
+ 2353:  }
+*2354:  async myRegistration(
+ 2355:    tournamentId: string,
+ 2356:    userId: string,
+ 2357:    divisionId?: string,
+
+## services/
+### tournament-registration.service.ts#8394
+ 883:
+*884:    const currentRegistration = await this.tournamentsRepository.myRegistration(
+ 885:      tournamentId,
+ 886:      userId,
+ 887:      divisionId,
+...
+ 940:  }
+*941:  async myRegistration(
+ 942:    tournamentId: string,
+ 943:    userId: string,
+ 944:    divisionId?: string,
+ 945:  ) {
+*946:    return this.tournamentsRepository.myRegistration(
+ 947:      tournamentId,
+ 948:      userId,
+ 949:      divisionId,
+
+# web/src/features/tournaments/
+## api.ts#0B4B
+ 561:
+*562:export interface MyRegistrationParticipant extends Omit<
+ 563:  TournamentParticipant,
+ 564:  "members"
+ 565:> {
+...
+ 571:
+*572:export interface MyRegistrationResponse {
+ 573:  registered: boolean;
+ 574:  paymentEligible?: boolean;
+*575:  participant?: MyRegistrationParticipant | null;
+ 576:}
+ 577:
+ 578:export interface LivestreamCamera {
+...
+ 948:  },
+*949:  getMyRegistration: (id: string, divisionId?: string) =>
+*950:    api.get<ApiResponse<MyRegistrationResponse>>(
+ 951:      `/tournaments/${id}/my-registration`,
+ 952:      {
+ 953:        params: { _t: Date.now(), ...(divisionId ? { divisionId } : {}) },
+
+### region 12 (find, ~136 tok)
+
+1 hit(s) for "Tests for TournamentRegistrationRepository.myRegistration response and player-specific ranking consent state" in backend/src/modules/tournaments/ (τ 0.20), strongest first
+
+backend/src/modules/tournaments/repositories/tournament-registration.repository.ts  0.23  775 lines judged, partial
+  backend/src/modules/tournaments/repositories/tournament-registration.repository.ts:942-1306  0.23                    })
+
+listed 136 · judged 128 · read 20 files (69.4KB) · 9 requests · 40K tokens · $0.0017 · 728ms wall / 1.6s api
+
+### region 13 (find, ~161 tok)
+
+2 hit(s) for "Flutter API client method for GET tournament my-registration and its current result model" in app/lib/ (τ 0.20), strongest first
+
+app/lib/features/register/screens/tournament_register_screen.dart  0.86  960 lines judged, partial
+  app/lib/features/register/screens/tournament_register_screen.dart:1-190  0.86  import 'dart:async';
+app/lib/domain/entities/tournament_registration.dart  0.61  189 lines judged
+  app/lib/domain/entities/tournament_registration.dart:1-189  0.61  class TournamentDivisionOption {
+
+listed 510 · judged 128 · read 20 files (114.5KB) · 10 requests · 55K tokens · $0.0023 · 904ms wall / 2.0s api
+
+### region 14 (read, ~665 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#7C50]
+2149:  async kickParticipant(
+…
+2153:  ) {
+…
+2353:  }
+2354:  async myRegistration(
+2355:    tournamentId: string,
+2356:    userId: string,
+2357:    divisionId?: string,
+2358:  ) {
+2359:    const userRoster = await this.db
+2360:      .select({ participantId: schema.tournamentRosters.participantId })
+2361:      .from(schema.tournamentRosters)
+2362:      .innerJoin(
+2363:        schema.tournamentParticipants,
+2364:        eq(
+2365:          schema.tournamentRosters.participantId,
+2366:          schema.tournamentParticipants.id,
+2367:        ),
+2368:      )
+2369:      .where(
+2370:        and(
+2371:          eq(schema.tournamentParticipants.tournamentId, tournamentId),
+2372:          eq(schema.tournamentRosters.userId, userId),
+2373:          ...(divisionId
+2374:            ? [
+2375:                eq(
+2376:                  schema.tournamentParticipants.tournamentDivisionId,
+2377:                  divisionId,
+2378:                ),
+2379:              ]
+2380:            : []),
+2381:          ne(schema.tournamentParticipants.teamStatus, 'WITHDRAWN'),
+2382:          ne(schema.tournamentParticipants.teamStatus, 'REJECTED'),
+2383:          ne(schema.tournamentParticipants.teamStatus, 'KICKED'),
+2384:          ne(schema.tournamentParticipants.teamStatus, 'EXPIRED'),
+2385:        ),
+2386:      )
+2387:      .limit(1);
+2388:
+2389:    if (userRoster.length === 0) {
+2390:      return { registered: false };
+2391:    }
+2392:
+2393:    const participantId = userRoster[0].participantId;
+2394:
+2395:    const [participant] = await this.db
+2396:      .select()
+2397:      .from(schema.tournamentParticipants)
+2398:      .where(eq(schema.tournamentParticipants.id, participantId))
+2399:      .limit(1);
+2400:
+2401:    const members = await this.db
+2402:      .select({
+2403:        userId: schema.tournamentRosters.userId,
+2404:        role: schema.tournamentRosters.role,
+2405:        fullName: schema.profiles.fullName,
+2406:        avatarUrl: schema.profiles.avatarUrl,
+2407:      })
+2408:      .from(schema.tournamentRosters)
+2409:      .innerJoin(
+2410:        schema.users,
+2411:        eq(schema.tournamentRosters.userId, schema.users.id),
+2412:      )
+2413:      .innerJoin(schema.profiles, eq(schema.users.id, schema.profiles.userId))
+2414:      .where(eq(schema.tournamentRosters.participantId, participantId));
+2415:
+2416:    const hasRegistrationFeeSnapshot =
+2417:      participant.entryFeeAtRegistration !== null &&
+2418:      participant.entryFeeAtRegistration !== undefined;
+…
+2544:  }
+
+[Showing lines 2353-2418 of 2795. Use :2419 to continue]
+
+### region 15 (read, ~330 tok)
+
+[backend/src/modules/tournaments/services/tournament-registration.service.ts#8394]
+857:  async withdraw(
+…
+866:  ) {
+…
+940:  }
+941:  async myRegistration(
+942:    tournamentId: string,
+943:    userId: string,
+944:    divisionId?: string,
+945:  ) {
+946:    return this.tournamentsRepository.myRegistration(
+947:      tournamentId,
+948:      userId,
+949:      divisionId,
+950:    );
+951:  }
+952:  async findByInviteCode(inviteCode: string) {
+953:    const tournament =
+954:      await this.tournamentsRepository.findByInviteCode(inviteCode);
+955:    if (!tournament) {
+956:      throw new NotFoundException('Không tìm thấy giải đấu cho mã mời này');
+957:    }
+958:    this.assertInviteReachable(tournament);
+959:    return mapTournamentFormat(tournament);
+960:  }
+961:  async joinByInviteCode(
+962:    inviteCode: string,
+963:    userId: string,
+964:    registerTournamentDto: RegisterTournamentDto,
+965:    autoSeedFromElo: AutoSeedFromElo,
+966:  ) {
+967:    const tournament =
+968:      await this.tournamentsRepository.findByInviteCode(inviteCode);
+969:    if (!tournament) {
+970:      throw new NotFoundException('Không tìm thấy giải đấu cho mã mời này');
+971:    }
+972:    this.assertInviteReachable(tournament);
+973:
+…
+982:  }
+
+[Showing lines 940-973 of 1225. Use :974 to continue]
+
+### region 16 (read, ~302 tok)
+
+[web/src/features/tournaments/api.ts#0B4B]
+546:export interface FootballRosterStatus {
+547:  entry: {
+…
+551:    displayNameSnapshot: string;
+552:    logoUrlSnapshot?: string | null;
+553:    lockedAt?: string | null;
+554:  } | null;
+555:  roster: FootballRosterSnapshot[];
+556:  currentMember: FootballRosterSnapshot | null;
+557:}
+558:type FootballRosterEntryStatus = NonNullable<
+559:  FootballRosterStatus["entry"]
+560:>["status"];
+561:
+562:export interface MyRegistrationParticipant extends Omit<
+563:  TournamentParticipant,
+564:  "members"
+565:> {
+566:  members?: TournamentParticipant["members"];
+567:  teamMembers?: TournamentParticipant["members"];
+568:  teamInviteLink?: string | null;
+569:  hasRefundablePayment?: boolean;
+570:}
+571:
+572:export interface MyRegistrationResponse {
+573:  registered: boolean;
+574:  paymentEligible?: boolean;
+575:  participant?: MyRegistrationParticipant | null;
+576:}
+577:
+578:export interface LivestreamCamera {
+579:  id: string;
+580:  tournamentId: string;
+581:  name: string;
+582:  /** PUSH: SportO sinh URL ingest. PULL: BTC dán URL phát sẵn từ bên ngoài. */
+583:  mode: "PUSH" | "PULL";
+…
+592:}
+
+[Showing lines 551-583 of 1568. Use :584 to continue]
+
+### region 17 (read, ~423 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#1EDE]
+1640:
+1641:  @Post(':id/participants/me/ranking-consent')
+1642:  @Verified()
+1643:  @ApiBearerAuth()
+1644:  @ApiOperation({
+1645:    summary: 'Người tham gia tự xác nhận để được tính Elo',
+1646:    description:
+1647:      'Chỉ chính người chơi gọi được, không giới hạn vai trò Ban tổ chức — vì ban tổ ' +
+1648:      'chức tự bấm hộ sẽ phá đúng mục đích của nghiệp vụ này. Danh tính lấy từ JWT. ' +
+1649:      'Mốc xác nhận quyết định trận nào được tính: chỉ những trận hoàn thành từ thời ' +
+1650:      'điểm này trở đi. Mốc không bao giờ bị ghi lại nên bấm lại vô hại.',
+1651:  })
+1652:  @ApiResponse({ status: 201, type: ConfirmRankingConsentResultDto })
+1653:  @ApiResponse({
+1654:    status: 404,
+1655:    description: 'Không có tư cách tham gia giải này',
+1656:  })
+1657:  async confirmRankingConsent(
+1658:    @Param('id', ParseUUIDPipe) id: string,
+1659:    @CurrentUser() user: JwtPayload,
+1660:  ) {
+1661:    return this.tournamentsService.confirmRankingConsent(id, user.sub);
+1662:  }
+1663:
+1664:  @Post(':id/participants/:participantId/lock-roster')
+1665:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1666:  @Verified()
+1667:  @ApiBearerAuth()
+1668:  @ApiOperation({ summary: 'Khóa roster đội trước khi lập sơ đồ thi đấu' })
+1669:  async lockParticipantRoster(
+1670:    @Param('id', ParseUUIDPipe) id: string,
+1671:    @Param('participantId', ParseUUIDPipe) participantId: string,
+…
+1673:  ) {
+…
+1680:  }
+
+[Showing lines 1640-1671 of 2020. Use :1672 to continue]
+
+### region 18 (read, ~611 tok)
+
+[app/lib/data/repositories/api/api_tournament_repository.dart#9A47]
+196:  @override
+197:  Future<void> respondToRefereeInvite({
+…
+199:    required String refereeId,
+200:    required String action,
+201:  }) async {
+202:    _log.info(
+203:      'Responding referee invite: $tournamentId / $refereeId -> $action',
+204:    );
+205:    await _dioClient.dio.patch(
+206:      '/tournaments/$tournamentId/referees/$refereeId/respond',
+207:      data: {'action': action},
+208:    );
+209:  }
+210:
+211:  @override
+212:  Future<List<OrganizerOpsParticipant>> getOrganizerParticipants(
+213:    String tournamentId, {
+214:    String? divisionId,
+215:  }) async {
+216:    final response = await _dioClient.dio.get(
+217:      '/tournaments/$tournamentId/manage/participants',
+218:      queryParameters: {
+219:        if (divisionId != null && divisionId.isNotEmpty)
+220:          'divisionId': divisionId,
+221:        '_t': DateTime.now().millisecondsSinceEpoch,
+222:      },
+223:    );
+224:    final raw = response.data;
+225:    final data = raw is Map<String, dynamic> ? raw['data'] : raw;
+226:    if (data is! List) return const [];
+227:    return data
+228:        .whereType<Map>()
+229:        .map(
+230:          (item) =>
+231:              OrganizerOpsParticipant.fromJson(Map<String, dynamic>.from(item)),
+232:        )
+233:        .where((participant) => participant.id.isNotEmpty)
+234:        .toList(growable: false);
+235:  }
+236:
+237:  @override
+238:  Future<List<OrganizerOpsReferee>> getTournamentReferees(
+239:    String tournamentId,
+240:  ) async {
+241:    final response = await _dioClient.dio.get(
+242:      '/tournaments/$tournamentId/referees',
+243:    );
+244:    final raw = response.data;
+245:    final data = raw is Map<String, dynamic> ? raw['data'] : raw;
+246:    if (data is! List) return const [];
+247:    return data
+248:        .whereType<Map>()
+249:        .map(
+250:          (item) =>
+251:              OrganizerOpsReferee.fromJson(Map<String, dynamic>.from(item)),
+252:        )
+253:        .where((referee) => referee.id.isNotEmpty)
+254:        .toList(growable: false);
+255:  }
+256:
+257:  @override
+258:  Future<List<OrganizerOpsAuditEntry>> getOpsAuditLogs(
+259:    String tournamentId, {
+260:    String? divisionId,
+261:  }) async {
+262:    final response = await _dioClient.dio.get(
+263:      '/tournaments/$tournamentId/ops-audit-logs',
+…
+268:    );
+…
+280:  }
+
+[Showing lines 199-263 of 1324. Use :264 to continue]
+
+### region 19 (read, ~888 tok)
+
+[backend/package.json#83C5]
+1:{
+2:  "name": "backend-api_qlgiaidau",
+3:  "version": "0.0.2",
+4:  "description": "",
+5:  "author": "",
+6:  "private": true,
+7:  "license": "UNLICENSED",
+8:  "scripts": {
+9:    "build": "nest build && node scripts/copy-ai-prompt.js",
+10:    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+11:    "start": "nest start",
+12:    "start:dev": "nest start --watch",
+13:    "start:debug": "nest start --debug --watch",
+14:    "start:prod": "node --enable-source-maps dist/main",
+15:    "db:migrate": "node run-prod-migration.js",
+16:    "db:push": "npx drizzle-kit push",
+17:    "db:setup": "npx drizzle-kit push && npx ts-node src/database/seeds/seed-prod.ts",
+18:    "seed:prod": "npx ts-node src/database/seeds/seed-prod.ts",
+19:    "seed:roles": "npx ts-node src/database/seeds/roles.seed.ts",
+20:    "seed:categories": "npx ts-node src/database/seeds/categories.seed.ts",
+21:    "seed:regions": "npx ts-node src/database/seeds/seed-regions.ts",
+22:    "sync:regions": "npx ts-node src/database/seeds/seed-regions.ts",
+23:    "seed:admin": "npx ts-node src/database/seeds/admin.seed.ts",
+24:    "seed:test": "npx ts-node src/database/seeds/seed-test.ts",
+25:    "seed:brackets": "npx ts-node src/database/seeds/generate-brackets.ts",
+26:    "seed:play": "npx ts-node src/database/seeds/play-matches.ts",
+27:    "seed:data": "npx ts-node src/database/seeds/seed-data-prod.ts",
+28:    "seed:rankings": "npx ts-node src/database/seeds/seed-rankings.ts",
+29:    "seed:hide-banner": "npx ts-node src/database/seeds/seed-hide-banner-tournaments.ts",
+30:    "repair:hide-banner": "npx ts-node src/database/seeds/repair-hide-banner-seed.ts",
+31:    "repair:brackets": "npx ts-node src/database/seeds/repair-double-elim-brackets.ts",
+32:    "seed:clear": "npx ts-node src/database/seeds/clear-tournaments.ts",
+33:    "seed:standings-recompute": "npx ts-node src/database/seeds/recompute-group-standings.ts",
+34:    "test": "jest",
+35:    "test:watch": "jest --watch",
+36:    "test:cov": "jest --coverage",
+37:    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+38:    "test:e2e": "jest --config ./test/jest-e2e.json",
+39:    "verify:football-schema": "node scripts/verify-football-schema.js"
+40:  },
+41:  "dependencies": {
+42:    "@moderation-api/unicode-spoofing": "0.4.0",
+43:    "@nestjs/bullmq": "^11.0.4",
+44:    "@nestjs/common": "^11.0.1",
+45:    "@nestjs/config": "^4.0.4",
+46:    "@nestjs/core": "^11.0.1",
+47:    "@nestjs/jwt": "^11.0.2",
+48:    "@nestjs/mapped-types": "*",
+49:    "@nestjs/passport": "^11.0.5",
+50:    "@nestjs/platform-express": "^11.0.1",
+51:    "@nestjs/platform-socket.io": "^11.1.24",
+52:    "@nestjs/schedule": "^6.1.3",
+53:    "@nestjs/swagger": "^11.4.4",
+54:    "@nestjs/throttler": "^6.5.0",
+55:    "@nestjs/websockets": "^11.1.24",
+56:    "@payos/node": "^2.0.5",
+57:    "@scalar/nestjs-api-reference": "^1.1.20",
+58:    "@sentry/nestjs": "^10.73.0",
+59:    "@zxing/library": "^0.23.0",
+60:    "bcrypt": "^6.0.0",
+61:    "bullmq": "^5.79.1",
+62:    "class-transformer": "^0.5.1",
+63:    "class-validator": "^0.15.1",
+64:    "cloudinary": "^2.10.0",
+65:    "cookie-parser": "^1.4.7",
+66:    "dotenv": "^17.4.2",
+67:    "drizzle-orm": "^0.45.2",
+68:    "firebase-admin": "^13.10.0",
+69:    "google-auth-library": "^10.7.0",
+70:    "helmet": "^8.2.0",
+71:    "ioredis": "^5.11.1",
+72:    "joi": "^18.2.1",
+73:    "jsonwebtoken": "^9.0.3",
+…
+87:  },
+…
+139:}
+
+[Showing lines 1-73 of 139. Use :74 to continue]
+
+### region 20 (bash, ~2169 tok)
+
+? Verifying lockfile against supply-chain policies (1064 entries)...
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /home/runner/.local/share/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Downloading @img/sharp-libvips-linux-x64@1.3.3: 0.00 B/8.17 MB
+Downloading tesseract.js-core@7.0.0: 0.00 B/16.93 MB
+✓ Lockfile passes supply-chain policies (1064 entries in 3.8s)
+Packages: +936
+.../node_modules/msgpackr-extract install$ node-gyp-build-optional-packages
+.../esbuild@0.28.0/node_modules/esbuild postinstall$ node install.js
+.../bcrypt@6.0.0/node_modules/bcrypt install$ node-gyp-build
+.../node_modules/@scarf/scarf postinstall$ node ./report.js
+.../node_modules/@nestjs/core postinstall$ opencollective || exit 0
+.../node_modules/@nestjs/core postinstall: Done
+.../node_modules/msgpackr-extract install: Done
+.../esbuild@0.18.20/node_modules/esbuild postinstall$ node install.js
+.../bcrypt@6.0.0/node_modules/bcrypt install: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall$ node install.js
+.../node_modules/@firebase/util postinstall$ node ./postinstall.js
+.../esbuild@0.28.0/node_modules/esbuild postinstall: Done
+.../node_modules/protobufjs postinstall$ node scripts/postinstall
+.../node_modules/@firebase/util postinstall: Done
+.../node_modules/protobufjs postinstall: Done
+.../node_modules/unrs-resolver postinstall$ node postinstall.js
+.../node_modules/tesseract.js postinstall$ opencollective-postinstall || true
+.../esbuild@0.18.20/node_modules/esbuild postinstall: Done
+.../node_modules/unrs-resolver postinstall: Done
+.../node_modules/tesseract.js postinstall: Done
+.../esbuild@0.25.12/node_modules/esbuild postinstall: Done
+.../node_modules/@scarf/scarf postinstall:
+.../node_modules/@scarf/scarf postinstall:     The dependency 'swagger-ui-dist' is tracking installation
+.../node_modules/@scarf/scarf postinstall:     statistics using scarf-js (https://scarf.sh), which helps open-source developers
+.../node_modules/@scarf/scarf postinstall:     fund and maintain their projects. Scarf securely logs basic installation
+.../node_modules/@scarf/scarf postinstall:     details when this package is installed. The Scarf npm library is open source
+.../node_modules/@scarf/scarf postinstall:     and permissively licensed at https://github.com/scarf-sh/scarf-js. For more
+.../node_modules/@scarf/scarf postinstall:     details about your project's dependencies, try running 'npm ls'. To opt out of
+.../node_modules/@scarf/scarf postinstall:     analytics, set the environment variable 'SCARF_ANALYTICS=false'.
+.../node_modules/@scarf/scarf postinstall:
+.../node_modules/@scarf/scarf postinstall: Done
+
++ @moderation-api/unicode-spoofing 0.4.0
++ @nestjs/bullmq 11.0.4
++ @nestjs/common 11.1.24
++ @nestjs/config 4.0.4
++ @nestjs/core 11.1.24
++ @nestjs/jwt 11.0.2
++ @nestjs/mapped-types 2.1.1
++ @nestjs/passport 11.0.5
++ @nestjs/platform-express 11.1.24
++ @nestjs/platform-socket.io 11.1.24
++ @nestjs/schedule 6.1.3
++ @nestjs/swagger 11.4.4
++ @nestjs/throttler 6.5.0
++ @nestjs/websockets 11.1.24
++ @payos/node 2.0.5
++ @scalar/nestjs-api-reference 1.1.20
++ @sentry/nestjs 10.73.0
++ @zxing/library 0.23.0
++ bcrypt 6.0.0
++ bullmq 5.79.1
++ class-transformer 0.5.1
++ class-validator 0.15.1
++ cloudinary 2.10.0
++ cookie-parser 1.4.7
++ dotenv 17.4.2
++ drizzle-orm 0.45.2
++ firebase-admin 13.10.0
++ google-auth-library 10.7.0
++ helmet 8.2.0
++ ioredis 5.11.1
++ joi 18.2.1
++ jsonwebtoken 9.0.3
++ nodemailer 9.0.1
++ openai 6.44.0
++ passport 0.7.0
++ passport-google-oauth20 2.0.0
++ passport-jwt 4.0.1
++ pg 8.23.0
++ postgres 3.4.9
++ reflect-metadata 0.2.2
++ rxjs 7.8.2
++ sharp 0.35.4
++ socket.io 4.8.3
++ streamifier 0.1.1
++ tesseract.js 7.0.0
+
+devDependencies:
++ @eslint/eslintrc 3.3.5
++ @eslint/js 9.39.4
++ @nestjs/cli 11.0.21
++ @nestjs/schematics 11.1.0
++ @nestjs/testing 11.1.24
++ @types/bcrypt 6.0.0
++ @types/cookie-parser 1.4.10
++ @types/express 5.0.6
++ @types/jest 30.0.0
++ @types/jsonwebtoken 9.0.10
++ @types/multer 2.1.0
++ @types/node 24.12.4
++ @types/nodemailer 8.0.1
++ @types/passport-google-oauth20 2.0.17
++ @types/passport-jwt 4.0.1
++ @types/streamifier 0.1.2
++ @types/supertest 7.2.0
++ drizzle-kit 0.31.10
++ eslint 9.39.4
++ eslint-config-prettier 10.1.8
++ eslint-plugin-prettier 5.5.6
++ globals 17.6.0
++ jest 30.4.2
++ prettier 3.8.3
++ source-map-support 0.5.21
++ supertest 7.2.2
++ ts-jest 29.4.11
++ ts-loader 9.6.0
++ ts-node 10.9.2
++ tsconfig-paths 4.2.0
++ typescript 5.9.3
++ typescript-eslint 8.60.1
+
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(31,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(57,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(67,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/communities/moderation/community-blackbox-ai.service.spec.ts(79,52): error TS2345: Argument of type '{ get: jest.Mock<string, [key: string], any>; }' is not assignable to parameter of type 'ConfigService<Record<string | symbol, unknown>, false>'.
+  Type '{ get: Mock<string, [key: string], any>; }' is missing the following properties from type 'ConfigService<Record<string | symbol, unknown>, false>': internalConfig, isCacheEnabled, skipProcessEnv, cache, and 15 more.
+src/modules/social-sessions/social-sessions.service.spec.ts(120,15): error TS2554: Expected 4 arguments, but got 3.
+src/modules/social-sessions/social-sessions.service.spec.ts(396,9): error TS2554: Expected 1 arguments, but got 2.
+src/modules/social-sessions/social-sessions.service.spec.ts(927,19): error TS2554: Expected 4 arguments, but got 3.
+src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts(183,31): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(cls: ClassConstructor<RosterImportDto>, plain: unknown[], options?: ClassTransformOptions | undefined): RosterImportDto[]', gave the following error.
+    Argument of type 'typeof RosterImportDto | typeof ImportParticipantsDto' is not assignable to parameter of type 'ClassConstructor<RosterImportDto>'.
+      Type 'typeof ImportParticipantsDto' is not assignable to type 'ClassConstructor<RosterImportDto>'.
+        Construct signature return types 'ImportParticipantsDto' and 'RosterImportDto' are incompatible.
+          The types of 'participants' are incompatible between these types.
+            Type 'ParticipantImportItemDto[]' is not assignable to type 'RosterImportItemDto[]'.
+              Property 'source' is missing in type 'ParticipantImportItemDto' but required in type 'RosterImportItemDto'.
+  Overload 2 of 2, '(cls: ClassConstructor<RosterImportDto>, plain: Record<string, unknown>, options?: ClassTransformOptions | undefined): RosterImportDto', gave the following error.
+    Argument of type 'typeof RosterImportDto | typeof ImportParticipantsDto' is not assignable to parameter of type 'ClassConstructor<RosterImportDto>'.
+      Type 'typeof ImportParticipantsDto' is not assignable to type 'ClassConstructor<RosterImportDto>'.
+        Construct signature return types 'ImportParticipantsDto' and 'RosterImportDto' are incompatible.
+          The types of 'participants' are incompatible between these types.
+            Type 'ParticipantImportItemDto[]' is not assignable to type 'RosterImportItemDto[]'.
+              Property 'source' is missing in type 'ParticipantImportItemDto' but required in type 'RosterImportItemDto'.
+[raw output: artifact://9]
+
+
+Wall time: 23.70 seconds
+
+Command exited with code 2
+
+### region 21 (todo, ~1815 tok)
+
+Remaining items (20):
+  - Lập thiết kế kiến trúc dựa trên checklist; trình bày các lựa chọn/rủi ro và chờ người dùng duyệt trước khi tạo spec/plan hoặc sửa code. [pending] (Khảo sát & duyệt thiết kế)
+  - Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow. [in_progress] (Workflow artifacts)
+  - Hoàn thiện Feature Impact Review trước implementation. [pending] (Workflow artifacts)
+  - Hoàn thiện button/screen/cross-platform matrices. [pending] (Workflow artifacts)
+  - Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý. [pending] (Workflow artifacts)
+  - Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng. [pending] (Workflow artifacts)
+  - Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả. [pending] (Workflow artifacts)
+  - Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi. [pending] (Backend implementation)
+  - Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích. [pending] (Backend implementation)
+  - Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval. [pending] (Backend implementation)
+  - Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate. [pending] (Backend implementation)
+  - Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC. [pending] (Backend implementation)
+  - Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn. [pending] (Backend implementation)
+  - Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái. [pending] (Web & Flutter implementation)
+  - Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ. [pending] (Web & Flutter implementation)
+  - Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật. [pending] (Xác minh & bàn giao)
+  - Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng. [pending] (Xác minh & bàn giao)
+  - Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline. [pending] (Xác minh & bàn giao)
+  - Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt. [pending] (Xác minh & bàn giao)
+  - Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII. [pending] (Xác minh & bàn giao)
+Overall: 2/22 done, 20 open.
+Active phase 1/5 "Khảo sát & duyệt thiết kế" (2/3).
+  Khảo sát & duyệt thiết kế:
+    - [X] Xác nhận branch omp/issue-9 ở backend/Web/Flutter; kiểm tra workflow artifacts và strict validator đang có hay thiếu.
+    - [X] Đối chiếu API avatar, schema dữ liệu và hợp đồng hiện hữu giữa Web/Flutter; giữ tên field/optional cũ.
+    - [ ] Lập thiết kế kiến trúc dựa trên checklist; trình bày các lựa chọn/rủi ro và chờ người dùng duyệt trước khi tạo spec/plan hoặc sửa code.
+  Workflow artifacts:
+    - [ ] Hoàn thiện problem map, discovery/contract và README theo đúng thứ tự workflow. (in progress)
+    - [ ] Hoàn thiện Feature Impact Review trước implementation.
+    - [ ] Hoàn thiện button/screen/cross-platform matrices.
+    - [ ] Hoàn thiện entity/backend design, endpoint contract, screen spec, compliance scope và profile review; không tự xác nhận tuân thủ pháp lý.
+    - [ ] Hoàn thiện implementation plan/tasks, test plan, release evidence; cập nhật README trạng thái đúng.
+    - [ ] Áp dụng yêu cầu workflow không có artifact/validator local bằng evidence có thật; không tạo validator giả.
+  Backend implementation:
+    - [ ] Tạo API bạn bè/CLB theo tournament scope, đúng status/quyền, lọc người đã ở roster và re-check quan hệ tại thời điểm ghi.
+    - [ ] Tạo luồng nhập trực tiếp riêng Excel; email thực sự optional; chỉ link account khi email verified; có đường claim an toàn; bảo toàn API tương thích.
+    - [ ] Hoàn thiện consent một chiều trên từng roster user; người chơi tự xác nhận; không cản trở thi đấu, không thu hồi, không organizer resend/confirm UI; không tự đặt reminder interval.
+    - [ ] Fail-closed ELO cho roster rỗng/thiếu consent; kiểm tra enqueue/apply/replay theo setting ELO giải và updateMatchElo; giữ insertAdminEloHistory ngoài gate.
+    - [ ] Dùng fee snapshot tại đăng ký; chỉ hiển thị thanh toán nếu snapshot > 0; ghi chú ngắn, is_present độc lập, không lọc giới tính; timestamps ISO-8601 UTC.
+    - [ ] Rà soát scheduler/email: escape HTML, bỏ người rời roster/giải kết thúc, tránh duplicate nhiều instance, retry/counter đúng giới hạn.
+  Web & Flutter implementation:
+    - [ ] Xây UI Thêm VĐV bên cạnh Excel: Bạn bè/Thành viên CLB/Nhập trực tiếp, tìm kiếm, avatar hiện có, responsive và đủ trạng thái.
+    - [ ] Cập nhật hành vi Web/Flutter và JSON models/additive optional fields; hiển thị consent/claim chỉ cho người chơi, giữ compatibility cũ.
+  Xác minh & bàn giao:
+    - [ ] Viết test đỏ trước production code; chạy backend/Web/Flutter tests, typecheck/build, migration validation và browser/UI smoke; không chạy migration thật.
+    - [ ] Kiểm tra trạng thái hiện tại của 7 lỗi backend typecheck đã ghi nhận; không coi kết quả cũ là hiện trạng.
+    - [ ] Áp dụng ui-ux-pro-max và backend docs/skills.md; kiểm tra responsive, keyboard/focus, screen reader, loading/empty/error/conflict/offline.
+    - [ ] Chạy strict workflow validator; chỉ mở PR riêng vào main sau các kiểm tra đạt và compliance owner review; không push nếu thiếu phê duyệt.
+    - [ ] Stage và commit mọi thay đổi an toàn trên omp/issue-9 với thông điệp đã yêu cầu; không stage secrets/PII.
+
+### region 22 (bash, ~9 tok)
+
+(no output)
+
+Wall time: 0.02 seconds
+
+### region 23 (read, ~248 tok)
+
+.
+  - 00-problem-map.md             2.9KB     35m ago
+  - 01-architecture-review.md     2.4KB     35m ago
+  - 02-backend-feature-design.md  2.8KB     35m ago
+  - 02-data-entity.md             1.6KB     35m ago
+  - 03-endpoint-contract.md       2.0KB     35m ago
+  - 04-screen-spec.md             2.4KB     35m ago
+  - 05-button-state-matrix.md     1.7KB     35m ago
+  - 05-cross-platform-matrix.md   1.4KB     35m ago
+  - 05-feature-impact-review.md   4.9KB     35m ago
+  - 05-screen-state-matrix.md     1.3KB     35m ago
+  - 05-security-delta.md          2.8KB     35m ago
+  - 07-plan.md                    2.2KB     35m ago
+  - 08-tasks.md                   1.4KB     35m ago
+  - 09-test-plan.md               2.3KB     35m ago
+  - 10-implementation-log.md      6.1KB     35m ago
+  - 11-convergence-review.md      2.6KB     35m ago
+  - 12-release-evidence.md        2.3KB     35m ago
+  - README.md                     3.4KB     35m ago
+  - 00-discovery-brief.md         2.0KB     35m ago
+
+### region 24 (read, ~925 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/README.md#6A8A]
+1:# Change - organizer-fee-paid-checkbox-20261005
+2:
+3:- Title: Organizer fee-paid checkbox with offline override and refund request
+4:- Tier: HighRisk
+5:- Status: STAGING
+6:- Owner: omp coding agent
+7:- Created: 2026-10-05
+8:- Workflow source: workflow/MANIFEST.json
+9:- Canonical standards: workflow/standards/README.md
+10:
+11:## How to use this folder
+12:
+13:This folder is the source-of-truth workspace for one change. Complete artifacts in order, link decisions to evidence, and do not mark the change complete when a required check is blocked, not-run or unresolved.
+14:
+15:The selected tier is HighRisk. Every change starts with a problem map; Normal adds discovery, architecture, backend and contract artifacts; HighRisk adds a security delta. Add the AI artifact when IncludeAI is selected.
+16:Selected profile(s): None
+17:Profile risk gate: Not applicable
+18:Profile-specific artifacts are required when their signal applies; the validator checks existence only, not legal/platform approval or semantic correctness.
+19:Feature Impact Review: required before implementation; complete the decision, source-of-truth, surface, state, button, negative-case and evidence sections.
+20:If a risk waiver is requested, complete profile-risk-waiver.md before implementation; a waiver cannot bypass legal or platform review.
+21:
+22:## Current gate
+23:
+24:- Next action: run validate-workflow.ps1 -Strict, then decide whether to push
+25:- Blocking questions: none
+26:- Decision owner: user (request given in session; they were asleep and asked for no further questions)
+27:- Last updated: 2026-10-05
+28:
+29:## Summary
+30:
+31:The registration fee badge in the organizer `Đăng ký & Vận động viên` table becomes a
+32:checkbox the organizer controls directly:
+33:
+34:- **Tick** — records a fee collected outside the system. No money moves.
+35:- **Untick, no system payment** — undoes a manual mark. No refund, nothing financial.
+36:- **Untick, system payment** — raises one refund request. The organizer still has to
+37:  send the money back; an admin settles it through the existing route, unchanged.
+38:
+39:Untick always asks first, and the warning is stronger when money is actually behind the
+40:tick. No schema change, no new enum, and the endpoint can never execute a refund.
+41:
+42:## Artifact map
+43:
+44:| Artifact | Required | Status | Owner |
+45:|---|---:|---|---|
+46:| 00-problem-map.md | true | complete | omp |
+47:| 05-feature-impact-review.md | true | complete (GO_WITH_CONDITIONS) | omp |
+48:| 05-button-state-matrix.md | true | complete | omp |
+49:| 05-screen-state-matrix.md | true | complete | omp |
+50:| 05-cross-platform-matrix.md | true | complete | omp |
+51:| 00-discovery-brief.md | true | complete | omp |
+52:| 01-architecture-review.md | False | not-applicable | |
+53:| 02-data-entity.md | true | complete (no entity change) | omp |
+54:| 02-backend-feature-design.md | true | complete | omp |
+55:| 03-endpoint-contract.md | true | complete | omp |
+56:| 04-screen-spec.md | true | complete | omp |
+57:| 05-security-delta.md | true | complete | omp |
+58:| 06-ai-eval-task.yaml | $IncludeAI | not-applicable | |
+59:| 07-plan.md | true | complete | omp |
+60:| 08-tasks.md | true | complete | omp |
+61:| 09-test-plan.md | true | complete | omp |
+62:| 10-implementation-log.md | true | complete | omp |
+63:| 11-convergence-review.md | true | complete | omp |
+64:| 12-release-evidence.md | true | complete | omp |
+65:
+66:## Required states
+67:
+68:Use INTAKE, SPECIFIED, DESIGNED, IMPLEMENTING, VERIFYING, STAGING, RELEASED, BLOCKED, NEEDS_CLARIFICATION or NEEDS_HUMAN_REVIEW. Do not invent alternate states.
+
+### region 25 (read, ~645 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/09-test-plan.md#23DD]
+1:# Test Plan - organizer-fee-paid-checkbox-20261005
+2:
+3:## Automated
+4:
+5:| Check | Command | Expected |
+6:|---|---|---|
+7:| Service behaviour | `npx jest src/modules/tournaments/services/tournament-participant-admin.service.spec.ts --runInBand` | 13 passed |
+8:| Backend types | `npx tsc --noEmit -p tsconfig.json` | no new error attributable to this change |
+9:| Web types | `npx tsc --noEmit -p tsconfig.json` | no new error attributable to this change |
+10:| Web lint | `npx eslint RegistrationTab.tsx --quiet` | clean |
+11:| Workflow | `validate-workflow.ps1 -ProjectRoot . -ChangeId organizer-fee-paid-checkbox-20261005 -Strict` | pass |
+12:
+13:## Cases covered by the service spec
+14:
+15:| Case | Assertion |
+16:|---|---|
+17:| non-manager | 403 and `db.transaction` never opened |
+18:| participant of another tournament | 404 |
+19:| flag already matches | resolves with the unchanged participant, no transaction, no audit, no broadcast |
+20:| mark paid | `createPendingRefund` not called, flag written with `true`, participant audited |
+21:| unmark a captured fee | refund raised through the policy quote, with the quote's amount and the `ORGANIZER_UNMARKED_FEE_PAID` reason |
+22:| unmark a manual mark | no payment row found, `createPendingRefund` not called, flag cleared |
+23:| unmark while a refund is already pending | no second refund raised, flag still cleared, `refundRequested` false |
+24:
+25:## Manual browser verification
+26:
+27:Real `RegistrationTab` mounted with three fixture participants and a stubbed mutation,
+28:1568x833.
+29:
+30:| # | Step | Expected |
+31:|---|---|---|
+32:| M1 | Open the table | three checkboxes: system-paid checked with a `PAYMENT` caption, manual checked without one, unpaid unchecked |
+33:| M2 | Tick the unpaid row | applies immediately, no dialog, success toast |
+34:| M3 | Unticks the manual row | neutral dialog, no money wording, `Clear mark` action |
+35:| M4 | Unticks the system row | danger dialog, red icon and red action, `Clear and request refund` |
+36:| M5 | Cancel either dialog | nothing changes, checkbox keeps its value |
+37:
+38:## Not covered
+39:
+40:- The live request against a running backend. The local API was not running and the
+41:  endpoint is new, so the browser pass stubbed the mutation. The server behaviour is
+42:  covered by the service spec instead. Stated as a limit, not as a pass.
+43:- Vietnamese rendering of the new strings: the harness rendered in English.
+44:- Narrow breakpoints, reasoned from the existing table rules.
+
+### region 26 (read, ~22 tok)
+
+Path 'web/changes/organizer-fee-paid-checkbox-20261005/10-release-evidence.md' not found
+
+### region 27 (read, ~1335 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/05-feature-impact-review.md#FB44]
+1:# Feature Impact Review - organizer-fee-paid-checkbox-20261005
+2:
+3:Decision: GO_WITH_CONDITIONS
+4:
+5:## Decision
+6:
+7:GO_WITH_CONDITIONS. The change is confined to one organizer table and one new
+8:organizer endpoint, and it never moves money by itself: the worst case is a refund
+9:*request* that still has to be settled by an admin through the pre-existing
+10:`confirm-refund` route. The condition is that refund settlement and its audit trail
+11:stay exactly as they are.
+12:
+13:## Source of truth
+14:
+15:- Refund policy: `calculateTournamentRefundQuote`
+16:  (`src/modules/tournaments/utils/tournament-refund-policy.ts:40`). Amounts are never
+17:  taken from the client or hand-computed.
+18:- Refund request: `TournamentPaymentRepository.createPendingRefund`
+19:  (`tournament-payment.repository.ts:199`), which compare-and-sets
+20:  `payments.refund_status` NULL to `PENDING_REFUND` and refuses a second request.
+21:- Refund settlement: `PaymentsRepository.confirmLegacyRefund`
+22:  (`payments.repository.ts:702`), reachable only through
+23:  `POST /payments/admin/payments/:id/confirm-refund`, `@Roles(ADMIN)`.
+24:- Fee state: `tournament_participants.is_paid`. "Paid through the system" means a
+25:  `payments` row exists with `status = 'COMPLETED'` and `purpose = 'REGISTRATION_FEE'`,
+26:  which is exactly what `findCompletedParticipantPaymentInTx` looks up.
+27:- Authorization: `TournamentAccessService.isManager`, the same check every other
+28:  participant mutation uses.
+29:
+30:## Affected
+31:
+32:| Area | Change |
+33:|---|---|
+34:| Backend, `tournaments.controller.ts` | new `PATCH :id/participants/:participantId/fee-payment` |
+35:| Backend, `tournament-participant-admin.service.ts` | new `setParticipantFeePaid`, audit + broadcast |
+36:| Backend, `tournament-payment.repository.ts` | `setParticipantPaidInTx` (the transactional flag write) |
+37:| Backend, new DTO | `UpdateParticipantFeePaymentDto { paid }` |
+38:| Backend, two spec files | constructor arity only |
+39:| Web, `RegistrationTab.tsx` | payment badge replaced by a checkbox plus a confirmation |
+40:| Web, `features/tournaments/api.ts` | `setParticipantFeePaid` client |
+41:| Web, `messages/vi.json`, `messages/en.json` | 11 keys each |
+42:| Schema | none |
+43:| Payments module | none |
+44:
+45:## Negative cases
+46:
+47:| Case | Behaviour |
+48:|---|---|
+49:| Caller does not manage the tournament | 403, no transaction opened |
+50:| Participant belongs to another tournament | 404 |
+51:| Flag already equals the requested value | no-op: no transaction, no audit row, no broadcast |
+52:| Tick with no payment row | sets the flag only, creates no `payments` row |
+53:| Untick with no payment row | clears the flag, no refund row, no money movement |
+54:| Untick with a COMPLETED payment and `refund_status` NULL | policy quote, one `PENDING_REFUND` request, audit on both rows |
+55:| Untick twice across a tick in between | second call skips the request instead of hitting the compare-and-set, so the flag is not rolled back |
+56:| Payment already refunded or refund pending | flag still clears, `refundRequested` reports `false` |
+57:| Concurrent unticks | the compare-and-set inside `createPendingRefund` keeps exactly one request; the loser throws inside the transaction, so nothing partially applies |
+58:| Client double-click | the row's checkbox is disabled while its mutation is in flight |
+59:
+60:## Security
+61:
+62:- The endpoint can only ever *request* a refund. Moving money still requires the
+63:  admin-only settlement route and a proof URL.
+64:- Ownership re-checked server-side; the client never decides eligibility.
+65:- The refund amount is computed server-side by the shared policy. There is no code
+66:  path where a client-supplied number reaches `payment_refunds.amount`.
+67:- Every write is audited inside the same transaction via `AuditService.logUpdate`.
+68:- A repeat refund for the same payment is impossible at both the
+69:  `refund_status` compare-and-set and the unique
+70:  `financial_ledger_entries.idempotency_key`.
+71:
+72:## Conditions
+73:
+74:1. Do not relax the admin-only settlement route.
+75:2. Re-run `validate-workflow.ps1 -Strict` after the two other in-progress worktrees
+76:   in this workspace are committed, since they are unrelated.
+77:
+78:## Evidence
+79:
+80:- `npx jest src/modules/tournaments/services/tournament-participant-admin.service.spec.ts`
+81:  → 13 passed. Includes 403, cross-tournament 404, idempotent no-op, mark-paid
+82:  creates no payment row, refund requested through the policy quote, manual mark
+83:  skipped, and a repeat-untick case that asserts no second refund is raised.
+84:- `npx tsc --noEmit` on the backend: the error set is unchanged from `HEAD` for the
+85:  three pre-existing spec files. A fourth spec,
+86:  `tournament-import-legacy-contract.spec.ts`, errors only because of unrelated
+87:  in-progress edits to `tournament-registration.repository.ts` in the same working
+88:  tree.
+89:- Browser, 1568x833, real `RegistrationTab` with a stubbed mutation: three
+90:  participants render correct checkbox states; unticking a manual mark opens the
+91:  neutral confirmation; unticking a system payment opens the danger confirmation
+92:  with a red action; ticking applies immediately with no dialog.
+
+### region 28 (read, ~1664 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/10-implementation-log.md#F469]
+1:# Implementation Log - organizer-fee-paid-checkbox-20261005
+2:
+3:## 2026-10-05
+4:
+5:### Backend
+6:
+7:| File | Change |
+8:|---|---|
+9:| `dto/update-participant-fee-payment.dto.ts` | new `UpdateParticipantFeePaymentDto { paid }` |
+10:| `tournaments.controller.ts` | `PATCH :id/participants/:participantId/fee-payment`, guard stack copied from the sibling participant route |
+11:| `tournaments.service.ts` | delegation plus the sibling `broadcastRegistrationChanged` |
+12:| `services/tournament-participant-admin.service.ts` | `setParticipantFeePaid`, plus `AuditService`, `PG_CONNECTION` and `TournamentPaymentRepository` injected |
+13:| `repositories/tournament-payment.repository.ts` | `setParticipantPaidInTx(tx, participantId, isPaid)` |
+14:| `services/tournament-participant-admin.service.spec.ts` | nine cases, constructor updated |
+15:| `tournaments-lite-pairing.spec.ts`, `utils/registration-lifecycle.spec.ts` | constructor arity only |
+16:
+17:### Web
+18:
+19:| File | Change |
+20:|---|---|
+21:| `features/tournaments/api.ts` | `setParticipantFeePaid` |
+22:| `messages/vi.json`, `messages/en.json` | 11 keys each |
+23:| `manage/components/RegistrationTab.tsx` | payment badge replaced by a checkbox; `hasSystemPayment`; `handleFeePaidChange`; a `ConfirmModal` that switches wording and variant on whether a system payment exists |
+24:
+25:### Deviations from the plan
+26:
+27:- `registeredAt` is `participant.registeredAt`, not `payment.createdAt`. The shared
+28:  projection does not carry `createdAt`, every other caller passes the participant's
+29:  value, and with a `KICKED` trigger the fee is waived so the timestamp cannot change
+30:  the amount.
+31:- `setParticipantPaidInTx` instead of the existing `markParticipantPaid`, because this
+32:  endpoint needs both directions inside a caller-owned transaction.
+33:
+34:### Defects found during review, and fixed
+35:
+36:1. **Repeat untick would have thrown.** After a refund is raised, a
+37:   tick / untick / tick / untick cycle reached the compare-and-set inside
+38:   `createPendingRefund`, which throws and rolls the whole transaction back, leaving the
+39:   checkbox stuck on. A payment that already carries a refund state now skips the
+40:   request and the flag still clears.
+41:2. **`refundRequested` was wrong.** It reported `completedPayment !== null`, so a
+42:   skipped second refund would still have told the organizer a refund was raised. It
+43:   now reports what the call actually did.
+44:3. **Other rows looked enabled but were inert.** `handleFeePaidChange` guarded on
+45:   `if (feePaymentBusyId) return;` while only the busy row's checkbox was disabled.
+46:   Ticking row A and then clicking row B swallowed the click with no feedback. The guard
+47:   is now scoped to the same participant.
+48:4. **A paid mark could be fabricated on a finished tournament.** The endpoint originally
+49:   had no tournament-status gate at all, so `paid: true` was accepted on an archived or
+50:   completed tournament. Marking a fee paid now requires `REGISTRATION_OPEN` or
+51:   `UPCOMING`. Clearing the mark stays ungated, because refunds are raised after the
+52:   event has run.
+53:
+54:The first three were found by reading the code against the toggle cycle the UI allows.
+55:The fourth was found by comparing this endpoint against its siblings. None of them failed
+56:a test first, which is why a case was added for each afterwards.
+57:
+58:### Mutation check on the refund guard
+59:
+60:The repeat-untick test was verified to be able to fail. With the guard reverted to
+61:`if (completedPayment)`, the suite goes to 12 passed / 1 failed. Restored, it passes. A
+62:guard test that passes against unguarded code proves nothing, so this was run rather than
+63:assumed.
+64:
+65:### Tournament-status gates: what was actually verified
+66:
+67:Measured, not assumed:
+68:
+69:| Method | File and line | Gate |
+70:|---|---|---|
+71:| `addTeamMember` | `tournament-registration.service.ts:769-774` | requires `REGISTRATION_OPEN` or `UPCOMING` |
+72:| `withdraw` | `tournament-registration.service.ts:871-875` | rejects `IN_PROGRESS`, `COMPLETED`, `CANCELLED` |
+73:| `kickParticipant` | `tournament-registration.service.ts:1091-1117` | none; authorization only |
+74:| `updateParticipantStatus` | `tournament-participant-admin.service.ts:202-206` | requires `REGISTRATION_OPEN` |
+75:| `setParticipantFeePaid` | this change | `paid` requires `REGISTRATION_OPEN` or `UPCOMING`; `paid: false` ungated |
+76:
+77:So there is no single house pattern to copy: the operations disagree with each other.
+78:The split applied here is therefore a judgement, not a transcription:
+79:
+80:- **Tick** is gated, because it asserts money is in hand. Leaving it open let an
+81:  organizer stamp "paid" onto any finished tournament.
+82:- **Untick** is ungated, because refunding after the event is normal and legitimate. A
+83:  gate here would break the case the feature exists for.
+84:
+85:This remains an **open decision for the user**: if they want unmarking restricted to the
+86:registration window too, or ticking allowed on a completed tournament for late
+87:collections, that is a one-line change with a matching test.
+88:
+89:### Known limitation, not fixed
+90:
+91:`findCompletedParticipantPaymentInTx` is `LIMIT 1`, newest first. If a participant ever
+92:ends up with two completed payments that are both unrefunded, un-ticking raises a refund
+93:for the newest only and the older one stays captured while `is_paid` goes false. This is a
+94:pre-existing assumption of the whole refund design, shared by every existing caller of
+95:that helper, so it is reported rather than silently changed.
+96:
+97:### Verification
+98:
+99:- Service spec: 15 passed. The refund-guard test was shown to fail when the guard is
+100:  removed.
+101:- Backend types: unchanged relative to `HEAD` for the three pre-existing spec files.
+102:- Web types and lint: clean for the four files in this change.
+103:- Browser: three checkbox states, both confirmations, and tick-without-dialog all
+104:  observed; the throwaway harness was deleted.
+105:
+106:### Working tree note
+107:
+108:Both repositories also contain unrelated in-progress edits made by the user while this
+109:work was running: `gender.helper.ts`, `tournament-registration.repository.ts`,
+110:`QuickTournamentCreate.tsx`, the doubles registration flow, and a new
+111:`quickTournamentFormats.ts`. None were touched or staged. The fourth backend type error,
+112:in `tournament-import-legacy-contract.spec.ts`, comes from the user's
+113:`tournament-registration.repository.ts` change, not from this one.
+
+### region 29 (read, ~709 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/11-convergence-review.md#5CC1]
+1:# Convergence Review - organizer-fee-paid-checkbox-20261005
+2:
+3:## Requirements
+4:
+5:| # | Requested | Met | Evidence |
+6:|---|---|---|---|
+7:| R1 | Payment/status column becomes a checkbox | yes | `RegistrationTab.tsx` payment cell, observed in the browser |
+8:| R2 | Can tick it yourself when the fee was collected | yes | tick applies immediately, no dialog |
+9:| R3 | Untick a manual mark: no refund | yes | neutral confirmation, no payment row found server side, no refund row |
+10:| R4 | Untick a system payment: refund | yes | one `PENDING_REFUND` request via the shared policy |
+11:| R5 | Warning before it happens | yes | danger-styled confirmation naming the consequence |
+12:| R6 | Do not ask, choose sensible defaults | yes | only one judgement call, the refund trigger, is recorded below |
+13:
+14:## The one judgement call
+15:
+16:The refund policy charges the platform fee on a withdrawal after three hours and waives
+17:it when the organizer kicks someone. An organizer un-ticking a fee is a correction, not
+18:a withdrawal, so `KICKED` was chosen and the full remaining amount comes back. It cannot
+19:be milked: `refund_status` leaves null once per payment, and a manual mark never creates
+20:a second payment row to refund. Recorded in `02-backend-feature-design.md`.
+21:
+22:## Completeness
+23:
+24:| Concern | Status |
+25:|---|---|
+26:| Dead prop or unreachable branch left behind | none |
+27:| Ownership re-checked server-side | yes, `isManager`, plus a tournament-id match |
+28:| Amount ever client-influenced | no, policy helper only |
+29:| Refund settlement still admin-only | yes, untouched |
+30:| Schema or migration | none |
+31:| Dead code | the tray-style block layout pattern was not copied; the checkbox reuses the native input already used elsewhere in the app |
+32:| Scaffold removal | the throwaway harness and its dev-server artifacts were deleted |
+33:| Unrelated user edits | left untouched and unstaged in both repos |
+34:
+35:## Residuals accepted
+36:
+37:1. **A manual mark carries no note or receipt.** It is recorded in the audit log with
+38:   the actor, but a deployment that wants a visible reason would need a new column.
+39:   Out of scope, stated rather than half-built.
+40:2. **No live request was exercised.** The local backend was not running and the
+41:   endpoint is new, so the browser pass stubbed the mutation and the server behaviour
+42:   rests on the service spec.
+43:3. **`markParticipantPaid` still writes the flag without an audit row.** Pre-existing,
+44:   used only by payment reconciliation; the new endpoint audits its own writes and does
+45:   not use it.
+46:
+47:## Convergence
+48:
+49:Converged. No open blocker. Not pushed — a HighRisk money change is left staged for an
+50:explicit go.
+
+### region 30 (read, ~655 tok)
+
+[web/changes/organizer-fee-paid-checkbox-20261005/12-release-evidence.md#B963]
+1:# Release Evidence - organizer-fee-paid-checkbox-20261005
+2:
+3:## Files changed by this change
+4:
+5:Backend, `HethongBackendApi_QuanlyGiaiDau`:
+6:
+7:- `src/modules/tournaments/dto/update-participant-fee-payment.dto.ts` (new)
+8:- `src/modules/tournaments/tournaments.controller.ts`
+9:- `src/modules/tournaments/tournaments.service.ts`
+10:- `src/modules/tournaments/services/tournament-participant-admin.service.ts`
+11:- `src/modules/tournaments/services/tournament-participant-admin.service.spec.ts`
+12:- `src/modules/tournaments/repositories/tournament-payment.repository.ts`
+13:- `src/modules/tournaments/tournaments-lite-pairing.spec.ts` (constructor arity)
+14:- `src/modules/tournaments/utils/registration-lifecycle.spec.ts` (constructor arity)
+15:
+16:Web, `HethongFrontEndWeb_QLgiaidau`:
+17:
+18:- `src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx`
+19:- `src/features/tournaments/api.ts`
+20:- `messages/vi.json`
+21:- `messages/en.json`
+22:
+23:## Commands run
+24:
+25:| Command | Result |
+26:|---|---|
+27:| `npx jest src/modules/tournaments/services/tournament-participant-admin.service.spec.ts --runInBand` | 13 passed, 1 suite |
+28:| `npx tsc --noEmit` (backend) | 3 pre-existing spec errors, unchanged from `HEAD`; a 4th in `tournament-import-legacy-contract.spec.ts` traces to the user's unrelated `tournament-registration.repository.ts` edit |
+29:| `npx tsc --noEmit` (web) | one error in the user's `QuickTournamentCreate.tsx`; none in the four files above |
+30:| `npx eslint RegistrationTab.tsx --quiet` | clean |
+31:
+32:## Browser evidence
+33:
+34:Real `RegistrationTab`, three fixture participants, stubbed mutation, 1568x833.
+35:
+36:| Check | Observation |
+37:|---|---|
+38:| Column | three checkboxes; system-paid row also shows a `PAYMENT` caption, manual and unpaid rows do not |
+39:| Tick | applies immediately, `dialogsAfterTick=0`, success toast |
+40:| Unticks manual | neutral dialog, `Clear the paid mark`, no financial wording |
+41:| Unticks system | danger dialog, red icon, `Clear and request refund`, red action |
+42:| Cancel | dialog closes, no change |
+43:
+44:## Release state
+45:
+46:Not pushed. Both repositories hold unrelated in-progress user edits, so a broad
+47:`git add -A` would have swept them in. Only the files listed above are staged.
+48:
+49:## Rollback
+50:
+51:Revert the twelve listed files. Any refund request already raised by an organizer stays
+52:raised, because reverting code does not unsettle money an admin has not yet confirmed —
+53:which is the intended state anyway.
+
+### region 31 (find, ~63 tok)
+
+no hits for "Existing change folder artifact for VietnamCompliance profile review or compliance owner approval" in web/changes/ (τ 0.20)
+
+listed 53 · judged 53 · read 20 files (7.3KB) · 2 requests · 9.3K tokens · $0.0004 · 526ms wall / 514ms api
+
+### region 32 (grep, ~332 tok)
+
+# app/lib/features/register/screens/
+## doubles_registration_screen.dart#8F21
+ 279:      final regResp = await dio.dio.get(
+*280:        '/tournaments/${widget.tournamentId}/my-registration',
+ 281:        queryParameters: _myRegistrationQueryParameters(),
+ 282:      );
+ 283:      final body = regResp.data;
+...
+ 473:          .get(
+*474:            '/tournaments/${widget.tournamentId}/my-registration',
+ 475:            queryParameters: _myRegistrationQueryParameters(),
+ 476:          );
+ 477:      final body = response.data;
+...
+ 591:        final regResp = await dio.dio.get(
+*592:          '/tournaments/${widget.tournamentId}/my-registration',
+ 593:          queryParameters: _myRegistrationQueryParameters(),
+ 594:        );
+ 595:        if (mounted && regResp.data['data'] is Map) {
+...
+ 689:      final resp = await dio.dio.get(
+*690:        '/tournaments/${widget.tournamentId}/my-registration',
+ 691:        queryParameters: _myRegistrationQueryParameters(),
+ 692:      );
+ 693:      if (!mounted || resp.data['data'] is! Map) return;
+## tournament_register_screen.dart#051D
+ 95:      final response = await dio.get(
+*96:        '/tournaments/${widget.tournamentId}/my-registration',
+ 97:      );
+ 98:      final raw = response.data;
+ 99:      final payload = raw is Map && raw['data'] is Map ? raw['data'] : raw;
+
+### region 33 (write, ~2242 tok)
+
+<batch schema="ripwire.batch/v1" n="6" requested="6" cap="16"><!-- ripwire batch schema=ripwire.batch/v1: n= read sub-queries in one sweep (requested=, cap=): each <q> wraps one sub-answer verbatim in CDATA. i=/verb=/ok=: sub-query index, its verb text, 1 answered (payload in CDATA) or 0 failed. --><q i="0" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"processMatchResultFromOutbox","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":2333,"handle":"sym#63bbccc3dafaf89f@8a1c45198cd5f7a0","tested":true},"defs":1,"count":3,"hop_tested":3,"hop_untested":0,"declined_calls":2,"next":"--expand=processMatchResultFromOutbox","calledBy":[{"name":"processClaimed","kind":"method","file":"src/modules/rankings/elo-outbox.processor.ts","line":141,"handle":"sym#7be446c97d08b24b@a01d2e151e8977db","tested":true},{"name":"<file-scope>","kind":"modscope","file":"src/modules/rankings/ranking-consent-gate.spec.ts","line":1,"handle":"sym#75c702acb3f0a550@1b37c5b2bd9d6c89"}],"calls":[{"name":"processCompletedMatch","kind":"method","file":"src/modules/rankings/football-team-elo.service.ts","line":96,"handle":"sym#d584ecc3c18e6ae1@9cc265391b569294","tested":true},{"name":"processMatchResult","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":565,"handle":"sym#13a4d8aa59483e3a@8a1c45198cd5f7a0","tested":true},{"name":"hasEligibleRankingConsent","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":2274,"handle":"sym#180d580a4458ffca@8a1c45198cd5f7a0","tested":true}],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q><q i="1" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"updateMatchElo","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":265,"handle":"sym#81fada2ab1822361@8a1c45198cd5f7a0"},"defs":1,"count":10,"hop_tested":10,"hop_untested":0,"declined_calls":3,"next":"--expand=updateMatchElo","calledBy":[{"name":"updateElo","kind":"method","file":"src/modules/rankings/rankings.controller.ts","line":183,"handle":"sym#4fdcf15f9e9667c3@702e28a684d66338"}],"calls":[{"name":"normalizeGenderRestriction","kind":"fn","file":"src/common/helpers/gender.helper.ts","line":33,"handle":"sym#339554058a816a9e@35927ba737f1b3a5","tested":true},{"name":"execute","kind":"method","file":"src/modules/ai/ai-tool.router.ts","line":47,"handle":"sym#974fe9430b920de3@03cad5be6612ee81","tested":true},{"name":"calculateElo","kind":"method","file":"src/modules/rankings/elo-engine.service.ts","line":16,"handle":"sym#40cb6262fe78bb73@bf910db44b71cf89","tested":true},{"name":"getDbInstance","kind":"method","file":"src/modules/rankings/rankings.repository.ts","line":67,"handle":"sym#ada7419423e0d38b@af2ae7ac6807c16f","tested":true},{"name":"getOrCreateUserRank","kind":"method","file":"src/modules/rankings/rankings.repository.ts","line":1111,"handle":"sym#f809e4fa2da63f0a@af2ae7ac6807c16f","tested":true},{"name":"updateUserRank","kind":"method","file":"src/modules/rankings/rankings.repository.ts","line":1223,"handle":"sym#ac6b2b8d6624dd92@af2ae7ac6807c16f","tested":true},{"name":"insertEloHistory","kind":"method","file":"src/modules/rankings/rankings.repository.ts","line":1307,"handle":"sym#fc596cb319bce2cd@af2ae7ac6807c16f","tested":true},{"name":"invalidateLeaderboardCache","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":82,"handle":"sym#529d97d002dea7bb@8a1c45198cd5f7a0","tested":true},{"name":"extractScoreRatio","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":100,"handle":"sym#0c8d8c07808f1aaf@8a1c45198cd5f7a0","tested":true},{"name":"recalculateUserRankTier","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":1400,"handle":"sym#cf2e9df91a778e31@8a1c45198cd5f7a0","tested":true}],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q><q i="2" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"recalculateEloChain","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":1787,"handle":"sym#5e747631c33f923b@8a1c45198cd5f7a0","tested":true},"defs":2,"count":9,"hop_tested":9,"hop_untested":0,"declined_calls":6,"next":"--expand=recalculateEloChain","bodyless_defs":1,"calledBy":[{"name":"recalculateEloChainSafe","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":2243,"handle":"sym#b6df7a2b2858e706@8a1c45198cd5f7a0"},{"name":"runRecalculate","kind":"fn","file":"src/modules/rankings/recalculate-elo-consent.spec.ts","line":54,"handle":"sym#89d295d1873852ab@ced44a79f560c0a0"}],"calls":[{"name":"insert","kind":"method","file":"src/modules/friendships/friendships.repository.ts","line":102,"handle":"sym#012bb9c4dbd98057@d8cd9e41d015c2ed","tested":true},{"name":"calculateElo","kind":"method","file":"src/modules/rankings/elo-engine.service.ts","line":16,"handle":"sym#40cb6262fe78bb73@bf910db44b71cf89","tested":true},{"name":"invalidateLeaderboardCache","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":82,"handle":"sym#529d97d002dea7bb@8a1c45198cd5f7a0","tested":true},{"name":"extractScoreRatio","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":100,"handle":"sym#0c8d8c07808f1aaf@8a1c45198cd5f7a0","tested":true},{"name":"recalculateUserRankTier","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":1400,"handle":"sym#cf2e9df91a778e31@8a1c45198cd5f7a0","tested":true},{"name":"getPlayerState","kind":"fn","file":"src/modules/rankings/rankings.service.ts","line":1858,"handle":"sym#43eed10529fdafe3@8a1c45198cd5f7a0","tested":true},{"name":"sideConsented","kind":"fn","file":"src/modules/rankings/rankings.service.ts","line":2063,"handle":"sym#22fd6c071939a289@8a1c45198cd5f7a0","tested":true},{"name":"get","kind":"method","file":"src/providers/redis/redis.service.ts","line":51,"handle":"sym#015dcb5ff16bd07c@40ded9d696ebd22f","tested":true},{"name":"set","kind":"method","file":"src/providers/redis/redis.service.ts","line":55,"handle":"sym#6a44b7602d1c6ff0@40ded9d696ebd22f","tested":true}],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q><q i="3" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"insertAdminEloHistory","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":136,"handle":"sym#9297406c2cb8839d@8a1c45198cd5f7a0"},"defs":1,"count":1,"hop_tested":1,"hop_untested":0,"next":"--expand=insertAdminEloHistory","calledBy":[{"name":"applyOperation","kind":"method","file":"src/modules/rankings/admin-ranking.service.ts","line":584,"handle":"sym#edaa29b5b3685735@b4aa2283a74e2bda"}],"calls":[{"name":"insertEloHistory","kind":"method","file":"src/modules/rankings/rankings.repository.ts","line":1307,"handle":"sym#fc596cb319bce2cd@af2ae7ac6807c16f","tested":true}],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q><q i="4" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"hasEligibleRankingConsent","kind":"method","file":"src/modules/rankings/ranking-consent-gate.spec.ts","line":64,"handle":"sym#143b473d1d2ab838@1b37c5b2bd9d6c89"},"defs":2,"count":0,"hop_tested":0,"hop_untested":0,"declined_calls":2,"next":"--expand=hasEligibleRankingConsent","bodyless_defs":1,"calledBy":[{"name":"processMatchResultFromOutbox","kind":"method","file":"src/modules/rankings/rankings.service.ts","line":2333,"handle":"sym#63bbccc3dafaf89f@8a1c45198cd5f7a0","tested":true},{"name":"gate","kind":"fn","file":"src/modules/rankings/ranking-consent-gate.spec.ts","line":61,"handle":"sym#72cdc53f067e0bdc@1b37c5b2bd9d6c89"}],"calls":[],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q><q i="5" verb="find_symbol" ok="1"><![CDATA[{"root":"backend","symbol":{"name":"sendDueReminders","kind":"method","file":"src/modules/tournaments/services/ranking-consent.service.ts","line":43,"handle":"sym#e94457a0d667b9ce@8c72b9688415ae0c","tested":true},"defs":1,"count":2,"hop_tested":2,"hop_untested":0,"declined_calls":1,"next":"--expand=sendDueReminders","calledBy":[{"name":"handleRankingConsentReminders","kind":"method","file":"src/modules/tournaments/tournament-scheduler.service.ts","line":31,"handle":"sym#6ca27f3102e44f5b@a85d176cc2ad800c"},{"name":"<file-scope>","kind":"modscope","file":"src/modules/tournaments/services/ranking-consent.service.spec.ts","line":1,"handle":"sym#be5f576623679315@43ebbaba3a2d714f"}],"calls":[{"name":"now","kind":"method","file":"src/modules/ai/ai-tool.router.ts","line":90,"handle":"sym#74d00bb16ad491bc@03cad5be6612ee81","tested":true},{"name":"dispatch","kind":"method","file":"src/modules/tournaments/services/ranking-consent.service.ts","line":118,"handle":"sym#419c7c7838b39fab@8c72b9688415ae0c","tested":true}],"graph_ambiguous":523,"graph_unresolved":650,"graph_unindexed":139,"counts_floor":true}]]></q></batch>

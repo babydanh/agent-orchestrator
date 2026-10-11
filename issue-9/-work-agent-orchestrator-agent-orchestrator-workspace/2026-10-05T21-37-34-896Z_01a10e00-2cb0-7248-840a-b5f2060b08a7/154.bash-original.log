@@ -1,0 +1,56 @@
+
+/home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/src/app/(public)/tournaments/[id]/register/page.tsx
+    9:10   warning  'motion' is defined but never used                                                                                                                     @typescript-eslint/no-unused-vars
+   10:10   warning  'Trophy' is defined but never used                                                                                                                     @typescript-eslint/no-unused-vars
+   10:18   warning  'Calendar' is defined but never used                                                                                                                   @typescript-eslint/no-unused-vars
+   10:28   warning  'MapPin' is defined but never used                                                                                                                     @typescript-eslint/no-unused-vars
+   10:124  warning  'X' is defined but never used                                                                                                                          @typescript-eslint/no-unused-vars
+   27:10   warning  'getSportLogo' is defined but never used                                                                                                               @typescript-eslint/no-unused-vars
+  339:6    warning  React Hook useEffect has a missing dependency: 'fetchTournament'. Either include it or remove the dependency array                                     react-hooks/exhaustive-deps
+  402:10   warning  'bankError' is assigned a value but never used                                                                                                         @typescript-eslint/no-unused-vars
+  468:9    warning  'handleConfirmWithdrawWithBank' is assigned a value but never used                                                                                     @typescript-eslint/no-unused-vars
+  499:14   warning  'err' is defined but never used                                                                                                                        @typescript-eslint/no-unused-vars
+  622:6    warning  React Hook useEffect has a missing dependency: 'translate'. Either include it or remove the dependency array                                           react-hooks/exhaustive-deps
+  684:6    warning  React Hook useEffect has missing dependencies: 'registrationTranslate' and 'selectedDivisionData'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  687:9    warning  'currentEloCheck' is assigned a value but never used                                                                                                   @typescript-eslint/no-unused-vars
+
+/home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx
+  311:44  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx
+    7:10  warning  'Textarea' is defined but never used                           @typescript-eslint/no-unused-vars
+   11:3   warning  'RefreshCw' is defined but never used                          @typescript-eslint/no-unused-vars
+   14:3   warning  'Trash2' is defined but never used                             @typescript-eslint/no-unused-vars
+   19:3   warning  'Lock' is defined but never used                               @typescript-eslint/no-unused-vars
+   25:3   warning  'GripVertical' is defined but never used                       @typescript-eslint/no-unused-vars
+   30:3   warning  'SlidersHorizontal' is defined but never used                  @typescript-eslint/no-unused-vars
+   34:3   warning  'XCircle' is defined but never used                            @typescript-eslint/no-unused-vars
+   59:3   warning  'getParticipantStatusClassName' is defined but never used      @typescript-eslint/no-unused-vars
+   66:3   warning  'isTournamentDraft' is defined but never used                  @typescript-eslint/no-unused-vars
+   67:3   warning  'isTournamentPendingApproval' is defined but never used        @typescript-eslint/no-unused-vars
+   69:3   warning  'isTournamentRegistrationOpen' is defined but never used       @typescript-eslint/no-unused-vars
+  192:3   warning  'publishFeeAmount' is defined but never used                   @typescript-eslint/no-unused-vars
+  193:3   warning  'handlePublish' is defined but never used                      @typescript-eslint/no-unused-vars
+  194:3   warning  'handleOpenLockModal' is defined but never used                @typescript-eslint/no-unused-vars
+  200:3   warning  'eloEnabled' is defined but never used                         @typescript-eslint/no-unused-vars
+  201:3   warning  'setEloEnabled' is defined but never used                      @typescript-eslint/no-unused-vars
+  202:3   warning  'eloMin' is defined but never used                             @typescript-eslint/no-unused-vars
+  203:3   warning  'setEloMin' is defined but never used                          @typescript-eslint/no-unused-vars
+  204:3   warning  'eloMax' is defined but never used                             @typescript-eslint/no-unused-vars
+  205:3   warning  'setEloMax' is defined but never used                          @typescript-eslint/no-unused-vars
+  206:3   warning  'eloMaxCombined' is defined but never used                     @typescript-eslint/no-unused-vars
+  207:3   warning  'setEloMaxCombined' is defined but never used                  @typescript-eslint/no-unused-vars
+  208:3   warning  'eloMaxGap' is defined but never used                          @typescript-eslint/no-unused-vars
+  209:3   warning  'setEloMaxGap' is defined but never used                       @typescript-eslint/no-unused-vars
+  210:3   warning  'seedingMethod' is defined but never used                      @typescript-eslint/no-unused-vars
+  211:3   warning  'setSeedingMethod' is defined but never used                   @typescript-eslint/no-unused-vars
+  214:3   warning  'handleSwapSeeds' is defined but never used                    @typescript-eslint/no-unused-vars
+  215:3   warning  'handleReorderSeeds' is defined but never used                 @typescript-eslint/no-unused-vars
+  287:9   warning  'handleReopenRegistration' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  817:27  warning  'isBusy' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+  819:27  warning  'canApprove' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  820:27  warning  'canReject' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  821:27  warning  'canManageSeed' is assigned a value but never used             @typescript-eslint/no-unused-vars
+
+✖ 47 problems (0 errors, 47 warnings)
+

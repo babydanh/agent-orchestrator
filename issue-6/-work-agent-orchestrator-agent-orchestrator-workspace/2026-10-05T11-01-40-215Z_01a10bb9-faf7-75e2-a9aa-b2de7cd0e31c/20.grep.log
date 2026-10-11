@@ -1,0 +1,593 @@
+# backend/
+## audit-organizer-key.txt
+ 989|1086:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:195:return this.tournamentsService.createDivision(id, createDivisionDto, user.sub, this.getSystemRoles(user));
+*990|1087:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:207:return this.tournamentsService.updateDivision(divisionId, updateDivisionDto, user.sub, this.getSystemRoles(user));
+*991|1088:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:220:return this.tournamentsService.updateDivisionConfig(id, divisionId, updateDivisionDto, user.sub, this.getSystemRoles(user));
+*992|1089:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:241:return this.tournamentsService.deleteDivision(divisionId, user.sub, this.getSystemRoles(user));
+ 993|1090:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:256:return this.tournamentsService.findOne(id, authInfo.userId, inviteCode, authInfo.roles, participantId, teamInviteToken);
+ 994|1091:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:269:private getAuthInfoFromRequest(request: Request | undefined): { userId: string | null; roles: string[] } {
+ 995|1092:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:270:if (!request || !request.headers) return { userId: null, roles: [] };
+...
+ 1025|1122:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:759:async findParticipantsForOrganizer(
+*1026|1123:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:764:return this.tournamentsService.findParticipantsForOrganizer(id, divisionId, user.sub, this.getSystemRoles(user));
+ 1027|1124:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:774:return this.tournamentsService.findReferees(id, user.sub, this.getSystemRoles(user));
+ 1028|1125:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:786:return this.tournamentsService.addReferee(id, body.email, user.sub, this.getSystemRoles(user));
+ 1029|1126:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:816:this.getSystemRoles(user),
+...
+ 1033|1130:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:911:this.getSystemRoles(user),
+*1034|1131:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:925:return this.tournamentsService.clearMockParticipants(id, user.sub, this.getSystemRoles(user), divisionId);
+ 1035|1132:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:937:return this.tournamentsService.deleteMockParticipant(id, participantId, user.sub, this.getSystemRoles(user));
+ 1036|1133:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:950:return this.tournamentsService.updateParticipantStatus(id, participantId, status, user.sub, this.getSystemRoles(user));
+ 1037|1134:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:966:this.getSystemRoles(user),
+...
+ 1043|1140:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1074:@ApiOperation({ summary: 'L?y nh?t ky v?n hành cho organizer ops panel' })
+*1044|1141:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1080:return this.tournamentsService.getOpsAuditLogs(id, user.sub, this.getSystemRoles(user), divisionId);
+ 1045|1142:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1091:return this.tournamentsService.cancelTournament(id, user.sub, this.getSystemRoles(user));
+ 1046|1143:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1106:id, { stageId, participant1Id, participant2Id }, user.sub, this.getSystemRoles(user),
+ 1047|1144:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1119:return this.tournamentsService.finalizeStage(id, stageId, user.sub, this.getSystemRoles(user));
+*1048|1145:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1131:return this.tournamentsService.autoSeedFromElo(id, user.sub, this.getSystemRoles(user), divisionId);
+*1049|1146:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1144:return this.tournamentsService.advanceStandings(id, divisionId, stageId, user.sub, this.getSystemRoles(user));
+ 1050|1147:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1177:@ApiOperation({ summary: 'Them nhan su (CO_ORGANIZER, REFEREE, SPECTATOR)' })
+ 1051|1148:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1183:return this.tournamentsService.addStaffMember(id, body.email, body.role, user.sub, this.getSystemRoles(user));
+ 1052|1149:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1195:return this.tournamentsService.removeStaffMember(id, staffUserId, user.sub, this.getSystemRoles(user));
+...
+ 1181|1282:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3389:role,
+*1182|1283:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3549:async findParticipantsForOrganizer(id: string, divisionId: string | undefined, userId: string, systemRoles: string[] = []) {
+ 1183|1284:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3554:if (!(await this.isManager(tournament, userId, systemRoles))) {
+ 1184|1285:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3640:systemRoles: string[] = [],
+ 1185|1286:D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3647:const isAuthorized = await this.isManager(tournament, userId, systemRoles);
+## audit-organizer.txt
+ 1086|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:195:return this.tournamentsService.createDivision(id, createDivisionDto, user.sub, this.getSystemRoles(user));
+*1087|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:207:return this.tournamentsService.updateDivision(divisionId, updateDivisionDto, user.sub, this.getSystemRoles(user));
+*1088|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:220:return this.tournamentsService.updateDivisionConfig(id, divisionId, updateDivisionDto, user.sub, this.getSystemRoles(user));
+*1089|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:241:return this.tournamentsService.deleteDivision(divisionId, user.sub, this.getSystemRoles(user));
+ 1090|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:256:return this.tournamentsService.findOne(id, authInfo.userId, inviteCode, authInfo.roles, participantId, teamInviteToken);
+ 1091|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:269:private getAuthInfoFromRequest(request: Request | undefined): { userId: string | null; roles: string[] } {
+ 1092|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:270:if (!request || !request.headers) return { userId: null, roles: [] };
+...
+ 1122|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:759:async findParticipantsForOrganizer(
+*1123|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:764:return this.tournamentsService.findParticipantsForOrganizer(id, divisionId, user.sub, this.getSystemRoles(user));
+ 1124|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:774:return this.tournamentsService.findReferees(id, user.sub, this.getSystemRoles(user));
+ 1125|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:786:return this.tournamentsService.addReferee(id, body.email, user.sub, this.getSystemRoles(user));
+ 1126|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:816:this.getSystemRoles(user),
+...
+ 1130|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:911:this.getSystemRoles(user),
+*1131|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:925:return this.tournamentsService.clearMockParticipants(id, user.sub, this.getSystemRoles(user), divisionId);
+ 1132|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:937:return this.tournamentsService.deleteMockParticipant(id, participantId, user.sub, this.getSystemRoles(user));
+ 1133|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:950:return this.tournamentsService.updateParticipantStatus(id, participantId, status, user.sub, this.getSystemRoles(user));
+ 1134|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:966:this.getSystemRoles(user),
+...
+ 1140|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1074:@ApiOperation({ summary: 'L?y nh?t ky v?n hành cho organizer ops panel' })
+*1141|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1080:return this.tournamentsService.getOpsAuditLogs(id, user.sub, this.getSystemRoles(user), divisionId);
+ 1142|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1091:return this.tournamentsService.cancelTournament(id, user.sub, this.getSystemRoles(user));
+ 1143|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1106:id, { stageId, participant1Id, participant2Id }, user.sub, this.getSystemRoles(user),
+ 1144|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1119:return this.tournamentsService.finalizeStage(id, stageId, user.sub, this.getSystemRoles(user));
+*1145|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1131:return this.tournamentsService.autoSeedFromElo(id, user.sub, this.getSystemRoles(user), divisionId);
+*1146|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1144:return this.tournamentsService.advanceStandings(id, divisionId, stageId, user.sub, this.getSystemRoles(user));
+ 1147|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1177:@ApiOperation({ summary: 'Them nhan su (CO_ORGANIZER, REFEREE, SPECTATOR)' })
+ 1148|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1183:return this.tournamentsService.addStaffMember(id, body.email, body.role, user.sub, this.getSystemRoles(user));
+ 1149|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.controller.ts:1195:return this.tournamentsService.removeStaffMember(id, staffUserId, user.sub, this.getSystemRoles(user));
+...
+ 1282|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3389:role,
+*1283|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3549:async findParticipantsForOrganizer(id: string, divisionId: string | undefined, userId: string, systemRoles: string[] = []) {
+ 1284|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3554:if (!(await this.isManager(tournament, userId, systemRoles))) {
+ 1285|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3640:systemRoles: string[] = [],
+ 1286|D:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau\src\modules\tournaments\tournaments.service.ts:3647:const isAuthorized = await this.isManager(tournament, userId, systemRoles);
+
+## docs/
+### division_tournament.md
+ 39|
+*40|2. **Payments đã gắn divisionId:** Nếu auto-detect sai division → payment ghi nhầm division → hoàn phí phức tạp, không có flow rollback.
+ 41|
+ 42|3. **Rosters join sau:** Trong doubles, player 2 join sau khi team đã tạo. Nếu player 2 gender không khớp với division đã đăng ký → phải kick toàn team hay chỉ cảnh báo? Logic phức tạp.
+ 43|
+...
+ 63|**Tình trạng hiện tại:**
+*64|`bracket-generator.service.ts` — cả 3 method đều query participants theo `tournamentId` không theo `divisionId`:
+ 65|
+ 66|```ts
+ 67|// Line 27-30, 181-184, 583-586 — tất cả 3 method đều giống nhau
+...
+ 71|  .where(eq(schema.tournamentParticipants.tournamentId, tournamentId));
+*72|  // ← KHÔNG filter theo divisionId
+ 73|```
+ 74|
+ 75|Stage insert cũng không set `tournamentDivisionId`:
+...
+ 88|Refactor ảnh hưởng **toàn bộ 3 thuật toán** (Single Elimination, Double Elimination, Round Robin) và **contract API**:
+*89|- Thêm tham số `divisionId` vào cả 3 method
+*90|- Thêm filter `WHERE tournament_division_id = divisionId` vào query participants
+ 91|- Thêm `tournamentDivisionId` khi insert stages
+*92|- API endpoint `POST /tournaments/:id/bracket/generate` cần nhận thêm `divisionId` trong body
+ 93|
+ 94|**Impact nếu refactor sai:** Bracket bị sinh nhầm participant của division khác → data corrupt, khó rollback.
+ 95|
+...
+ 102|  userId: string,
+*103|  divisionId?: string   // ← optional để backward compat
+ 104|) {
+ 105|  // Query participants
+*106|  const whereClause = divisionId
+ 107|    ? and(
+ 108|        eq(schema.tournamentParticipants.tournamentId, tournamentId),
+*109|        eq(schema.tournamentParticipants.tournamentDivisionId, divisionId)
+ 110|      )
+ 111|    : eq(schema.tournamentParticipants.tournamentId, tournamentId);
+ 112|
+...
+ 120|    tournamentId,
+*121|    tournamentDivisionId: divisionId ?? null,  // ← thêm dòng này
+ 122|    name: 'Elimination Stage',
+ 123|    ...
+ 124|  });
+...
+ 129|1. Sửa cả 3 method trong `bracket-generator.service.ts`
+*130|2. Sửa `tournaments.service.ts` — method `generateBracket` truyền `divisionId` xuống
+*131|3. Sửa `tournaments.controller.ts` — nhận `divisionId` từ body/query
+*132|4. Sửa FE — khi generate bracket, gửi kèm `divisionId` của division đang chọn
+ 133|
+ 134|---
+ 135|
+...
+ 306|**Mô tả:**
+*307|Các tab công khai ở trang chi tiết giải (`TeamsTab.tsx`, `BracketTab.tsx`) vẫn có logic cũ dạng: fetch data bằng `tournamentId` thay vì `divisionId`. Chưa refactor trong lượt này.
+ 308|
+ 309|**Biểu hiện:**
+ 310|Khi giải có nhiều division, tab Teams và Bracket có thể hiển thị lẫn dữ liệu của tất cả division thay vì đúng division đang chọn.
+...
+ 312|**Việc cần làm:**
+*313|- Audit `TeamsTab.tsx` và `BracketTab.tsx` — tìm mọi chỗ gọi API bằng `tournamentId` mà đáng lẽ phải dùng `divisionId`
+ 314|- Thêm division selector ở trang public detail nếu giải có nhiều division
+*315|- Truyền `divisionId` vào các API call tương ứng
+ 316|
+ 317|**Files cần sửa:**
+ 318|```
+...
+ 327|**Mô tả:**
+*328|Endpoint `GET /tournaments/:id/divisions/:divId/participants` query bằng `WHERE tournament_division_id = divisionId`. Các participant đăng ký trước khi có hệ thống division (hoặc khi tournament chưa có division nào) sẽ có `tournament_division_id = NULL` → không hiện ra.
+ 329|
+ 330|**Biểu hiện:**
+ 331|Giải đấu cũ có participant nhưng tab division hiển thị 0 người.
+...
+ 352|**Phương án B — Fallback trong query (không migration):**
+*353|Sửa endpoint `getParticipantsByDivision` để nếu `divisionId = null` hoặc là sentinel value thì trả về toàn bộ participant của tournament (backward compat).
+ 354|
+ 355|**Khuyến nghị:** Phương án B an toàn hơn, không làm hỏng data cũ.
+ 356|
+...
+ 407|
+*408|> Scan toàn bộ codebase tìm nơi dùng `tournament.id` như là `divisionId`. Theo schema mới, `tournament_id ≠ division_id` — cần truyền `divisionId` riêng.
+ 409|
+ 410|---
+ 411|
+...
+ 419|export default function BracketTab({ tournament, onScheduleMatch }: Props) {
+*420|  const divisionId = tournament.id;  // ← SAI: tournament.id ≠ division.id
+ 421|
+ 422|  // Dòng 755 — gọi API bracket bằng tournament.id thay vì division.id
+### fix.md
+ 17|
+*18|#### Nguyên nhân 1: FE gọi `seedMockParticipants` không có `divisionId`
+ 19|
+ 20|**File:** [`frontend-web_qlgiaidau/src/app/organizer/tournaments/[id]/manage/page.tsx`](file:///d:/Duancanhan/Project_QuanLyGiaiDau/frontend-web_qlgiaidau/src/app/organizer/tournaments/[id]/manage/page.tsx#L867)
+ 21|
+ 22|```ts
+*23|// ❌ HIỆN TẠI — không truyền divisionId
+ 24|await tournamentsApi.seedMockParticipants(id, names);
+ 25|```
+ 26|
+...
+ 29|```ts
+*30|// ❌ API signature không nhận divisionId
+ 31|seedMockParticipants: (id: string, names: string[]) =>
+ 32|  api.post(`/tournaments/${id}/mock-participants`, { names }),
+ 33|```
+ 34|
+*35|**Hậu quả:** Mock participants được tạo với `tournamentDivisionId = null` → không thuộc division nào → khi `generateBracket` với `divisionId` thì query:
+ 36|```sql
+ 37|WHERE tournamentId = ? AND tournamentDivisionId = ? → 0 rows
+ 38|```
+...
+ 42|
+*43|#### Nguyên nhân 2: BE Controller nhận `divisionId` đúng nhưng FE không truyền
+ 44|
+ 45|**File:** [`backend-api_qlgiaidau/src/modules/tournaments/tournaments.controller.ts`](file:///d:/Duancanhan/Project_QuanLyGiaiDau/backend-api_qlgiaidau/src/modules/tournaments/tournaments.controller.ts#L428)
+ 46|
+...
+ 52|  @CurrentUser() user: JwtPayload,
+*53|  @Body('divisionId') divisionId?: string  // ← BE đã support
+ 54|) {
+*55|  return this.tournamentsService.seedMockParticipants(id, user.sub, names, [user.role], divisionId);
+ 56|}
+ 57|```
+ 58|
+*59|BE đã sẵn sàng. FE chưa gửi `divisionId`.
+ 60|
+ 61|---
+ 62|
+*63|#### Nguyên nhân 3: BracketTab nhận `divisionId` nhưng TournamentDetailClient chưa truyền đúng
+ 64|
+ 65|**File:** [`frontend-web_qlgiaidau/src/app/(public)/tournaments/[id]/components/BracketTab.tsx`](file:///d:/Duancanhan/Project_QuanLyGiaiDau/frontend-web_qlgiaidau/src/app/(public)/tournaments/[id]/components/BracketTab.tsx#L24)
+ 66|
+...
+ 70|  tournamentId?: string;
+*71|  divisionId?: string;  // ← prop có nhưng có thể không được truyền đúng
+ 72|  onScheduleMatch?: OnScheduleMatch;
+ 73|}
+ 74|```
+...
+ 83|
+*84|#### Fix 1 — `api.ts`: thêm `divisionId` vào signature
+ 85|
+ 86|```ts
+ 87|// ✅ MỚI
+*88|seedMockParticipants: (id: string, names: string[], divisionId?: string) =>
+*89|  api.post(`/tournaments/${id}/mock-participants`, { names, divisionId }),
+ 90|```
+ 91|
+ 92|#### Fix 2 — `manage/page.tsx`: truyền `selectedDivisionId` khi gọi
+...
+ 113|async clearMockParticipants(tournamentId: string) {
+*114|  // ❌ Không có divisionId filter → xóa tất cả mock của tournament
+ 115|  .where(
+ 116|    and(
+ 117|      eq(tournamentParticipants.tournamentId, tournamentId),
+...
+ 128|async clearMockParticipants(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+*129|  // ❌ Không nhận divisionId từ query/body
+ 130|  return this.tournamentsService.clearMockParticipants(id, user.sub, [user.role]);
+ 131|}
+ 132|```
+...
+ 135|
+*136|**Option A (đơn giản):** Thêm `divisionId` query param vào `DELETE`:
+ 137|```
+*138|DELETE /tournaments/:id/mock-participants?divisionId=xxx
+ 139|```
+ 140|
+ 141|**Option B (hiện tại tạm OK):** Giữ nguyên hành vi xóa tất cả, nhưng thông báo rõ cho user:
+...
+ 155|
+*156|1. **Bracket tab** gọi `getTournamentBracket(tournamentId)` không có divisionId → lấy tất cả stage của tournament → mix lẫn bracket của nhiều division
+ 157|2. **Participants/Teams tab** gọi `getTournamentParticipants(tournamentId)` → lấy tất cả → không phân biệt division
+ 158|3. **Mock Panel** không biết đang seed cho division nào
+ 159|4. **Generate Bracket button** có truyền `selectedDivisionId` nhưng UI chọn division chưa connect rõ với mock panel
+...
+ 167|│   ├── Participants riêng (tournamentParticipants với tournamentDivisionId = A)
+*168|│   └── Mock panel riêng (seed với divisionId = A)
+ 169|├── Division B: Đơn Nữ
+ 170|│   ├── Bracket riêng
+ 171|│   ├── Participants riêng
+...
+ 205|
+*206|**Cần:** Thêm endpoint `GET /tournaments/:id/participants?divisionId=xxx` để filter:
+ 207|```ts
+ 208|// ✅ Filter theo division
+ 209|const parts = await tournamentsApi.getTournamentParticipants(id, selectedDivisionId);
+### organizer-ops-panel-system-map.md
+ 146|- `GET /tournaments/:id/participants`
+*147|- `GET /tournaments/:id/divisions/:divisionId/participants`
+ 148|- `PATCH /tournaments/:id/participants/:participantId`
+ 149|- `POST /tournaments/:id/participants/:participantId/kick`
+ 150|- `POST /tournaments/:id/reserve-slots`
+### tournaments-matches-flutter-integration.md
+ 35|      "tournamentId": "...",
+*36|      "divisionId": "...",
+ 37|      "status": "SCHEDULED"
+ 38|    }
+ 39|  ],
+
+## src/
+
+### database/
+
+#### schema/
+##### football.schema.ts
+ 78|  tournamentId: uuid('tournament_id').references(() => tournaments.id, { onDelete: 'cascade' }).notNull(),
+*79|  divisionId: uuid('division_id').references(() => tournamentDivisions.id, { onDelete: 'cascade' }).notNull(),
+ 80|  teamId: uuid('team_id').references(() => footballTeams.id, { onDelete: 'restrict' }).notNull(),
+ 81|  status: varchar('status', { length: 30 }).default('DRAFT').notNull(),
+ 82|  displayNameSnapshot: varchar('display_name_snapshot', { length: 120 }).notNull(),
+...
+ 91|}, (table) => ({
+*92|  tournamentDivisionTeamUnique: uniqueIndex('uq_tournament_team_entries_division_team').on(table.tournamentId, table.divisionId, table.teamId),
+*93|  divisionStatusIndex: index('idx_tournament_team_entries_division_status').on(table.divisionId, table.status, table.createdAt),
+ 94|  statusCheck: check('tournament_team_entries_status_check', sql`${table.status} IN ('DRAFT', 'PENDING_CONFIRMATION', 'CONFIRMED', 'LOCKED', 'WITHDRAWN')`),
+ 95|}));
+ 96|
+##### payments.schema.ts
+ 31|      .notNull(),
+*32|    divisionId: uuid('division_id'),
+ 33|    purpose: varchar('purpose', { length: 50 })
+ 34|      .default('REGISTRATION_FEE')
+ 35|      .notNull(),
+
+#### seeds/
+##### generate-brackets.ts
+ 75|        headers: authHeaders,
+*76|        body: JSON.stringify({ divisionId: divId }),
+ 77|      });
+ 78|
+ 79|      // ─── Step 3: If error, try publish → regenerate ────────────────────
+...
+ 102|            headers: authHeaders,
+*103|            body: JSON.stringify({ divisionId: divId }),
+ 104|          });
+ 105|        } else {
+ 106|          // Publish itself failed — log but don't retry
+##### repair-double-elim-brackets.ts
+ 47|
+*48|async function deleteBracketData(tournamentId: string, divisionId?: string) {
+ 49|  const stageConditions = [
+ 50|    eq(schema.tournamentStages.tournamentId, tournamentId),
+ 51|    isNull(schema.tournamentStages.deletedAt),
+ 52|  ];
+*53|  if (divisionId) {
+*54|    stageConditions.push(eq(schema.tournamentStages.tournamentDivisionId, divisionId));
+ 55|  }
+ 56|
+ 57|  const stages = await db
+...
+ 107|      headers: { Authorization: `Bearer ${token}` },
+*108|      body: JSON.stringify({ divisionId: division.id }),
+ 109|    });
+ 110|
+ 111|    if (!gen.ok) {
+##### seed-all-five-formats.ts
+ 169|
+*170|  const divisionId = uuidv4();
+ 171|  await db.insert(schema.tournamentDivisions).values({
+*172|    id: divisionId,
+ 173|    tournamentId: tourId,
+ 174|    name,
+ 175|    matchType: 'SINGLES',
+...
+ 190|      tournamentId: tourId,
+*191|      tournamentDivisionId: divisionId,
+ 192|      registeredBy: organizerId,
+ 193|      teamName,
+ 194|      teamStatus: 'COMPLETE',
+...
+ 201|  console.log(`[Tournament] Đã khởi tạo giải đấu: ${name} (${numTeams} người tham gia)`);
+*202|  return { tourId, divisionId };
+ 203|}
+ 204|
+ 205|async function main() {
+...
+ 263|
+*264|  const generateAndPlayGroupStage = async (tour: { tourId: string, divisionId: string }) => {
+ 265|    // Sinh lịch đấu vòng bảng
+ 266|    await db.update(schema.tournaments).set({ status: 'DRAFT' }).where(eq(schema.tournaments.id, tour.tourId));
+ 267|    const gen = await api(`/tournaments/${tour.tourId}/generate-bracket`, {
+...
+ 269|      headers: authHeaders,
+*270|      body: JSON.stringify({ divisionId: tour.divisionId }),
+ 271|    });
+ 272|    if (!gen.ok) {
+ 273|      console.error('Thất bại khi sinh lịch đấu vòng bảng:', gen.body);
+...
+ 287|        headers: authHeaders,
+*288|        body: JSON.stringify({ divisionId: tour.divisionId, stageId: stage.id }),
+ 289|      });
+ 290|      if (!adv.ok) {
+ 291|        console.error('Thất bại khi đẩy các đội vào vòng Playoffs:', adv.body);
+##### seed-custom-brackets.ts
+ 135|
+*136|  const divisionId = uuidv4();
+ 137|  await db.insert(schema.tournamentDivisions).values({
+*138|    id: divisionId,
+ 139|    tournamentId: tourId,
+ 140|    name,
+ 141|    matchType: 'SINGLES',
+...
+ 152|      tournamentId: tourId,
+*153|      tournamentDivisionId: divisionId,
+ 154|      registeredBy: organizerId,
+ 155|      teamName: `Đội ${String.fromCharCode(64 + i)}`,
+ 156|      teamStatus: 'COMPLETE',
+...
+ 162|  console.log(`Created ${name}: ${numTeams} teams.`);
+*163|  return { tourId, divisionId };
+ 164|}
+ 165|
+ 166|async function main() {
+...
+ 241|    headers: authHeaders,
+*242|    body: JSON.stringify({ divisionId: rr.divisionId }),
+ 243|  });
+ 244|  if (!genRr.ok) console.error('Failed to generate bracket for RR', genRr.body);
+ 245|  await db.update(schema.tournaments).set({ status: 'IN_PROGRESS' }).where(eq(schema.tournaments.id, rr.tourId));
+...
+ 281|    headers: authHeaders,
+*282|    body: JSON.stringify({ divisionId: gpEven.divisionId }),
+ 283|  });
+ 284|  if (!genEven.ok) console.error('Failed to generate bracket for GP Even', genEven.body);
+ 285|  await db.update(schema.tournaments).set({ status: 'IN_PROGRESS' }).where(eq(schema.tournaments.id, gpEven.tourId));
+...
+ 296|      headers: authHeaders,
+*297|      body: JSON.stringify({ divisionId: gpEven.divisionId, stageId: stageEven.id }),
+ 298|    });
+ 299|    if (!adv.ok) console.error('Failed to advance standings for GP Even', adv.body);
+ 300|
+...
+ 336|    headers: authHeaders,
+*337|    body: JSON.stringify({ divisionId: gpOdd.divisionId }),
+ 338|  });
+ 339|  if (!genOdd.ok) console.error('Failed to generate bracket for GP Odd', genOdd.body);
+ 340|  await db.update(schema.tournaments).set({ status: 'IN_PROGRESS' }).where(eq(schema.tournaments.id, gpOdd.tourId));
+...
+ 351|      headers: authHeaders,
+*352|      body: JSON.stringify({ divisionId: gpOdd.divisionId, stageId: stageOdd.id }),
+ 353|    });
+ 354|    if (!adv.ok) console.error('Failed to advance standings for GP Odd', adv.body);
+ 355|
+##### seed-data-prod.ts
+ 546|  tourId: string;
+*547|  divisionId: string;
+ 548|  participantIdsBySeed: string[];
+ 549|  participantMeta: { id: string; seed: number }[];
+ 550|}> {
+...
+ 614|  // Division
+*615|  const divisionId = uuidv4();
+ 616|  await db.insert(schema.tournamentDivisions).values({
+*617|    id: divisionId,
+ 618|    tournamentId: tourId,
+ 619|    name,
+ 620|    matchType,
+...
+ 644|        tournamentId: tourId,
+*645|        tournamentDivisionId: divisionId,
+ 646|        registeredBy: organizerId,
+ 647|        teamName,
+ 648|        teamStatus: 'COMPLETE',
+...
+ 669|        tournamentId: tourId,
+*670|        tournamentDivisionId: divisionId,
+ 671|        registeredBy: organizerId,
+ 672|        teamName,
+ 673|        teamStatus: 'COMPLETE',
+...
+ 690|    tourId,
+*691|    divisionId,
+ 692|    participantIdsBySeed: participantMeta.map((p) => p.id),
+ 693|    participantMeta,
+ 694|  };
+...
+ 1104|    // Create tournament + participants
+*1105|    const { tourId, divisionId, participantIdsBySeed } = await createTournament({
+ 1106|      name: cfg.name,
+ 1107|      bracketType: cfg.bracketType,
+ 1108|      numTeams: cfg.numTeams,
+...
+ 1138|        tournamentId: tourId,
+*1139|        tournamentDivisionId: divisionId,
+ 1140|        name: 'Vòng loại trực tiếp',
+ 1141|        type: 'BRACKET',
+ 1142|        order: 1,
+...
+ 1169|        tournamentId: tourId,
+*1170|        tournamentDivisionId: divisionId,
+ 1171|        name: 'Nhánh thắng',
+ 1172|        type: 'BRACKET',
+ 1173|        order: 1,
+...
+ 1179|        tournamentId: tourId,
+*1180|        tournamentDivisionId: divisionId,
+ 1181|        name: 'Nhánh thua',
+ 1182|        type: 'BRACKET',
+ 1183|        order: 2,
+...
+ 1255|        tournamentId: tourId,
+*1256|        tournamentDivisionId: divisionId,
+ 1257|        name: 'Vòng tròn tính điểm',
+ 1258|        type: 'GROUP',
+ 1259|        order: 1,
+...
+ 1325|        tournamentId: tourId,
+*1326|        tournamentDivisionId: divisionId,
+ 1327|        name: 'Vòng bảng',
+ 1328|        type: 'GROUP_STAGE',
+ 1329|        order: 1,
+...
+ 1374|        tournamentId: tourId,
+*1375|        tournamentDivisionId: divisionId,
+ 1376|        name: 'Vòng Playoffs',
+ 1377|        type: 'KNOCKOUT',
+ 1378|        order: 2,
+##### seed-test.ts
+ 136|
+*137|  const divisionId = uuidv4();
+ 138|  await db.insert(schema.tournamentDivisions).values({
+*139|    id: divisionId,
+ 140|    tournamentId: tourId,
+ 141|    name: name,
+ 142|    matchType: matchType,
+...
+ 164|        tournamentId: tourId,
+*165|        tournamentDivisionId: divisionId,
+ 166|        registeredBy: organizerId,
+ 167|        teamName: teamName,
+ 168|        teamStatus: 'COMPLETE',
+...
+ 208|        tournamentId: tourId,
+*209|        tournamentDivisionId: divisionId,
+ 210|        registeredBy: organizerId,
+ 211|        teamName: teamName,
+ 212|        teamStatus: 'COMPLETE',
+...
+ 231|
+*232|  return { tourId, divisionId };
+ 233|}
+ 234|
+ 235|async function main() {
+...
+ 383|      headers: { 'Content-Type': 'application/json', ...authHeaders },
+*384|      body: JSON.stringify({ divisionId: tour.divisionId }),
+ 385|    });
+ 386|    const genRes = await gen.json().catch(() => ({}));
+ 387|    if (!gen.ok) {
+...
+ 403|          headers: { 'Content-Type': 'application/json', ...authHeaders },
+*404|          body: JSON.stringify({ divisionId: tour.divisionId, stageId: stage.id }),
+ 405|        });
+ 406|        if (adv.ok) {
+ 407|          await simulateMatches(tour.tourId, authHeaders);
+
+### modules/
+
+#### ai/
+##### ai-tool.registry.ts
+ 123|        tournamentId: { type: 'string', minLength: 1, maxLength: 80 },
+*124|        divisionId: { type: 'string', minLength: 1, maxLength: 80 },
+ 125|      },
+ 126|      required: ['tournamentId'],
+ 127|      additionalProperties: false,
+##### ai-tool.router.ts
+ 314|  private async getTournamentRegistrationStatus(args: Record<string, unknown>, context: AiToolContext): Promise<AiToolResultEnvelope> {
+*315|    const status: any = await this.tournamentsService.myRegistration(String(args.tournamentId), context.userId!, typeof args.divisionId === 'string' ? args.divisionId : undefined);
+ 316|    if (!status?.registered || !status?.participant) return this.envelope('EMPTY_RESULT', { registration: null }, context, [{ type: 'empty', id: 'registration-empty', title: 'Chưa có đăng ký', data: { message: 'Bạn chưa có đăng ký trong giải này.' }, actions: [{ label: 'Xem giải', action: 'navigate', href: `/tournaments/${args.tournamentId}`, intent: 'primary' }] }], undefined, null, ['VIEW_TOURNAMENT']);
+ 317|    const participant = status.participant;
+ 318|    const tournament = { id: args.tournamentId, name: participant.teamName || 'Đăng ký giải' };
+##### ai.service.ts
+ 970|    if (!this.openai) throw new ServiceUnavailableException('AI scheduling chưa được cấu hình trên máy chủ');
+*971|    const context = await this.matchesService.getAiSchedulePlannerContext(tournamentId, user, dto.courtIds, dto.divisionId);
+ 972|    if (context.matches.length === 0) throw new BadRequestException('Không có trận phù hợp trong phạm vi đã chọn để AI xếp lịch');
+ 973|
+ 974|    const response = await this.openai.chat.completions.create({
+...
+ 977|        { role: 'system', content: 'Bạn là bộ phân tích yêu cầu xếp lịch cho SportO. Chỉ trả JSON theo schema. Không tạo lịch trực tiếp, không đổi bracket, không tạo sân. Chỉ chuyển câu lệnh thành intent. Nếu mơ hồ, needsReview=true. minimumStartIntervalMinutes mặc định 30.' },
+*978|        { role: 'user', content: `Yêu cầu: ${dto.command}\nNgày mặc định: ${dto.date}\nSelected courts: ${JSON.stringify(context.selectedCourtIds)}\nBracket: ${JSON.stringify(context.matches.map((m) => ({ id: m.id, divisionId: m.divisionId, roundNumber: m.roundNumber, matchOrder: m.matchOrder, bracketBranch: m.bracketBranch, status: m.status, scheduledAt: m.scheduledAt, courtId: m.courtId, hasParticipant1: m.hasParticipant1, hasParticipant2: m.hasParticipant2 })))}` },
+ 979|      ],
+ 980|      temperature: 0.1,
+ 981|      response_format: {
+...
+ 1019|      const previewDto = new CreateSchedulePlanDto();
+*1020|      previewDto.divisionId = dto.divisionId;
+ 1021|      previewDto.date = date;
+ 1022|      previewDto.courtIds = dto.courtIds;
+ 1023|      previewDto.matchIds = matchIds;
+
+##### dto/
+###### ai-schedule-command.dto.ts
+ 34|  @IsUUID('4')
+*35|  divisionId?: string;
+ 36|
+ 37|  @IsOptional()
+ 38|  @IsInt()
+
+#### matches/dto/
+##### create-schedule-plan.dto.ts
+ 33|  @IsUUID()
+*34|  divisionId?: string;
+ 35|
+ 36|  @IsDateString()
+ 37|  date!: string;
+##### query-match.dto.ts
+ 70|  @IsUUID()
+*71|  divisionId?: string;
+ 72|
+ 73|  @ApiPropertyOptional({
+ 74|    example: 'uuid-division',
+
+Showing files 1-20 of 70+. Use skip=20 for the next page, or narrow paths/pattern.

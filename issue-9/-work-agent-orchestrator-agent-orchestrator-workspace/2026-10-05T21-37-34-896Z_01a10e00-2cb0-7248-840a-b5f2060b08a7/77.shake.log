@@ -1,0 +1,3708 @@
+### region 1 (read, ~547 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+54:export function assertCapacityHasRoom(
+…
+57:): void {
+…
+64:}
+65:
+66:/**
+67: * Reject a capacity claim that would not fit.
+68: *
+69: * Doubles/mixed doubles add `requestedMemberCount / 2` team slots; every other
+70: * unit adds one whole team for the new registration row.
+71: */
+72:export function assertDivisionHasRoom(
+73:  capacity: DivisionCapacityLimit,
+74:  matchType: string | null | undefined,
+75:  requestedMemberCount: number,
+76:  context?: CapacityOwnerContext,
+77:): void {
+78:  assertCapacityHasRoom(
+79:    capacity,
+80:    calculateRequestedTeamSlots(matchType, requestedMemberCount, context),
+81:  );
+82:}
+83:
+84:@Injectable()
+85:export class TournamentCapacityService {
+86:  constructor(@Inject(PG_CONNECTION) private readonly db: AppDb) {}
+87:
+88:  async getDivisionCapacity(
+89:    divisionId: string,
+90:    options?: { executor?: AppDbOrTx },
+91:  ): Promise<TournamentCapacitySnapshot> {
+92:    return readDivisionCapacity(options?.executor ?? this.db, divisionId);
+93:  }
+94:
+95:  /** Batched occupancy for every division; avoids one read per division. */
+96:  async getDivisionCapacities(
+97:    tournamentId: string,
+98:    options?: { executor?: AppDbOrTx },
+99:  ): Promise<CapacityByScopeId> {
+100:    return readDivisionCapacities(options?.executor ?? this.db, tournamentId);
+101:  }
+102:
+103:  async getTournamentCapacity(
+104:    tournamentId: string,
+105:    options?: { executor?: AppDbOrTx },
+106:  ): Promise<TournamentCapacitySnapshot> {
+107:    return readTournamentCapacity(options?.executor ?? this.db, tournamentId);
+108:  }
+109:
+110:  /** Batched occupancy for a page of tournaments; avoids one read per item. */
+111:  async getTournamentCapacities(
+112:    tournamentIds: readonly string[],
+113:    options?: { executor?: AppDbOrTx },
+114:  ): Promise<CapacityByScopeId> {
+115:    return readTournamentCapacities(
+116:      options?.executor ?? this.db,
+117:      tournamentIds,
+118:    );
+119:  }
+120:}
+121:
+122:const EMPTY_CAPACITY: TournamentCapacitySnapshot = {
+123:  occupiedTeamSlots: 0,
+…
+127:};
+
+[Showing lines 64-123 of 616. Use :124 to continue]
+
+### region 2 (read, ~491 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+24:
+25:/** The subset a caller needs to decide whether a claim fits. */
+26:export type DivisionCapacityLimit = Pick<
+27:  TournamentCapacitySnapshot,
+28:  'occupiedTeamSlots' | 'maxTeamSlots' | 'isFull'
+29:>;
+30:
+31:/** Batched occupancy keyed by division id or tournament id. */
+32:export type CapacityByScopeId = Record<string, TournamentCapacitySnapshot>;
+33:
+34:export interface CapacityOwnerContext {
+35:  tournamentConfig?: unknown;
+36:}
+37:
+38:/**
+39: * Single source of truth for tournament/division occupancy.
+40: *
+41: * Doubles pairing divisions consume one team slot per two active roster
+42: * members, so a single unpaired member occupies half a team. Singles and team
+43: * sports keep one participant/team record per slot. Only capacity-reserving
+44: * statuses count; waitlisted and terminal rows release their seats.
+45: */
+46:
+47:/**
+48: * Reject a capacity claim that would not fit `requestedTeamSlots`.
+49: *
+50: * Uncapped scopes never block, and a non-positive request consumes nothing
+51: * (an athlete appended to an already-counted team row must not re-claim that
+52: * row's slot).
+53: */
+54:export function assertCapacityHasRoom(
+55:  capacity: DivisionCapacityLimit,
+56:  requestedTeamSlots: number,
+57:): void {
+58:  if (capacity.maxTeamSlots == null) return;
+59:  if (!(requestedTeamSlots > 0)) return;
+60:
+61:  if (capacity.occupiedTeamSlots + requestedTeamSlots > capacity.maxTeamSlots) {
+62:    throw new BadRequestException('Nội dung thi đấu đã đầy.');
+63:  }
+64:}
+65:
+66:/**
+67: * Reject a capacity claim that would not fit.
+68: *
+69: * Doubles/mixed doubles add `requestedMemberCount / 2` team slots; every other
+70: * unit adds one whole team for the new registration row.
+71: */
+72:export function assertDivisionHasRoom(
+73:  capacity: DivisionCapacityLimit,
+…
+77:): void {
+…
+82:}
+
+[Showing lines 24-73 of 616. Use :74 to continue]
+
+### region 3 (edit, ~64 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#02C5]
+38:  const auditMock = {
+
+42:  };
+43:  const paymentRepositoryMock = {
+44:    resolveDivisionEntryFee: jest.fn(),
+45:    setParticipantPaidInTx: jest.fn(),
+46:  };
+
+### region 4 (read, ~258 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#02C5]
+33:  const dbMock = {
+34:    transaction: jest.fn(
+35:      (cb: (arg: unknown) => unknown) => Promise.resolve(cb(tx)),
+36:    ),
+37:  };
+38:  const auditMock = {
+39:    logUpdate: jest.fn().mockResolvedValue(undefined),
+40:    logCreate: jest.fn().mockResolvedValue(undefined),
+41:    logDelete: jest.fn().mockResolvedValue(undefined),
+42:  };
+43:  const paymentRepositoryMock = {
+44:    resolveDivisionEntryFee: jest.fn(),
+45:    setParticipantPaidInTx: jest.fn(),
+46:  };
+47:  const consentMock = {
+48:    sendConfirmationRequest: jest.fn().mockResolvedValue(false),
+49:  };
+50:  const repository = repositoryMock as unknown as TournamentsRepository;
+51:  const access = accessMock as unknown as TournamentAccessService;
+52:  const admin = new TournamentParticipantAdminService(
+53:    repository,
+54:    access,
+55:    notificationsMock as unknown as NotificationsService,
+…
+60:  );
+
+[Showing lines 34-55 of 869. Use :56 to continue]
+
+### region 5 (edit, ~97 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#849D]
+38:  const auditMock = {
+
+42:  };
+43:  const paymentRepositoryMock = {
+44:    findCompletedParticipantPaymentInTx: jest.fn(),
+45:    createPendingRefund: jest.fn().mockResolvedValue({ id: 'refund-1' }),
+46:    resolveDivisionEntryFee: jest.fn(),
+47:    setParticipantPaidInTx: jest.fn(),
+48:  };
+
+### region 6 (read, ~1065 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#849D]
+357:  describe('setParticipantFeePaid', () => {
+…
+625:    it('still allows unmarking after the event, because refunds happen late', async () => {
+…
+641:      await expect(
+642:        admin.setParticipantFeePaid(
+…
+649:        ),
+650:      ).resolves.toEqual({
+651:        participant: cleared,
+652:        refundRequested: false,
+653:        refundPaymentId: null,
+654:      });
+655:    });
+656:  });
+657:
+658:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+659:    repositoryMock.findById.mockResolvedValue({
+660:      id: 'tournament-1',
+661:      status: 'REGISTRATION_OPEN',
+662:    });
+663:    accessMock.isManager.mockResolvedValue(false);
+664:
+665:    await expect(
+666:      admin.addAthletes(
+667:        'tournament-1',
+668:        'outsider-1',
+669:        [],
+670:        { source: 'DIRECT', players: [{ displayName: 'Player One' }] },
+671:        jest.fn(),
+672:      ),
+673:    ).rejects.toBeInstanceOf(ForbiddenException);
+674:    expect(dbMock.transaction).not.toHaveBeenCalled();
+675:  });
+676:
+677:  it('rechecks manager authorization against the locked tournament row', async () => {
+678:    const tournament = {
+679:      id: 'tournament-1',
+680:      createdBy: 'organizer-1',
+681:      status: 'REGISTRATION_OPEN',
+682:      deletedAt: null,
+683:      endDate: new Date(Date.now() + 60_000),
+684:      isRegistrationLocked: false,
+685:    };
+686:    repositoryMock.findById.mockResolvedValue(tournament);
+687:    accessMock.isManager
+688:      .mockResolvedValueOnce(true)
+689:      .mockResolvedValueOnce(false);
+690:
+691:    type MockQuery = {
+692:      from: (table: unknown) => MockQuery;
+693:      where: (..._args: unknown[]) => MockQuery;
+694:      for: (..._args: unknown[]) => MockQuery;
+695:      limit: (..._args: unknown[]) => MockQuery;
+696:      then: (
+697:        resolve: (value: unknown) => unknown,
+698:        reject?: (reason: unknown) => unknown,
+699:      ) => Promise<unknown>;
+700:    };
+701:    const transactionExecutor = {
+702:      select: () => {
+703:        let table: unknown;
+704:        let query: MockQuery;
+705:        query = {
+706:          from: (value) => {
+707:            table = value;
+708:            return query;
+709:          },
+710:          where: () => query,
+711:          for: () => query,
+712:          limit: () => query,
+713:          then: (resolve, reject) =>
+714:            Promise.resolve(table === schema.tournaments ? [tournament] : [])
+715:              .then(resolve, reject),
+716:        };
+717:        return query;
+718:      },
+719:    };
+720:    dbMock.transaction.mockImplementation((callback) =>
+721:      Promise.resolve(callback(transactionExecutor)),
+722:    );
+723:
+724:    const result = await admin
+725:      .addAthletes(
+726:        'tournament-1',
+727:        'organizer-1',
+728:        [],
+729:        { source: 'DIRECT', players: [{ displayName: 'Player One' }] },
+730:        jest.fn(),
+731:      )
+732:      .then(
+733:        () => null,
+734:        (error: unknown) => error,
+735:      );
+736:
+737:    expect(accessMock.isManager).toHaveBeenCalledTimes(2);
+738:    expect(result).toBeInstanceOf(ForbiddenException);
+739:  });
+740:
+741:  it('claims a guest roster once for the verified invited email', async () => {
+742:    const claimToken = 'a'.repeat(43);
+743:    let guestDeleted = false;
+744:    let insertedRoster: Record<string, unknown> | null = null;
+745:    const claimant = {
+746:      email: 'athlete@example.com',
+747:      isEmailVerified: true,
+748:      deletedAt: null,
+749:    };
+750:    const guest = {
+751:      id: 'guest-1',
+752:      participantId: 'participant-1',
+753:      displayName: 'Athlete',
+754:      role: 'MAIN',
+755:      contactEmail: 'ATHLETE@example.com',
+756:      contactPhone: null,
+757:      claimTokenHash: createHash('sha256').update(claimToken).digest('hex'),
+758:      claimExpiresAt: new Date(Date.now() + 60_000),
+759:      createdAt: new Date(),
+760:    };
+761:    const participantContext = {
+762:      participantId: 'participant-1',
+763:      tournamentId: 'tournament-1',
+…
+771:    };
+…
+869:  });
+
+[Showing lines 649-763 of 871. Use :764 to continue]
+
+### region 7 (edit, ~121 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.spec.ts#5ABF]
+658:  it('rejects organizer athlete additions for a tournament they do not manage', async () => {
+
+675:  });
+676:
+677:  it('does not grant ranking consent while adding a guest athlete', async () => {
+678:    const tournament = {
+…
+770:  });
+771:
+772:  it('rechecks manager authorization against the locked tournament row', async () => {
+773:    const tournament = {
+
+780:    };
+
+834:  });
+
+### region 8 (bash, ~315 tok)
+
+FAIL src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+  ● TournamentParticipantAdminService › does not grant ranking consent while adding a guest athlete
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "entryFeeAtRegistration": "12.50",
+        "isPaid": false,
+        "isPresent": false,
+        "organizerNote": "Late addition",
+    -   "rankingConsent": false,
+    +   "rankingConsent": true,
+        "teamStatus": "COMPLETE",
+      }
+
+      759 |     );
+      760 |
+    > 761 |     expect(participantValues).toMatchObject({
+          |                               ^
+      762 |       teamStatus: 'COMPLETE',
+      763 |       rankingConsent: false,
+      764 |       organizerNote: 'Late addition',
+
+      at Object.<anonymous> (modules/tournaments/services/tournament-participant-admin.service.spec.ts:761:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 18 skipped, 19 total
+Snapshots:   0 total
+Time:        1.014 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "does not grant ranking consent while adding".
+
+
+Wall time: 1.45 seconds
+
+Command exited with code 1
+
+### region 9 (read, ~301 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#7E72]
+290:      if (!Number.isFinite(entryFee) || entryFee < 0) {
+291:        throw new BadRequestException('Lệ phí giải đấu không hợp lệ.');
+292:      }
+293:      const [participant] = await tx
+294:        .insert(schema.tournamentParticipants)
+295:        .values({
+296:          tournamentId,
+297:          tournamentDivisionId: dto.divisionId ?? null,
+298:          registeredBy: userId,
+299:          teamName:
+300:            dto.teamName?.trim() ||
+301:            players.map((player) => player.displayName).join(' / '),
+302:          teamStatus: 'COMPLETE',
+303:          rankingConsent: Boolean(tournament.isRanked),
+304:          organizerNote: dto.organizerNote?.trim() || null,
+305:          isPaid: entryFee === 0,
+306:          isPresent: false,
+307:          entryFeeAtRegistration: entryFee.toFixed(2),
+308:          isMock: false,
+309:          isWildcard: false,
+310:        })
+311:        .returning();
+312:      if (!participant) {
+313:        throw new BadRequestException('Không thể thêm VĐV vào giải đấu.');
+314:      }
+
+[Showing lines 291-313 of 1610. Use :314 to continue]
+
+### region 10 (read, ~273 tok)
+
+[backend/src/modules/tournaments/services/tournament-lite.service.ts#2A12]
+1249:
+1250:    // Register (capacity check is inside registerParticipant's transaction, FOR UPDATE)
+1251:    const result = await this.tournamentsRepository.registerParticipant(
+1252:      tournament.id,
+1253:      userId,
+1254:      {
+1255:        teamName: name,
+1256:        rankingConsent: tournament.isRanked === true,
+1257:        ...(selectedDivisionId
+1258:          ? { tournamentDivisionId: selectedDivisionId }
+1259:          : {}),
+1260:      },
+1261:      inviteCode,
+1262:    );
+…
+1426:    // Keep the selected member as the participant/roster leader. The manager
+1427:    // is only the authorizing actor; this preserves identity and team logic.
+1428:    return registerParticipant(
+1429:      tournamentId,
+1430:      memberUserId,
+1431:      {
+1432:        teamName: profile.fullName.trim(),
+1433:        rankingConsent: tournament.isRanked === true,
+1434:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+1435:      },
+1436:      undefined,
+1437:      actorUserId,
+1438:    );
+
+### region 11 (read, ~331 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#9AD8]
+1029:      const [participant] = await tx
+…
+1031:        .values({
+1032:          tournamentId,
+1033:          tournamentDivisionId: selectedDivision?.id ?? null,
+1034:          registeredBy: userId,
+1035:          teamName: finalTeamName,
+1036:          footballTeamId: isTeamSport ? (data.footballTeamId ?? null) : null,
+1037:          footballTeamLogoUrl: isTeamSport ? footballTeamLogoUrl : null,
+1038:          // rankingConsent (boolean) records "this tournament is ranked" and stays
+1039:          // as-is; rankingConsentAt is the timestamp ELO actually gates on, so a
+1040:          // match only counts when matches.completedAt >= this instant.
+1041:          rankingConsent: data.rankingConsent === true,
+1042:          customResponses: registrationResponses,
+1043:          isPaid,
+1044:          entryFeeAtRegistration: payableEntryFeeAmount.toFixed(2),
+1045:          // Keep the invite token even when a known partner was selected so the
+1046:          // invited account can confirm through the same join URL/QR flow.
+1047:          teamInviteToken,
+1048:          teamStatus,
+1049:          partnerUserId: isDoubles ? partnerId : null,
+…
+1051:        })
+
+[Showing lines 1031-1049 of 2790. Use :1050 to continue]
+
+### region 12 (edit, ~347 tok)
+
+[backend/src/modules/tournaments/services/tournament-participant-admin.service.ts#4877]
+299:          teamName:
+300:            dto.teamName?.trim() ||
+301:            players.map((player) => player.displayName).join(' / '),
+302:          teamStatus: 'COMPLETE',
+303:          rankingConsent: false,
+304:          organizerNote: dto.organizerNote?.trim() || null,
+305:          isPaid: entryFee === 0,
+
+[backend/src/modules/tournaments/services/tournament-lite.service.ts#9260]
+1254:      {
+1255:        teamName: name,
+1256:        ...(selectedDivisionId
+1257:          ? { tournamentDivisionId: selectedDivisionId }
+1258:          : {}),
+1259:      },
+
+1430:      {
+1431:        teamName: profile.fullName.trim(),
+1432:        rankingConsent: false,
+1433:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+1434:      },
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#DE49]
+1036:          footballTeamId: isTeamSport ? (data.footballTeamId ?? null) : null,
+1037:          footballTeamLogoUrl: isTeamSport ? footballTeamLogoUrl : null,
+1038:          // Keep the legacy participant flag aligned with the submitter's explicit choice.
+1039:          // ELO eligibility uses each roster user's consent timestamp below.
+1040:          rankingConsent: data.rankingConsent === true,
+1041:          customResponses: registrationResponses,
+
+### region 13 (bash, ~91 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       16 skipped, 3 passed, 19 total
+Snapshots:   0 total
+Time:        1.437 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "does not grant ranking consent|rechecks manager authorization|claims a guest roster once".
+
+
+Wall time: 1.90 seconds
+
+### region 14 (bash, ~79 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       47 skipped, 2 passed, 49 total
+Snapshots:   0 total
+Time:        1.67 s, estimated 3 s
+Ran all test suites matching src/modules/tournaments/tournaments-lite-pairing.spec.ts with tests matching "joinLite consent|keeps the selected JOINED member".
+
+
+Wall time: 2.14 seconds
+
+### region 15 (read, ~1251 tok)
+
+[web/src/app/(public)/tournaments/[id]/guest-claim/[guestId]/page.tsx#5A8C]
+1:'use client';
+2:
+3:import { use, useEffect, useRef, useState } from 'react';
+4:import { useTranslations } from 'next-intl';
+5:import Link from 'next/link';
+6:import { useRouter } from 'next/navigation';
+7:import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+8:import { Button } from '@/components/ui/Button';
+9:import { tournamentsApi } from '@/features/tournaments/api';
+10:import { useAuthStore } from '@/lib/zustand/authStore';
+11:
+12:type ClaimState = 'waiting' | 'claiming' | 'success' | 'error' | 'missing';
+13:export default function GuestRosterClaimPage({ params }: { params: Promise<{ id: string; guestId: string }> }) {
+14:  const { id, guestId } = use(params);
+15:  const t = useTranslations('GuestClaim');
+16:  const router = useRouter();
+17:  const { user, isAuthenticated, hasHydrated, isSessionReady, isSessionValidationPending } = useAuthStore();
+18:  const [claimToken, setClaimToken] = useState('');
+19:  const [state, setState] = useState<ClaimState>('waiting');
+20:  const attempted = useRef(false);
+21:
+22:  useEffect(() => {
+23:    const fragment = window.location.hash.slice(1);
+24:    const token = new URLSearchParams(fragment).get('token') || '';
+25:    setClaimToken(token);
+26:    if (!token) setState('missing');
+27:  }, []);
+28:
+29:  useEffect(() => {
+30:    if (!claimToken || attempted.current || !hasHydrated || !isSessionReady || isSessionValidationPending) return;
+31:    if (!isAuthenticated || !user) return;
+32:    if (!user.isEmailVerified) {
+33:      setState('error');
+34:      return;
+35:    }
+36:
+37:    attempted.current = true;
+38:    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
+39:    setState('claiming');
+40:    void tournamentsApi.claimGuestRoster(id, guestId, { claimToken }).then(() => {
+41:      setState('success');
+42:      setClaimToken('');
+43:    }).catch(() => {
+44:      // Use one neutral message for expired, reused, malformed, and email-mismatch claims.
+45:      setState('error');
+46:      setClaimToken('');
+47:    });
+48:  }, [claimToken, guestId, hasHydrated, id, isAuthenticated, isSessionReady, isSessionValidationPending, user]);
+49:
+50:  const loginHref = `/login?redirect=${encodeURIComponent(`/tournaments/${id}/guest-claim/${guestId}`)}`;
+51:
+52:  return (
+53:    <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-10">
+54:      <section className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" aria-live="polite">
+55:        {state === 'claiming' ? (
+56:          <div className="text-center"><Loader2 aria-hidden="true" className="mx-auto h-8 w-8 animate-spin text-blue-600" /><h1 className="mt-4 text-xl font-bold">{t('processing')}</h1></div>
+57:        ) : state === 'success' ? (
+58:          <div className="text-center"><CheckCircle aria-hidden="true" className="mx-auto h-9 w-9 text-emerald-600" /><h1 className="mt-4 text-xl font-bold">{t('successTitle')}</h1><p className="mt-2 text-sm text-slate-600">{t('successDescription')}</p><Button type="button" className="mt-6 min-h-11" onClick={() => router.push(`/tournaments/${id}`)}>{t('viewTournament')}</Button></div>
+59:        ) : state === 'error' ? (
+60:          <div className="text-center"><AlertTriangle aria-hidden="true" className="mx-auto h-9 w-9 text-amber-600" /><h1 className="mt-4 text-xl font-bold">{t('invalidTitle')}</h1><p role="alert" className="mt-2 text-sm text-slate-600">{user && !user.isEmailVerified ? t('verificationRequired') : t('invalidDescription')}</p>{user && !user.isEmailVerified && <Button type="button" variant="outline" className="mt-5 min-h-11" onClick={() => window.location.reload()}>{t('retryAfterVerification')}</Button>}</div>
+61:        ) : state === 'missing' ? (
+62:          <div className="text-center"><AlertTriangle aria-hidden="true" className="mx-auto h-9 w-9 text-amber-600" /><h1 className="mt-4 text-xl font-bold">{t('invalidTitle')}</h1><p role="alert" className="mt-2 text-sm text-slate-600">{t('invalidDescription')}</p></div>
+63:        ) : !hasHydrated || !isSessionReady || isSessionValidationPending ? (
+64:          <div role="status" className="text-center"><Loader2 aria-hidden="true" className="mx-auto h-8 w-8 animate-spin text-blue-600" /><p className="mt-4 text-sm text-slate-600">{t('loading')}</p></div>
+65:        ) : !isAuthenticated ? (
+66:          <div className="text-center"><h1 className="text-xl font-bold">{t('loginTitle')}</h1><p className="mt-2 text-sm text-slate-600">{t('loginDescription')}</p><p className="mt-2 text-sm text-slate-600">{t('fragmentReminder')}</p><Link href={loginHref} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">{t('login')}</Link></div>
+67:        ) : null}
+68:      </section>
+69:    </main>
+70:  );
+71:}
+
+### region 16 (read, ~738 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx#5BDA]
+98:  const switchSource = (value: AddAthleteSource) => {
+…
+104:  };
+105:
+106:  const submit = async () => {
+107:    if (submitting) return;
+108:    if (source === 'DIRECT' && (players.length !== maxPlayers || players.some((player) => !player.displayName.trim()))) return;
+109:    if (source !== 'DIRECT' && selectedIds.length !== maxPlayers) return;
+110:    setSubmitting(true);
+111:    setSubmitError('');
+112:    try {
+113:      const response = await tournamentsApi.addAthletes(tournament.id, {
+114:        source,
+115:        ...(divisionId ? { divisionId } : {}),
+116:        ...(teamName.trim() ? { teamName: teamName.trim() } : {}),
+117:        players: source === 'DIRECT'
+118:          ? players.map((player, index) => ({
+119:              displayName: player.displayName.trim(),
+120:              ...(player.email.trim() ? { email: player.email.trim() } : {}),
+121:              ...(player.phone.trim() ? { phone: player.phone.trim() } : {}),
+122:              role: index === 0 ? 'MAIN' as const : 'PARTNER' as const,
+123:            }))
+124:          : selectedIds.map((userId, index) => ({ userId, role: index === 0 ? 'MAIN' as const : 'PARTNER' as const })),
+125:        ...(organizerNote.trim() ? { organizerNote: organizerNote.trim().slice(0, 280) } : {}),
+126:      });
+127:      if (!response.data) throw new Error(t('addFailed'));
+128:      const payload = response.data.data ?? response.data;
+129:      for (const claim of payload?.claims ?? []) {
+130:        if (claim.delivery !== 'HANDOFF' || !claim.claimToken) continue;
+131:        const claimUrl = `${window.location.origin}/tournaments/${encodeURIComponent(tournament.id)}/guest-claim/${encodeURIComponent(claim.guestId)}#token=${encodeURIComponent(claim.claimToken)}`;
+132:        window.prompt(t('claimTokenHandoff'), claimUrl);
+133:      }
+134:      onOpenChange(false);
+135:      void Promise.resolve(onSuccess()).catch((error) => toast.error(getErrorMessage(error)));
+136:    } catch (error) {
+137:      const message = getErrorMessage(error, t('addFailed'));
+138:      setSubmitError(message);
+139:      toast.error(message);
+140:    } finally {
+141:      setSubmitting(false);
+142:    }
+143:  };
+144:
+145:  const canSubmit = source === 'DIRECT'
+146:    ? players.length === maxPlayers && players.every((player) => player.displayName.trim().length > 0)
+147:    : selectedIds.length === maxPlayers;
+148:
+149:  return (
+150:    <Modal open={open} onOpenChange={(nextOpen) => { if (submitting && !nextOpen) return; onOpenChange(nextOpen); }}>
+151:      <ModalContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" aria-describedby="add-athlete-description">
+152:        <ModalHeader>
+153:          <ModalTitle>{t('title')}</ModalTitle>
+…
+155:        </ModalHeader>
+…
+217:      </ModalContent>
+218:    </Modal>
+219:  );
+
+[Showing lines 104-153 of 220. Use :154 to continue]
+
+### region 17 (read, ~520 tok)
+
+[web/src/features/tournaments/api.ts#5AA7]
+804:
+805:export interface AddAthletesRequest {
+806:  source: AddAthleteSource;
+807:  divisionId?: string;
+808:  teamName?: string;
+809:  players: AddAthletePlayerInput[];
+810:  organizerNote?: string;
+811:}
+812:
+813:export interface AddAthletesResponse {
+814:  participant: TournamentParticipant;
+815:  entryFeeAtRegistration?: number | null;
+816:  organizerNote?: string | null;
+817:  isPresent?: boolean | null;
+818:  claims?: Array<{
+819:    guestId: string;
+820:    delivery: "EMAILED" | "HANDOFF";
+821:    claimToken?: string | null;
+822:  }>;
+823:}
+824:
+825:export interface ClaimGuestRosterRequest {
+826:  claimToken: string;
+827:}
+828:
+829:
+830:
+831:export const tournamentsApi = {
+832:  getAddAthleteCandidates: (id: string, params: {
+833:    source: "FRIENDS" | "CLUB";
+834:    divisionId?: string;
+835:    search?: string;
+836:    cursor?: string;
+837:    limit?: number;
+838:  }) =>
+839:    api.get<ApiResponse<AddAthleteCandidatesResponse>>(
+840:      `/tournaments/${id}/add-athletes/candidates`,
+841:      { params },
+842:    ),
+843:  addAthletes: (id: string, data: AddAthletesRequest) =>
+844:    api.post<ApiResponse<AddAthletesResponse>>(`/tournaments/${id}/add-athletes`, data),
+845:  claimGuestRoster: (id: string, guestId: string, data: ClaimGuestRosterRequest) =>
+846:    api.post<ApiResponse<unknown>>(
+847:      `/tournaments/${id}/guest-rosters/${guestId}/claim`,
+848:      data,
+849:    ),
+850:  getFeesConfig: () =>
+851:    api.get<ApiResponse<TournamentFeesConfig>>("/tournaments/fees"),
+852:  getTournaments: (params?: Record<string, unknown>) =>
+853:    api.get<PaginatedTournaments>("/tournaments", { params }),
+854:  getPublicTournaments: (params?: Record<string, unknown>) =>
+855:    api.get<PaginatedTournaments>("/tournaments/public", { params }),
+856:  getMyTournaments: () => api.get<ApiResponse<Tournament[]>>("/tournaments/my"),
+857:  getMyManagementTournaments: (params?: {
+858:    cursor?: string;
+…
+862:  }) =>
+…
+866:    ),
+…
+1601:};
+
+[Showing lines 804-858 of 1636. Use :859 to continue]
+
+### region 18 (read, ~986 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#67C8]
+1:import { expect, test } from '@playwright/test';
+2:import { fulfillApi, openManage, tournamentId } from './support/organizer-manage';
+3:
+4:const divisionId = 'synthetic-wide-division';
+5:
+6:test('organizer can add a directly entered guest with optional contact and note', async ({ page }) => {
+7:  let addRequest: Record<string, unknown> | undefined;
+8:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+9:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+10:  });
+11:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+12:    addRequest = route.request().postDataJSON();
+13:    await fulfillApi(route, { data: { participant: { id: 'new-participant' } } }, 201);
+14:  });
+15:  await openManage(page, { tab: 'registration' });
+16:
+17:  await expect(page.getByRole('button', { name: 'Import Excel' })).toBeVisible();
+18:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+19:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+20:  await expect(dialog).toBeVisible();
+21:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+22:  await dialog.getByLabel('Tên VĐV').fill('Guest Athlete');
+23:  await dialog.getByLabel('Ghi chú ban tổ chức').fill('Arrives late');
+24:  await dialog.getByRole('button', { name: 'Thêm vào giải' }).click();
+25:
+26:  await expect.poll(() => addRequest).toEqual({
+27:    source: 'DIRECT',
+28:    divisionId,
+29:    players: [{ displayName: 'Guest Athlete', role: 'MAIN' }],
+30:    organizerNote: 'Arrives late',
+31:  });
+32:  await expect(dialog).toBeHidden();
+33:});
+34:
+35:test('candidate search paginates and selecting a player does not expose contact information', async ({ page }) => {
+36:  const queries: URL[] = [];
+37:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+38:    const url = new URL(route.request().url());
+39:    queries.push(url);
+40:    await fulfillApi(route, url.searchParams.get('cursor')
+41:      ? { data: { rows: [], nextCursor: null } }
+42:      : { data: { rows: [{ userId: 'friend-1', displayName: 'Friend Athlete', avatarUrl: null, source: 'FRIENDS' }], nextCursor: 'page-2' } });
+43:  });
+44:  await openManage(page, { tab: 'registration' });
+45:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+46:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+47:  await dialog.getByRole('button', { name: 'Bạn bè' }).click();
+48:  await dialog.getByLabel('Tìm VĐV').fill('Friend');
+49:  await expect(dialog.getByText('Friend Athlete')).toBeVisible();
+50:  await expect(dialog.getByText(/@|09\d{8}/)).toHaveCount(0);
+51:  await dialog.getByRole('button', { name: 'Trang tiếp' }).click();
+52:  await expect.poll(() => queries.some((url) => url.searchParams.get('cursor') === 'page-2')).toBe(true);
+53:  expect(queries[0].searchParams.get('source')).toBe('FRIENDS');
+54:});
+55:
+56:test('player claims a guest roster with the URL fragment and the fragment is removed', async ({ page }) => {
+57:  let claimRequest: Record<string, unknown> | undefined;
+58:  await openManage(page);
+59:  await page.route(`**/api/v1/tournaments/${tournamentId}/guest-rosters/guest-1/claim`, async (route) => {
+60:    claimRequest = route.request().postDataJSON();
+61:    await fulfillApi(route, { data: { success: true } });
+62:  });
+63:  await page.goto(`/tournaments/${tournamentId}/guest-claim/guest-1#token=one-time-secret`, { waitUntil: 'domcontentloaded' });
+64:
+65:  await expect(page.getByRole('heading', { name: 'Đã nhận vị trí thi đấu' })).toBeVisible();
+66:  await expect.poll(() => claimRequest).toEqual({ claimToken: 'one-time-secret' });
+67:  expect(new URL(page.url()).hash).toBe('');
+68:  expect(new URL(page.url()).search).not.toContain('one-time-secret');
+69:});
+
+### region 19 (read, ~1480 tok)
+
+Note: interpreted as 2 paths: web/messages/en.json:5360-5400, web/messages/vi.json:5360-5400
+
+[web/messages/en.json#E9CF]
+5346:  "AddAthlete": {
+…
+5359:    "empty": "No candidates available.",
+5360:    "selectedCount": "{selected} of {required} athletes selected",
+5361:    "nextPage": "Load more",
+5362:    "name": "Athlete name",
+5363:    "email": "Email (optional)",
+5364:    "phone": "Phone (optional)",
+5365:    "addPlayer": "Add player",
+5366:    "removePlayer": "Remove last player",
+5367:    "teamName": "Team or pair name (optional)",
+5368:    "organizerNote": "Organizer note (optional, up to 280 characters)",
+5369:    "claimTokenHandoff": "This one-time claim token is shown only now. Share it securely; it is not saved in a link.",
+5370:    "addSuccess": "Athlete added to the roster.",
+5371:    "addFailed": "Could not add athlete. Please try again.",
+5372:    "cancel": "Cancel",
+5373:    "submit": "Add to roster",
+5374:    "submitting": "Adding…"
+5375:  },
+5376:  "GuestClaim": {
+5377:    "loading": "Checking your sign-in…",
+5378:    "processing": "Claiming your tournament roster place…",
+5379:    "loginTitle": "Sign in to claim your roster place",
+5380:    "loginDescription": "Sign in with the verified account that should own this roster place.",
+5381:    "fragmentReminder": "Keep this page open while you sign in in the new tab. Then return here and refresh to use the one-time link kept in this page's address fragment.",
+5382:    "login": "Sign in",
+5383:    "verificationRequired": "Verify your account before claiming this roster place. The one-time link is still available in this page.",
+5384:    "retryAfterVerification": "Retry claim",
+5385:    "invalidTitle": "Unable to claim this roster place",
+5386:    "invalidDescription": "This claim link is invalid, expired, already used, or cannot be matched to your verified account. Ask the tournament organizer for help.",
+5387:    "successTitle": "Roster place claimed",
+5388:    "successDescription": "This roster place is now linked to your account. Ranking consent remains optional.",
+5389:    "viewTournament": "View tournament"
+5390:  },
+5391:  "TournamentRegistration": {
+5392:    "teamNameMinLength": "Team name must be at least 3 characters",
+5393:    "teamNameTooLong": "Team name is too long",
+5394:    "mixedDoublesLabel": "Mixed doubles",
+5395:    "singlesLabel": "Singles",
+5396:    "doublesLabel": "Doubles",
+5397:    "openSinglesLabel": "Open singles",
+5398:    "openDoublesLabel": "Open doubles",
+5399:    "unknownLabel": "Unknown",
+5400:    "singleElimination": "Single elimination",
+5401:    "doubleElimination": "Double elimination",
+5402:    "roundRobin": "Round robin",
+5403:    "groupStageKnockout": "Group stage + knockout",
+…
+5546:  },
+
+[Showing lines 5359-5403 of 9481. Use :5404 to continue]
+
+[web/messages/vi.json#26D0]
+5346:  "AddAthlete": {
+…
+5359:    "empty": "Không có VĐV phù hợp.",
+5360:    "selectedCount": "Đã chọn {selected}/{required} VĐV",
+5361:    "nextPage": "Tải thêm",
+5362:    "name": "Tên VĐV",
+5363:    "email": "Email (không bắt buộc)",
+5364:    "phone": "Điện thoại (không bắt buộc)",
+5365:    "addPlayer": "Thêm người chơi",
+5366:    "removePlayer": "Xóa người chơi cuối",
+5367:    "teamName": "Tên đội hoặc cặp (không bắt buộc)",
+5368:    "organizerNote": "Ghi chú của BTC (không bắt buộc, tối đa 280 ký tự)",
+5369:    "claimTokenHandoff": "Mã nhận VĐV chỉ hiển thị một lần. Hãy chia sẻ bảo mật; mã không được lưu trong đường dẫn.",
+5370:    "addSuccess": "Đã thêm VĐV vào danh sách.",
+5371:    "addFailed": "Không thể thêm VĐV. Vui lòng thử lại.",
+5372:    "cancel": "Hủy",
+5373:    "submit": "Thêm vào danh sách",
+5374:    "submitting": "Đang thêm…"
+5375:  },
+5376:  "GuestClaim": {
+5377:    "loading": "Đang kiểm tra trạng thái đăng nhập…",
+5378:    "processing": "Đang nhận vị trí trong danh sách giải đấu…",
+5379:    "loginTitle": "Đăng nhập để nhận vị trí thi đấu",
+5380:    "loginDescription": "Hãy đăng nhập bằng tài khoản đã xác minh sẽ sở hữu vị trí này.",
+5381:    "fragmentReminder": "Giữ trang này mở trong khi đăng nhập ở tab mới. Sau đó quay lại đây và tải lại trang để dùng liên kết một lần đang nằm trong fragment.",
+5382:    "login": "Đăng nhập",
+5383:    "verificationRequired": "Hãy xác minh tài khoản trước khi nhận vị trí thi đấu. Liên kết dùng một lần vẫn còn trên trang này.",
+5384:    "retryAfterVerification": "Thử nhận lại",
+5385:    "invalidTitle": "Không thể nhận vị trí thi đấu",
+5386:    "invalidDescription": "Liên kết không hợp lệ, đã hết hạn, đã được sử dụng hoặc không khớp với tài khoản đã xác minh. Hãy liên hệ ban tổ chức.",
+5387:    "successTitle": "Đã nhận vị trí thi đấu",
+5388:    "successDescription": "Vị trí thi đấu hiện đã liên kết với tài khoản của bạn. Xác nhận xếp hạng vẫn không bắt buộc.",
+5389:    "viewTournament": "Xem giải đấu"
+5390:  },
+5391:  "TournamentRegistration": {
+5392:    "teamNameMinLength": "Tên đội phải có ít nhất 3 ký tự",
+5393:    "teamNameTooLong": "Tên đội quá dài",
+5394:    "mixedDoublesLabel": "Đôi Nam Nữ",
+5395:    "singlesLabel": "Đơn",
+5396:    "doublesLabel": "Đôi",
+5397:    "openSinglesLabel": "Đơn linh hoạt",
+5398:    "openDoublesLabel": "Đôi linh hoạt",
+5399:    "unknownLabel": "Chưa rõ",
+5400:    "singleElimination": "Loại trực tiếp",
+5401:    "doubleElimination": "Nhánh thắng/thua",
+5402:    "roundRobin": "Vòng tròn",
+5403:    "groupStageKnockout": "Vòng bảng + Loại trực tiếp",
+…
+5546:  },
+
+[Showing lines 5359-5403 of 9485. Use :5404 to continue]
+
+### region 20 (read, ~376 tok)
+
+[app/lib/core/router/app_router.dart#251E]
+893:      GoRoute(
+…
+895:        builder: (context, state) {
+…
+899:          return TournamentRegisterScreen(
+…
+901:            inviteCode: inviteCode,
+902:            divisionId: divisionId,
+903:          );
+904:        },
+905:      ),
+906:      GoRoute(
+907:        path: '/register/:id/doubles',
+908:        builder: (context, state) {
+909:          final id = state.pathParameters['id']!;
+910:          final inviteCode = state.uri.queryParameters['invite'];
+911:          // Division info passed via extra
+912:          final extra = state.extra;
+913:          return DoublesRegistrationFlow(
+914:            tournamentId: id,
+915:            division: extra as TournamentDivisionOption,
+916:            inviteCode: inviteCode,
+917:            rankingConsent:
+918:                state.uri.queryParameters['rankingConsent'] == 'true'
+919:                ? true
+920:                : null,
+921:          );
+922:        },
+923:      ),
+924:      // Team sport (bóng đá): đăng ký đội nhiều người
+925:      GoRoute(
+926:        path: '/register/:id/team',
+927:        builder: (context, state) {
+928:          final id = state.pathParameters['id']!;
+929:          return FootballTeamRegisterScreen(
+930:            rankingConsent:
+931:                state.uri.queryParameters['rankingConsent'] == 'true'
+…
+933:                : null,
+…
+944:          );
+945:        },
+946:      ),
+
+[Showing lines 901-931 of 1254. Use :932 to continue]
+
+### region 21 (read, ~575 tok)
+
+[app/lib/features/register/screens/tournament_register_screen.dart#6575]
+634:    if (selectedDiv != null &&
+…
+636:            _normalizedMatchType(selectedDiv.matchType) == 'MIXED_DOUBLES')) {
+…
+638:      final query = <String, String>{
+639:        'divisionId': divisionId ?? '',
+640:        'invite': inviteCode,
+641:        if (_rankingConsent) 'rankingConsent': 'true',
+642:      };
+643:      context.push(
+644:        Uri(
+645:          path: '/register/${widget.tournamentId}/doubles',
+646:          queryParameters: query,
+647:        ).toString(),
+648:        extra: selectedDiv,
+649:      );
+650:      return;
+651:    }
+652:    final String effectiveTeamName = _nameCtrl.text.trim().isNotEmpty
+653:        ? _nameCtrl.text.trim()
+654:        : (user?.fullName?.trim().isNotEmpty == true
+655:              ? user!.fullName!.trim()
+656:              : l10n.registerTypeDefault);
+657:
+658:    setState(() => _submitting = true);
+659:    try {
+660:      final result = await ref
+661:          .read(tournamentRepositoryProvider)
+662:          .registerParticipant(
+663:            tournamentId: widget.tournamentId,
+664:            teamName: effectiveTeamName,
+665:            divisionId: divisionId,
+666:            inviteCode: _localInviteCode ?? widget.inviteCode,
+667:            rankingConsent: _rankingConsent ? true : null,
+668:            customResponses: _customResponses,
+669:          );
+670:      if (!mounted) return;
+671:      // Refresh the detail streams so the participant count reflects the
+672:      // successful registration when the user returns to the tournament.
+673:      ref.invalidate(tournamentProvider(widget.tournamentId));
+674:      ref.invalidate(tournamentIntroProvider(widget.tournamentId));
+675:      final t = ref.read(tournamentProvider(widget.tournamentId)).asData?.value;
+676:      final effectiveFee = result.entryFee;
+677:      _registrationTeamStatus = result.teamStatus;
+678:      _registeredDivision = selectedDiv;
+679:      final canProceedToPayment =
+680:          !result.isWaitlisted && result.paymentEligible;
+681:
+682:      if (effectiveFee > 0 &&
+683:          result.participantId.isNotEmpty &&
+684:          canProceedToPayment) {
+…
+700:      }
+701:    } catch (e) {
+…
+731:    }
+
+[Showing lines 639-683 of 2551. Use :684 to continue]
+
+### region 22 (read, ~1286 tok)
+
+[app/lib/features/register/screens/tournament_register_screen.dart#6575]
+959:      padding: const EdgeInsets.all(24),
+960:      decoration: BoxDecoration(
+961:        color: context.colors.bgCard,
+962:        borderRadius: BorderRadius.circular(16),
+963:        border: Border.all(color: context.colors.border),
+964:      ),
+965:      child: Column(
+966:        children: [
+967:          Icon(
+968:            _existingIsPaid ? Icons.verified_rounded : Icons.how_to_reg_rounded,
+969:            size: 52,
+970:            color: _existingIsPaid ? context.colors.success : AppTheme.primary,
+971:          ),
+972:          const SizedBox(height: 16),
+973:          Text(
+974:            statusLabel,
+975:            textAlign: TextAlign.center,
+976:            style: TextStyle(
+977:              color: context.colors.textPrimary,
+978:              fontSize: 18,
+979:              fontWeight: FontWeight.w800,
+980:            ),
+981:          ),
+982:          if (tournament.isRanked) ...[
+983:            const SizedBox(height: 16),
+984:            Container(
+985:              width: double.infinity,
+986:              padding: const EdgeInsets.all(12),
+987:              decoration: BoxDecoration(
+988:                color: context.colors.bgSurface,
+989:                borderRadius: BorderRadius.circular(12),
+990:                border: Border.all(color: context.colors.border),
+991:              ),
+992:              child: Column(
+993:                crossAxisAlignment: CrossAxisAlignment.start,
+994:                children: [
+995:                  Text(
+996:                    l10n.registerRankingConsentTitle,
+997:                    style: TextStyle(
+998:                      color: context.colors.textPrimary,
+999:                      fontSize: 13,
+1000:                      fontWeight: FontWeight.w700,
+1001:                    ),
+1002:                  ),
+1003:                  const SizedBox(height: 6),
+1004:                  Text(
+1005:                    l10n.registerRankingConsentDescription,
+1006:                    style: TextStyle(
+1007:                      color: context.colors.textSecondary,
+1008:                      fontSize: 12,
+1009:                    ),
+1010:                  ),
+1011:                  const SizedBox(height: 10),
+1012:                  if (_existingHasRankingConsent)
+1013:                    Row(
+1014:                      children: [
+1015:                        Icon(
+1016:                          Icons.check_circle_rounded,
+1017:                          color: context.colors.success,
+1018:                          size: 18,
+1019:                        ),
+1020:                        const SizedBox(width: 8),
+1021:                        Expanded(
+1022:                          child: Text(
+1023:                            l10n.registerRankingConsentConfirmed,
+1024:                            style: TextStyle(
+1025:                              color: context.colors.success,
+1026:                              fontWeight: FontWeight.w700,
+1027:                            ),
+1028:                          ),
+1029:                        ),
+1030:                      ],
+1031:                    )
+1032:                  else
+1033:                    SizedBox(
+1034:                      width: double.infinity,
+1035:                      child: FilledButton.icon(
+1036:                        onPressed: _confirmingRankingConsent
+1037:                            ? null
+1038:                            : _confirmRankingConsent,
+1039:                        icon: _confirmingRankingConsent
+1040:                            ? const SizedBox(
+1041:                                width: 18,
+1042:                                height: 18,
+1043:                                child: CircularProgressIndicator(
+1044:                                  strokeWidth: 2,
+1045:                                ),
+1046:                              )
+1047:                            : const Icon(Icons.check_rounded, size: 18),
+1048:                        label: Text(l10n.registerRankingConsentConfirm),
+1049:                      ),
+1050:                    ),
+1051:                ],
+1052:              ),
+1053:            ),
+1054:          ],
+1055:          if (isPendingApproval) ...[
+1056:            const SizedBox(height: 12),
+1057:            Container(
+1058:              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+1059:              decoration: BoxDecoration(
+1060:                color: Colors.amber.withValues(alpha: 0.12),
+1061:                borderRadius: BorderRadius.circular(10),
+1062:                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+1063:              ),
+1064:              child: Row(
+1065:                children: [
+1066:                  const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 20),
+1067:                  const SizedBox(width: 10),
+1068:                  Expanded(
+…
+1077:                  ),
+1078:                ],
+1079:              ),
+1080:            ),
+1081:          ],
+…
+1212:        ],
+1213:      ),
+
+[Showing lines 959-1068 of 2551. Use :1069 to continue]
+
+### region 23 (read, ~669 tok)
+
+[app/lib/features/register/screens/doubles_registration_screen.dart#8EE2]
+528:    final tournament = ref
+529:        .read(
+…
+534:        )
+535:        .asData
+536:        ?.value;
+537:    final pairingMode =
+538:        _pairingMode ??
+539:        (tournament?.doublesPairingMode == 'SELF' ? 'SELF' : 'ORGANIZER');
+540:    final organizerPairing = pairingMode == 'ORGANIZER';
+541:    if (!organizerPairing && _teamNameCtrl.text.trim().length < 3) {
+542:      _showError(l10n.doublesRegTeamNameTooShort);
+543:      return;
+544:    }
+545:    // Gender gate
+546:    if (_genderError != null || _eloError != null) {
+547:      _showError(_genderError ?? _eloError!);
+548:      return;
+549:    }
+550:    // Consent is optional; only pass an affirmative player choice.
+551:    if (tournament != null) {
+552:      final customError = _validateCustomResponses(tournament);
+553:      if (customError != null) {
+554:        _showError(customError);
+555:        return;
+556:      }
+557:    }
+558:
+559:    setState(() => _submitting = true);
+560:    try {
+561:      _partnerContact = organizerPairing
+562:          ? null
+563:          : _selectedPartner?.email ??
+564:                (_inviteLater ? null : _partnerSearchCtrl.text.trim());
+565:      final result = await ref
+566:          .read(tournamentRepositoryProvider)
+567:          .registerParticipant(
+568:            tournamentId: widget.tournamentId,
+569:            teamName: _teamNameCtrl.text.trim(),
+570:            divisionId: widget.division.id,
+571:            inviteCode: widget.inviteCode,
+572:            partnerEmailOrPhone: organizerPairing
+573:                ? null
+574:                : _selectedPartner?.email ??
+575:                      (_inviteLater ? null : _partnerSearchCtrl.text.trim()),
+576:            doublesPairingMode: pairingMode,
+577:            rankingConsent: _rankingConsent ? true : null,
+578:            customResponses: _customResponses.isNotEmpty
+579:                ? _customResponses
+580:                : null,
+581:          );
+582:      if (!mounted) return;
+583:      _participantId = result.participantId;
+584:      _teamStatus = result.teamStatus;
+585:      _entryFee = result.entryFee;
+586:      _isPaid = result.entryFee <= 0;
+587:      _paymentEligible = result.paymentEligible;
+588:
+589:      // Fetch registration details to get invite token/link
+590:      try {
+591:        final dio = ref.read(dioClientProvider);
+592:        final regResp = await dio.dio.get(
+593:          '/tournaments/${widget.tournamentId}/my-registration',
+…
+595:        );
+…
+615:      } catch (_) {}
+…
+633:    } catch (e) {
+…
+645:    }
+
+[Showing lines 534-593 of 1919. Use :594 to continue]
+
+### region 24 (read, ~544 tok)
+
+[app/lib/features/register/screens/football_team_register_screen.dart#72B9]
+229:    final team = _teams.where((item) => item.id == id).firstOrNull;
+230:    if (team == null) return;
+231:    setState(() => _saving = true);
+232:    try {
+233:      if (widget.participantId != null) {
+234:        final status = await ref
+235:            .read(tournamentRepositoryProvider)
+236:            .updateFootballRoster(
+237:              tournamentId: widget.tournamentId,
+238:              participantId: widget.participantId!,
+239:              memberIds: _selectedMemberIds.toList(),
+240:              reserveMemberIds: _selectedReserveIds.toList(),
+241:            );
+242:        if (!mounted) return;
+243:        setState(() => _rosterStatus = status);
+244:        ScaffoldMessenger.of(context).showSnackBar(
+245:          SnackBar(
+246:            content: Text(
+247:              _selectedMemberIds.length < widget.teamSize
+248:                  ? l10n.register_rosterDraftSaved
+249:                  : l10n.register_rosterUpdated,
+250:            ),
+251:          ),
+252:        );
+253:        return;
+254:      }
+255:      final result = await ref
+256:          .read(tournamentRepositoryProvider)
+257:          .registerParticipant(
+258:            tournamentId: widget.tournamentId,
+259:            teamName: team.name,
+260:            footballTeamId: team.id,
+261:            memberIds: _selectedMemberIds.toList(),
+262:            reserveMemberIds: _selectedReserveIds.toList(),
+263:            divisionId: widget.divisionId,
+264:            inviteCode: widget.inviteCode,
+265:            rankingConsent: _rankingConsent ? true : null,
+266:          );
+267:      if (!mounted) return;
+268:      if (result.entryFee > 0 &&
+269:          result.participantId.isNotEmpty &&
+270:          result.paymentEligible) {
+271:        await context.push(
+272:          '/payment/checkout',
+273:          extra: {
+274:            'tournamentId': widget.tournamentId,
+275:            'participantId': result.participantId,
+…
+278:          },
+279:        );
+280:      } else {
+…
+291:      }
+292:    } catch (error) {
+…
+303:    }
+
+[Showing lines 229-275 of 552. Use :276 to continue]
+
+### region 25 (grep, ~632 tok)
+
+# app/lib/
+
+## data/repositories/api/
+### api_tournament_repository.dart#1BD6
+ 384:          'reserveMemberIds': reserveMemberIds,
+*385:        if (rankingConsent == true) 'rankingConsent': true,
+ 386:        if (customResponses != null && customResponses.isNotEmpty)
+ 387:          'customResponses': customResponses,
+ 388:      },
+...
+ 404:  @override
+*405:  Future<void> confirmMyRankingConsent({required String tournamentId}) async {
+ 406:    await _dioClient.dio.post(
+ 407:      '/tournaments/$tournamentId/participants/me/ranking-consent',
+ 408:    );
+
+## domain/repositories/
+### tournament_repository.dart#4C08
+ 52:  });
+*53:  Future<void> confirmMyRankingConsent({required String tournamentId});
+ 54:
+ 55:  Future<FootballRosterStatus> getFootballRosterStatus({
+ 56:    required String tournamentId,
+
+## features/register/screens/
+### doubles_registration_screen.dart#8EE2
+ 265:    super.initState();
+*266:    _rankingConsent = widget.rankingConsent == true;
+ 267:    _checkExistingRegistration();
+ 268:  }
+ 269:
+### football_team_register_screen.dart#72B9
+ 54:    super.initState();
+*55:    _rankingConsent = widget.rankingConsent == true;
+ 56:    _load();
+ 57:  }
+ 58:
+### tournament_register_screen.dart#6575
+ 134:  }
+*135:  Future<void> _confirmRankingConsent() async {
+*136:    if (_confirmingRankingConsent || _existingHasRankingConsent) return;
+ 137:    final l10n = AppLocalizations.of(context)!;
+*138:    setState(() => _confirmingRankingConsent = true);
+ 139:    try {
+ 140:      await ref
+ 141:          .read(tournamentRepositoryProvider)
+*142:          .confirmMyRankingConsent(tournamentId: widget.tournamentId);
+ 143:      if (mounted) setState(() => _existingHasRankingConsent = true);
+ 144:    } catch (error) {
+ 145:      if (mounted) {
+...
+ 150:    } finally {
+*151:      if (mounted) setState(() => _confirmingRankingConsent = false);
+ 152:    }
+ 153:  }
+ 154:
+...
+ 184:  bool _existingHasRankingConsent = false;
+*185:  bool _confirmingRankingConsent = false;
+ 186:
+ 187:  bool _rankingConsent = false;
+ 188:  final Map<String, dynamic> _customResponses = {};
+...
+ 1035:                      child: FilledButton.icon(
+*1036:                        onPressed: _confirmingRankingConsent
+ 1037:                            ? null
+*1038:                            : _confirmRankingConsent,
+*1039:                        icon: _confirmingRankingConsent
+ 1040:                            ? const SizedBox(
+ 1041:                                width: 18,
+ 1042:                                height: 18,
+
+### region 26 (grep, ~2589 tok)
+
+# web/src/app/(public)/
+
+## communities/[id]/components/
+### CommunityTournamentRosterWidget.tsx#31E0
+ 78:  const [isJoining, setIsJoining] = useState<boolean>(false);
+*79:  const [rankingConsent, setRankingConsent] = useState(false);
+ 80:  const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
+ 81:  const [currentPage, setCurrentPage] = useState<number>(1);
+ 82:  const [selectedUserToWithdraw, setSelectedUserToWithdraw] = useState<TournamentParticipant | null>(null);
+...
+ 278:          tournamentDivisionId: selectedDivisionId || undefined,
+*279:          ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 280:        });
+ 281:      }
+ 282:      toast.success(isVi ? 'Đã xác nhận tham gia giải đấu!' : 'Joined tournament successfully!');
+*283:      if (effectiveInviteCode && tournament?.isRanked && rankingConsent) {
+ 284:        try {
+*285:          await tournamentsApi.confirmMyRankingConsent(tournamentId);
+*286:          toast.success(registrationTranslate('rankingConsentConfirmedToast'));
+ 287:        } catch (consentError) {
+*288:          toast.error(getErrorMessage(consentError, registrationTranslate('rankingConsentFailed')));
+ 289:        }
+ 290:      }
+ 291:      await fetchTournamentAndParticipants();
+...
+ 460:              type="checkbox"
+*461:              checked={rankingConsent}
+ 462:              disabled={isJoining}
+*463:              onChange={(event) => setRankingConsent(event.target.checked)}
+ 464:              className="mt-1 h-4 w-4 accent-sky-600"
+ 465:            />
+ 466:            <span>
+*467:              {registrationTranslate('rankingConsentPrefix')}
+ 468:              <span className="mt-1 block text-xs text-slate-500">
+ 469:                {registrationTranslate('rankedContentCondition')}
+ 470:              </span>
+
+## tournaments/[id]/
+
+### components/
+#### RegisterModal.tsx#06CD
+ 29:  const [partnerEmailOrPhone, setPartnerEmailOrPhone] = useState('');
+*30:  const [rankingConsent, setRankingConsent] = useState(false);
+ 31:
+ 32:  const isDoubles = matchType === 'DOUBLES' || matchType === 'MIXED_DOUBLES';
+ 33:
+...
+ 47:      const teamName = user?.fullName || translate('player');
+*48:      const payload: { teamName: string; partnerEmailOrPhone?: string; tournamentDivisionId?: string; rankingConsent?: true } = {
+ 49:        teamName,
+*50:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 51:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+ 52:      };
+ 53:      if (isDoubles && partnerEmailOrPhone.trim()) {
+...
+ 133:                  type="checkbox"
+*134:                  checked={rankingConsent}
+*135:                  onChange={(event) => setRankingConsent(event.target.checked)}
+ 136:                  className="mt-1 h-4 w-4 accent-sky-600"
+ 137:                />
+*138:                <span>{translate('rankingConsentLabel')}</span>
+ 139:              </label>
+ 140:            )}
+ 141:
+
+### register/
+#### page.tsx#C9DA
+ 179:  const [registrationStatusRetry, setRegistrationStatusRetry] = useState(0);
+*180:  const [myRankingConsentAt, setMyRankingConsentAt] = useState<string | null>(null);
+*181:  const [isConfirmingRankingConsent, setIsConfirmingRankingConsent] = useState(false);
+ 182:  const [isWithdrawing, setIsWithdrawing] = useState(false);
+ 183:
+ 184:  // Division select states
+...
+ 196:  const [isValidatingInvite, setIsValidatingInvite] = useState(false);
+*197:  const [rankingConsent, setRankingConsent] = useState(false);
+ 198:  const [customResponses, setCustomResponses] = useState<Record<string, unknown>>({});
+ 199:
+ 200:  const { register, handleSubmit } = useForm<RegisterFormValues>({
+...
+ 345:      if (!isAuthenticated) {
+*346:        setMyRankingConsentAt(null);
+ 347:        setParticipant(null);
+ 348:        setIsRegistered(false);
+ 349:        setRegistrationStatusPhase('ready');
+...
+ 371:        if (regRes.data?.registered && normalizedParticipant) {
+*372:          setMyRankingConsentAt(regRes.data.myRankingConsentAt ?? null);
+ 373:          setParticipant(normalizedParticipant);
+ 374:          setIsRegistered(true);
+ 375:          if (normalizedParticipant.tournamentDivisionId) {
+...
+ 379:          setParticipant(null);
+*380:          setMyRankingConsentAt(null);
+ 381:          setIsRegistered(false);
+ 382:        }
+ 383:        setRegistrationStatusPhase('ready');
+...
+ 505:
+*506:  const handleConfirmRankingConsent = async () => {
+*507:    if (isConfirmingRankingConsent || myRankingConsentAt) return;
+*508:    setIsConfirmingRankingConsent(true);
+ 509:    try {
+*510:      await tournamentsApi.confirmMyRankingConsent(id);
+*511:      setMyRankingConsentAt(new Date().toISOString());
+*512:      toast.success(registrationTranslate('rankingConsentConfirmedToast'));
+ 513:    } catch (error) {
+*514:      toast.error(getErrorMessage(error, registrationTranslate('rankingConsentFailed')));
+ 515:    } finally {
+*516:      setIsConfirmingRankingConsent(false);
+ 517:    }
+ 518:  };
+ 519:
+...
+ 563:        tournamentDivisionId: selectedDivisionId || undefined,
+*564:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 565:        customResponses: submittedCustomResponses,
+ 566:      };
+ 567:
+ 568:      const res = await tournamentsApi.register(id, cleanData);
+*569:      if (tournament?.isRanked && rankingConsent) setMyRankingConsentAt(new Date().toISOString());
+ 570:      const participantId = res?.data?.participant?.id;
+ 571:      const paymentEligible = res?.data?.paymentEligible === true;
+ 572:
+...
+ 1090:                  <div className="space-y-1">
+*1091:                    <h2 className="text-sm font-bold text-sky-950">{registrationTranslate('rankingConsentStatusTitle')}</h2>
+ 1092:                    <p className="text-xs leading-relaxed text-sky-900">
+*1093:                      {registrationTranslate('rankingConsentFutureMatchesOnly')}
+ 1094:                    </p>
+*1095:                    {!myRankingConsentAt && (
+ 1096:                      <p className="text-xs leading-relaxed text-sky-900">
+*1097:                        {registrationTranslate('rankingConsentOptionalDescription')}
+ 1098:                      </p>
+ 1099:                    )}
+ 1100:                  </div>
+
+#### components/
+##### DoublesRegistrationFlow.tsx#71EA
+ 41:  registrationFields?: RegistrationField[];
+*42:  onRegistrationChanged?: (participant?: MyRegistrationParticipant | TournamentParticipant | null, rankingConsentGiven?: boolean) => void;
+ 43:  onActiveDivisionChange?: (divisionId: string | null) => void;
+ 44:  /**
+ 45:   * true khi hạn chót hiệu lực của nội dung đang chọn đã qua. Tính ở trang
+...
+ 133:  const [inviteLater, setInviteLater] = useState(true);
+*134:  const [rankingConsent, setRankingConsent] = useState(false);
+ 135:  const [timeLeft, setTimeLeft] = useState<string>('');
+ 136:  const [isCheckingInitial, setIsCheckingInitial] = useState(true);
+ 137:  const [registrationLookupFailed, setRegistrationLookupFailed] = useState(false);
+...
+ 436:        tournamentDivisionId: divisionId,
+*437:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 438:        customResponses: submittedCustomResponses,
+ 439:      });
+ 440:
+...
+ 476:        }
+*477:        onRegistrationChanged?.(part, Boolean(tournament?.isRanked && rankingConsent));
+ 478:      }
+ 479:    } catch (err) {
+ 480:      if (isAxiosError(err) && err.response?.status === 401) {
+...
+ 880:                  type="checkbox"
+*881:                  checked={rankingConsent}
+*882:                  onChange={(event) => setRankingConsent(event.target.checked)}
+ 883:                  className="mt-1 h-4 w-4 accent-sky-600"
+ 884:                />
+ 885:                <span>
+*886:                  {registrationTranslate('rankingConsentPrefix')}
+ 887:                  <span className="mt-1 block text-xs text-slate-500">{registrationTranslate('rankedContentCondition')}</span>
+ 888:                </span>
+ 889:              </label>
+##### TeamRegistrationFlow.tsx#6474
+ 29:  isRanked?: boolean;
+*30:  rankingConsent?: boolean;
+*31:  onRankingConsentChange?: (value: boolean) => void;
+*32:  rankingConsentLabel?: string;
+*33:  rankingConsentCondition?: string;
+ 34:  customResponses?: Record<string, unknown>;
+ 35:  onCustomResponsesChange?: (updater: (current: Record<string, unknown>) => Record<string, unknown>) => void;
+ 36:  registrationFields?: RegistrationField[];
+*37:  onRegistrationChanged?: (rankingConsentGiven?: boolean) => Promise<void> | void;
+ 38:  /** Hạn chót hiệu lực của nội dung đã qua — xem DoublesRegistrationFlow. */
+ 39:  registrationExpired?: boolean;
+ 40:}
+...
+ 42:export default function TeamRegistrationFlow({
+*43:  tournamentId, inviteCode, divisionId, categoryId, currentUserId, participantId, participantTeamId, rosterLockedAt, teamSize, maxTeamSize, maxReserve = 0, registrationMode, isRanked = false, rankingConsent = false, onRankingConsentChange, rankingConsentLabel, rankingConsentCondition, customResponses, onCustomResponsesChange, registrationFields,
+ 44:  onRegistrationChanged,
+ 45:  registrationExpired = false,
+ 46:}: Props) {
+...
+ 152:        tournamentDivisionId: divisionId,
+*153:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 154:        customResponses: submittedCustomResponses,
+ 155:      });
+ 156:      const createdParticipantId = res.data?.participant?.id;
+...
+ 167:        );
+*168:        await onRegistrationChanged?.(isRanked && rankingConsent);
+ 169:        router.refresh();
+ 170:      }
+ 171:    } catch (error) { toast.error(getErrorMessage(error)); }
+...
+ 241:      )}
+*242:      {!participantId && isRanked && rankingConsentLabel && (
+ 243:        <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sm text-slate-700">
+ 244:          <input
+ 245:            type="checkbox"
+*246:            checked={rankingConsent}
+*247:            onChange={(event) => onRankingConsentChange?.(event.target.checked)}
+ 248:            className="mt-1 h-4 w-4 accent-sky-600"
+ 249:          />
+ 250:          <span>
+*251:            {rankingConsentLabel}
+*252:            {rankingConsentCondition && <span className="mt-1 block text-xs text-slate-500">{rankingConsentCondition}</span>}
+ 253:          </span>
+ 254:        </label>
+ 255:      )}
+
+### region 27 (grep, ~577 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx#7209]
+ 251:    : '';
+*252:  const selectedParticipantFee = Number(selectedParticipant?.entryFeeAtRegistration ?? 0);
+ 253:  const locale = useLocale();
+ 254:  const displayTranslate = useTranslations('TournamentDisplay');
+ 255:  const registrationTranslate = useTranslations('OrganizerRegistration');
+...
+ 311:    unpaid: participants.filter(
+*312:      (participant) => Number(participant.entryFeeAtRegistration) > 0 && !participant.isPaid,
+ 313:    ).length,
+ 314:    rejected: participants.filter((participant) => participant.teamStatus === 'REJECTED').length,
+ 315:    partnerInvite: participants.filter((participant) => Boolean(participant.teamInviteToken)).length,
+...
+ 324:        filter === 'UNPAID'
+*325:          ? Number(participant.entryFeeAtRegistration) > 0 && !participant.isPaid
+ 326:          :
+ 327:        filter === 'REJECTED' ? participant.teamStatus === 'REJECTED' :
+ 328:        true;
+...
+ 995:                        <td className="py-4 align-top text-center">
+*996:                          {Number(participant.entryFeeAtRegistration) > 0 && (
+ 997:                            <div className="inline-flex flex-col items-center justify-center gap-1">
+ 998:                              <input
+ 999:                                type="checkbox"
+...
+ 1038:                            type="checkbox"
+*1039:                            checked={Boolean(participant.isPresent)}
+ 1040:                            disabled={presenceBusyId === participant.id}
+ 1041:                            onChange={(event) =>
+ 1042:                              void handlePresenceChange(participant, event.target.checked)
+...
+ 1050:                      </tr>
+*1051:                      {participant.organizerNote?.trim() && (
+ 1052:                        <tr className="bg-slate-50/50">
+ 1053:                          <td colSpan={5} className="px-4 pb-3 pt-0">
+ 1054:                            <p className="whitespace-pre-wrap break-words rounded-md border-l-2 border-slate-300 pl-2 text-xs font-medium leading-relaxed text-slate-600">
+*1055:                              {participant.organizerNote}
+ 1056:                            </p>
+ 1057:                          </td>
+ 1058:                        </tr>
+
+### region 28 (grep, ~2589 tok)
+
+# web/src/app/(public)/
+
+## tournaments/[id]/
+
+### components/
+#### RegisterModal.tsx#06CD
+ 29:  const [partnerEmailOrPhone, setPartnerEmailOrPhone] = useState('');
+*30:  const [rankingConsent, setRankingConsent] = useState(false);
+ 31:
+ 32:  const isDoubles = matchType === 'DOUBLES' || matchType === 'MIXED_DOUBLES';
+ 33:
+...
+ 47:      const teamName = user?.fullName || translate('player');
+*48:      const payload: { teamName: string; partnerEmailOrPhone?: string; tournamentDivisionId?: string; rankingConsent?: true } = {
+ 49:        teamName,
+*50:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 51:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+ 52:      };
+ 53:      if (isDoubles && partnerEmailOrPhone.trim()) {
+...
+ 133:                  type="checkbox"
+*134:                  checked={rankingConsent}
+*135:                  onChange={(event) => setRankingConsent(event.target.checked)}
+ 136:                  className="mt-1 h-4 w-4 accent-sky-600"
+ 137:                />
+*138:                <span>{translate('rankingConsentLabel')}</span>
+ 139:              </label>
+ 140:            )}
+ 141:
+
+### register/
+#### page.tsx#C9DA
+ 179:  const [registrationStatusRetry, setRegistrationStatusRetry] = useState(0);
+*180:  const [myRankingConsentAt, setMyRankingConsentAt] = useState<string | null>(null);
+*181:  const [isConfirmingRankingConsent, setIsConfirmingRankingConsent] = useState(false);
+ 182:  const [isWithdrawing, setIsWithdrawing] = useState(false);
+ 183:
+ 184:  // Division select states
+...
+ 196:  const [isValidatingInvite, setIsValidatingInvite] = useState(false);
+*197:  const [rankingConsent, setRankingConsent] = useState(false);
+ 198:  const [customResponses, setCustomResponses] = useState<Record<string, unknown>>({});
+ 199:
+ 200:  const { register, handleSubmit } = useForm<RegisterFormValues>({
+...
+ 345:      if (!isAuthenticated) {
+*346:        setMyRankingConsentAt(null);
+ 347:        setParticipant(null);
+ 348:        setIsRegistered(false);
+ 349:        setRegistrationStatusPhase('ready');
+...
+ 371:        if (regRes.data?.registered && normalizedParticipant) {
+*372:          setMyRankingConsentAt(regRes.data.myRankingConsentAt ?? null);
+ 373:          setParticipant(normalizedParticipant);
+ 374:          setIsRegistered(true);
+ 375:          if (normalizedParticipant.tournamentDivisionId) {
+...
+ 379:          setParticipant(null);
+*380:          setMyRankingConsentAt(null);
+ 381:          setIsRegistered(false);
+ 382:        }
+ 383:        setRegistrationStatusPhase('ready');
+...
+ 505:
+*506:  const handleConfirmRankingConsent = async () => {
+*507:    if (isConfirmingRankingConsent || myRankingConsentAt) return;
+*508:    setIsConfirmingRankingConsent(true);
+ 509:    try {
+*510:      await tournamentsApi.confirmMyRankingConsent(id);
+*511:      setMyRankingConsentAt(new Date().toISOString());
+*512:      toast.success(registrationTranslate('rankingConsentConfirmedToast'));
+ 513:    } catch (error) {
+*514:      toast.error(getErrorMessage(error, registrationTranslate('rankingConsentFailed')));
+ 515:    } finally {
+*516:      setIsConfirmingRankingConsent(false);
+ 517:    }
+ 518:  };
+ 519:
+...
+ 563:        tournamentDivisionId: selectedDivisionId || undefined,
+*564:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 565:        customResponses: submittedCustomResponses,
+ 566:      };
+ 567:
+ 568:      const res = await tournamentsApi.register(id, cleanData);
+*569:      if (tournament?.isRanked && rankingConsent) setMyRankingConsentAt(new Date().toISOString());
+ 570:      const participantId = res?.data?.participant?.id;
+ 571:      const paymentEligible = res?.data?.paymentEligible === true;
+ 572:
+...
+ 1090:                  <div className="space-y-1">
+*1091:                    <h2 className="text-sm font-bold text-sky-950">{registrationTranslate('rankingConsentStatusTitle')}</h2>
+ 1092:                    <p className="text-xs leading-relaxed text-sky-900">
+*1093:                      {registrationTranslate('rankingConsentFutureMatchesOnly')}
+ 1094:                    </p>
+*1095:                    {!myRankingConsentAt && (
+ 1096:                      <p className="text-xs leading-relaxed text-sky-900">
+*1097:                        {registrationTranslate('rankingConsentOptionalDescription')}
+ 1098:                      </p>
+ 1099:                    )}
+ 1100:                  </div>
+
+#### components/
+##### DoublesRegistrationFlow.tsx#71EA
+ 41:  registrationFields?: RegistrationField[];
+*42:  onRegistrationChanged?: (participant?: MyRegistrationParticipant | TournamentParticipant | null, rankingConsentGiven?: boolean) => void;
+ 43:  onActiveDivisionChange?: (divisionId: string | null) => void;
+ 44:  /**
+ 45:   * true khi hạn chót hiệu lực của nội dung đang chọn đã qua. Tính ở trang
+...
+ 133:  const [inviteLater, setInviteLater] = useState(true);
+*134:  const [rankingConsent, setRankingConsent] = useState(false);
+ 135:  const [timeLeft, setTimeLeft] = useState<string>('');
+ 136:  const [isCheckingInitial, setIsCheckingInitial] = useState(true);
+ 137:  const [registrationLookupFailed, setRegistrationLookupFailed] = useState(false);
+...
+ 436:        tournamentDivisionId: divisionId,
+*437:        ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 438:        customResponses: submittedCustomResponses,
+ 439:      });
+ 440:
+...
+ 476:        }
+*477:        onRegistrationChanged?.(part, Boolean(tournament?.isRanked && rankingConsent));
+ 478:      }
+ 479:    } catch (err) {
+ 480:      if (isAxiosError(err) && err.response?.status === 401) {
+...
+ 880:                  type="checkbox"
+*881:                  checked={rankingConsent}
+*882:                  onChange={(event) => setRankingConsent(event.target.checked)}
+ 883:                  className="mt-1 h-4 w-4 accent-sky-600"
+ 884:                />
+ 885:                <span>
+*886:                  {registrationTranslate('rankingConsentPrefix')}
+ 887:                  <span className="mt-1 block text-xs text-slate-500">{registrationTranslate('rankedContentCondition')}</span>
+ 888:                </span>
+ 889:              </label>
+##### TeamRegistrationFlow.tsx#6474
+ 29:  isRanked?: boolean;
+*30:  rankingConsent?: boolean;
+*31:  onRankingConsentChange?: (value: boolean) => void;
+*32:  rankingConsentLabel?: string;
+*33:  rankingConsentCondition?: string;
+ 34:  customResponses?: Record<string, unknown>;
+ 35:  onCustomResponsesChange?: (updater: (current: Record<string, unknown>) => Record<string, unknown>) => void;
+ 36:  registrationFields?: RegistrationField[];
+*37:  onRegistrationChanged?: (rankingConsentGiven?: boolean) => Promise<void> | void;
+ 38:  /** Hạn chót hiệu lực của nội dung đã qua — xem DoublesRegistrationFlow. */
+ 39:  registrationExpired?: boolean;
+ 40:}
+...
+ 42:export default function TeamRegistrationFlow({
+*43:  tournamentId, inviteCode, divisionId, categoryId, currentUserId, participantId, participantTeamId, rosterLockedAt, teamSize, maxTeamSize, maxReserve = 0, registrationMode, isRanked = false, rankingConsent = false, onRankingConsentChange, rankingConsentLabel, rankingConsentCondition, customResponses, onCustomResponsesChange, registrationFields,
+ 44:  onRegistrationChanged,
+ 45:  registrationExpired = false,
+ 46:}: Props) {
+...
+ 152:        tournamentDivisionId: divisionId,
+*153:        ...(isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 154:        customResponses: submittedCustomResponses,
+ 155:      });
+ 156:      const createdParticipantId = res.data?.participant?.id;
+...
+ 167:        );
+*168:        await onRegistrationChanged?.(isRanked && rankingConsent);
+ 169:        router.refresh();
+ 170:      }
+ 171:    } catch (error) { toast.error(getErrorMessage(error)); }
+...
+ 241:      )}
+*242:      {!participantId && isRanked && rankingConsentLabel && (
+ 243:        <label className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sm text-slate-700">
+ 244:          <input
+ 245:            type="checkbox"
+*246:            checked={rankingConsent}
+*247:            onChange={(event) => onRankingConsentChange?.(event.target.checked)}
+ 248:            className="mt-1 h-4 w-4 accent-sky-600"
+ 249:          />
+ 250:          <span>
+*251:            {rankingConsentLabel}
+*252:            {rankingConsentCondition && <span className="mt-1 block text-xs text-slate-500">{rankingConsentCondition}</span>}
+ 253:          </span>
+ 254:        </label>
+ 255:      )}
+
+## communities/[id]/components/
+### CommunityTournamentRosterWidget.tsx#31E0
+ 78:  const [isJoining, setIsJoining] = useState<boolean>(false);
+*79:  const [rankingConsent, setRankingConsent] = useState(false);
+ 80:  const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false);
+ 81:  const [currentPage, setCurrentPage] = useState<number>(1);
+ 82:  const [selectedUserToWithdraw, setSelectedUserToWithdraw] = useState<TournamentParticipant | null>(null);
+...
+ 278:          tournamentDivisionId: selectedDivisionId || undefined,
+*279:          ...(tournament?.isRanked && rankingConsent ? { rankingConsent: true } : {}),
+ 280:        });
+ 281:      }
+ 282:      toast.success(isVi ? 'Đã xác nhận tham gia giải đấu!' : 'Joined tournament successfully!');
+*283:      if (effectiveInviteCode && tournament?.isRanked && rankingConsent) {
+ 284:        try {
+*285:          await tournamentsApi.confirmMyRankingConsent(tournamentId);
+*286:          toast.success(registrationTranslate('rankingConsentConfirmedToast'));
+ 287:        } catch (consentError) {
+*288:          toast.error(getErrorMessage(consentError, registrationTranslate('rankingConsentFailed')));
+ 289:        }
+ 290:      }
+ 291:      await fetchTournamentAndParticipants();
+...
+ 460:              type="checkbox"
+*461:              checked={rankingConsent}
+ 462:              disabled={isJoining}
+*463:              onChange={(event) => setRankingConsent(event.target.checked)}
+ 464:              className="mt-1 h-4 w-4 accent-sky-600"
+ 465:            />
+ 466:            <span>
+*467:              {registrationTranslate('rankingConsentPrefix')}
+ 468:              <span className="mt-1 block text-xs text-slate-500">
+ 469:                {registrationTranslate('rankedContentCondition')}
+ 470:              </span>
+
+### region 29 (grep, ~581 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#BA9C]
+ 115:
+*116:  it('retries a send that never landed, anchoring on the join time', async () => {
+ 117:    // The reason notifiedAt NULL rows stay in scope: one mail outage must not
+ 118:    // permanently silence the reminders, or the player never learns their
+ 119:    // matches will go unscored.
+...
+ 127:
+*128:  it('waits when the first reminder is not due yet', async () => {
+ 129:    const { service, mailService } = build([
+ 130:      { id: 'r1', attempts: 0, consentNotifiedAt: null, joinedAt: hoursAgo(10) },
+ 131:    ]);
+...
+ 136:
+*137:  it('sends the first reminder 24h after the send at add time', async () => {
+ 138:    // attempts === 1 means exactly one send landed — the one at add time — so the
+ 139:    // first reminder is due 24h after THAT send, not 72h.
+ 140:    const { service, mailService } = build([
+...
+ 152:
+*153:  it('waits before the second reminder', async () => {
+ 154:    // Two sends landed, so the 72h delay runs from the second one.
+ 155:    const { service, mailService } = build([
+ 156:      {
+...
+ 167:
+*168:  it('sends the second reminder once 72h have passed', async () => {
+ 169:    const { service, mailService } = build([
+ 170:      {
+ 171:        id: 'r1',
+...
+ 181:
+*182:  it('stops at the notification cap so nobody is nagged forever', async () => {
+ 183:    const { service, mailService } = build([
+ 184:      {
+ 185:        id: 'r1',
+...
+ 195:
+*196:  it('does not count a failed send as a delivered one', async () => {
+ 197:    const { service } = build(
+ 198:      [{ id: 'r1', attempts: 0, consentNotifiedAt: null, joinedAt: hoursAgo(25) }],
+ 199:      false,
+...
+ 220:
+*221:  it('escapes user-controlled names in the email body', async () => {
+ 222:    const { service, mailService } = build(
+ 223:      [],
+ 224:      true,
+...
+ 238:
+*239:  it('rejects unsafe frontend URL schemes before sending', async () => {
+ 240:    const previousFrontendUrl = process.env.FRONTEND_URL;
+ 241:    process.env.FRONTEND_URL = 'javascript:alert(1)';
+ 242:    try {
+...
+ 255:  });
+*256:  it('serializes simultaneous reminder runs before sending', async () => {
+ 257:    let attempts = 1;
+ 258:    let notifiedAt: Date | null = hoursAgo(30);
+ 259:    let transactionTail: Promise<void> = Promise.resolve();
+
+### region 30 (grep, ~334 tok)
+
+[backend/src/modules/rankings/recalculate-elo-consent.spec.ts#6CF1]
+ 116:
+*117:  it('never deletes elo history when a player never consented', async () => {
+ 118:    const { tx, deletes } = createTx({
+ 119:      matches: [matchRow()],
+ 120:      rosterRows: [
+...
+ 130:
+*131:  it('never deletes elo history when consent came after the match completed', async () => {
+ 132:    // V7: the confirmation instant decides the boundary, so a match finished an
+ 133:    // hour before consent stays permanently unscored.
+ 134:    const { tx, deletes } = createTx({
+...
+ 146:
+*147:  it('never deletes elo history when a participant carries no roster row', async () => {
+ 148:    // An Excel-imported entrant with no account cannot confirm; `[].every()` style
+ 149:    // logic would treat "no rows" as "all good" and score them.
+ 150:    const { tx, deletes } = createTx({
+...
+ 159:
+*160:  it('never deletes history for an unranked tournament', async () => {
+ 161:    const consent = new Date('2026-05-01T00:00:00Z');
+ 162:    const { tx, deletes } = createTx({
+ 163:      matches: [matchRow(false)],
+...
+ 172:
+*173:  it('never deletes history when either side still has a guest roster slot', async () => {
+ 174:    const consent = new Date('2026-05-01T00:00:00Z');
+ 175:    const { tx, deletes } = createTx({
+ 176:      matches: [matchRow()],
+
+### region 31 (grep, ~1649 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.spec.ts#571D]
+ 123:describe('TournamentCapacityService division capacity', () => {
+*124:  it('reports one unpaired doubles member as half a team', async () => {
+ 125:    const db = createDb({
+ 126:      divisions: [
+ 127:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 146:
+*147:  it('keeps four unpaired doubles members at half capacity', async () => {
+ 148:    const db = createDb({
+ 149:      divisions: [
+ 150:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 165:
+*166:  it('reserves seats for both pending approval and pending partner members', async () => {
+ 167:    const db = createDb({
+ 168:      divisions: [
+ 169:        { id: 'division-1', matchType: 'MIXED_DOUBLES', maxParticipants: 4 },
+...
+ 218:
+*219:  it('reports eight active doubles members as full', async () => {
+ 220:    const db = createDb({
+ 221:      divisions: [
+ 222:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 237:
+*238:  it('counts guest roster slots when reserving doubles capacity', async () => {
+ 239:    const db = createDb({
+ 240:      divisions: [
+ 241:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 1 },
+...
+ 261:
+*262:  it('counts an import-only doubles pair with no linked accounts as one team', async () => {
+ 263:    const db = createDb({
+ 264:      divisions: [
+ 265:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 282:
+*283:  it('tops an import up to the full pair when only the first account is linked', async () => {
+ 284:    const db = createDb({
+ 285:      divisions: [
+ 286:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 302:
+*303:  it('still counts the full pair when form answers sit beside the import metadata', async () => {
+ 304:    // The importer merges validated metadata over the caller's form answers, so
+ 305:    // a real imported row carries both. Neither contact has a linked account,
+ 306:    // so the roster is empty and only the metadata can hold the team.
+...
+ 331:
+*332:  it('does not let a self-registration form answer inflate a lone leader', async () => {
+ 333:    const db = createDb({
+ 334:      divisions: [
+ 335:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 351:
+*352:  it('keeps a football squad on whole-team units even though it is DOUBLES', async () => {
+ 353:    const db = createDb({
+ 354:      divisions: [
+ 355:        {
+...
+ 377:
+*378:  it('keeps the Lite doubles branch on the same roster-weighted units', async () => {
+ 379:    const db = createDb({
+ 380:      divisions: [
+ 381:        {
+...
+ 403:
+*404:  it('keeps singles occupancy in whole team units', async () => {
+ 405:    const db = createDb({
+ 406:      divisions: [
+ 407:        { id: 'division-1', matchType: 'SINGLES', maxParticipants: 4 },
+...
+ 430:
+*431:  it('does not treat an uncapped division as full', async () => {
+ 432:    const db = createDb({
+ 433:      divisions: [
+ 434:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: null },
+...
+ 449:
+*450:  it('returns an empty snapshot for a missing division', async () => {
+ 451:    const capacity = await service(createDb({})).getDivisionCapacity('missing');
+ 452:
+ 453:    expect(capacity).toEqual({
+...
+ 460:
+*461:  it('exposes the same occupancy helper as the pure policy', () => {
+ 462:    expect(typeof service(createDb({})).getTournamentCapacity).toBe(
+ 463:      'function',
+ 464:    );
+...
+ 468:describe('batched capacity reads', () => {
+*469:  it('reads every division in one aggregate pass', async () => {
+ 470:    const db = createDb({
+ 471:      divisions: [
+ 472:        { id: 'division-1', matchType: 'DOUBLES', maxParticipants: 4 },
+...
+ 499:
+*500:  it('reads a page of tournaments in one aggregate pass', async () => {
+ 501:    const db = createDb({
+ 502:      tournaments: [
+ 503:        {
+...
+ 538:describe('effective division capacity projections', () => {
+*539:  it('inherits the parent limit and parent-wide occupancy when local cap is absent', async () => {
+ 540:    const db = createDb({
+ 541:      divisions: [
+ 542:        {
+...
+ 599:describe('lockCapacityOwner', () => {
+*600:  it('locks the tournament row before the division row', async () => {
+ 601:    const lockedScopes: string[] = [];
+ 602:    const db = createDb({});
+ 603:    const rawSelect = (db as unknown as { select: jest.Mock }).select;
+...
+ 626:
+*627:  it('locks only the tournament row when no division owns the limit', async () => {
+ 628:    const lockedScopes: string[] = [];
+ 629:    const db = createDb({});
+ 630:    (db as unknown as { select: jest.Mock }).select.mockImplementation(
+...
+ 649:describe('assertDivisionHasRoom capacity-unit awareness', () => {
+*650:  it('charges nothing when a claim adds no athlete to the division', () => {
+ 651:    expect(() =>
+ 652:      assertDivisionHasRoom(
+ 653:        { occupiedTeamSlots: 4, maxTeamSlots: 4, isFull: true },
+...
+ 660:
+*661:  it('still charges a new football registration one whole team', () => {
+ 662:    expect(() =>
+ 663:      assertDivisionHasRoom(
+ 664:        { occupiedTeamSlots: 4, maxTeamSlots: 4, isFull: true },
+...
+ 680:
+*681:  it('weighs every tournament participant by the format of its own division', async () => {
+ 682:    const db = createDb({
+ 683:      tournaments: [DOUBLES_TOURNAMENT],
+ 684:      divisions: [
+...
+ 716:
+*717:  it('weighs a participant with no division by the tournament format', async () => {
+ 718:    const db = createDb({
+ 719:      tournaments: [{ ...DOUBLES_TOURNAMENT, maxParticipants: 4 }],
+ 720:      divisions: [
+...
+ 747:
+*748:  it('charges a new claim by the division format the claimer picked', async () => {
+ 749:    const db = createDb({
+ 750:      tournaments: [DOUBLES_TOURNAMENT],
+ 751:      divisions: [
+...
+ 785:describe('readEffectiveCapacity', () => {
+*786:  it('keeps the division limit when the division sets one', async () => {
+ 787:    // The division caps itself below the tournament, so its own limit decides
+ 788:    // and the tournament row is never even read.
+ 789:    const db = createDb({
+...
+ 826:
+*827:  it('falls back to the tournament limit with tournament-wide occupancy', async () => {
+ 828:    const db = createDb({
+ 829:      divisions: [
+ 830:        {
+...
+ 874:
+*875:  it('leaves the division uncapped when neither scope sets a limit', async () => {
+ 876:    const db = createDb({
+ 877:      divisions: [
+ 878:        {
+
+Skipped missing paths: backend/src/modules/tournaments/tournament-registration-consent-optional.spec.ts
+
+### region 32 (grep, ~780 tok)
+
+[backend/src/modules/rankings/ranking-consent-gate.spec.ts#4A21]
+ 90:
+*91:  it('allows a match completed after every roster user confirmed', async () => {
+ 92:    const { service } = buildService([
+ 93:      consented(P1, '2026-05-01T09:00:00Z'),
+ 94:      consented(P2, '2026-05-01T09:30:00Z'),
+...
+ 99:
+*100:  it('rejects a match completed BEFORE the player confirmed (the V7 rule)', async () => {
+ 101:    // Consent at 11:00, match finished at 10:00. Counting it would let an
+ 102:    // organizer force-enrol someone and have old results land against them.
+ 103:    const { service } = buildService([
+...
+ 110:
+*111:  it('rejects when one user on a shared participant never confirmed', async () => {
+ 112:    // A doubles team carries several users on one participant. If consent were
+ 113:    // read off the participant, one confirmation would hand every team-mate their
+ 114:    // score — this is the hole that per-user consent exists to close.
+...
+ 123:
+*124:  it('rejects a participant that carries no roster row at all', async () => {
+ 125:    // Excel-imported entrant with no account: nobody can ever confirm, so nothing
+ 126:    // about it is scorable. An empty row set must not slip through as "all good".
+ 127:    const { service } = buildService([consented(P1)]);
+...
+ 131:
+*132:  it('rejects a match with no completion time to compare against', async () => {
+ 133:    const { service } = buildService(
+ 134:      [consented(P1), consented(P2)],
+ 135:      { completedAt: null },
+...
+ 140:
+*141:  it('scores a REMOVED roster row exactly as the ELO award does', async () => {
+ 142:    // processMatchResult reads roster rows by participantId with no status filter,
+ 143:    // so a REMOVED row still receives a delta. The gate must not be stricter than
+ 144:    // the thing it guards, or that participant's ELO silently stops.
+...
+ 153:
+*154:  it('skips the football ELO path entirely when consent is missing', async () => {
+ 155:    // The football branch writes its own ELO and returns early, so a gate placed
+ 156:    // after it would silently never run for football matches.
+ 157:    const { service, football } = buildService([], { withFootball: true });
+...
+ 164:
+*165:  it('does not throw when consent is missing, so the row is not retried forever', async () => {
+ 166:    // elo-outbox.processor.ts marks a row PROCESSED only when the call returns
+ 167:    // without throwing; throwing would spin the retry/backoff loop indefinitely.
+ 168:    const { service } = buildService([]);
+...
+ 173:  });
+*174:  it('rejects ranked ELO for a non-ranked tournament', async () => {
+ 175:    const { service } = buildService(
+ 176:      [consented(P1), consented(P2)],
+ 177:      { isRanked: false },
+...
+ 182:
+*183:  it('rejects matches with an empty side', async () => {
+ 184:    const { service } = buildService([consented(P1)], {
+ 185:      participant2Id: null,
+ 186:    });
+...
+ 190:
+*191:  it('rejects a participant with an unclaimed guest roster slot', async () => {
+ 192:    const { service } = buildService(
+ 193:      [consented(P1), consented(P2)],
+ 194:      { guestParticipantIds: [P1] },
+
+### region 33 (read, ~867 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#4041]
+42:@Injectable()
+43:export class RankingConsentService {
+…
+197:  private async dispatch(
+…
+200:  ): Promise<boolean> {
+…
+203:    try {
+…
+301:    } catch {
+…
+304:    }
+305:  }
+306:
+307:  private buildHtml(args: {
+308:    participantName: string | null;
+309:    tournamentName: string;
+310:    link: string;
+311:    isReminder: boolean;
+312:  }): string {
+313:    const heading = args.isReminder
+314:      ? 'Bạn chưa xác nhận tham gia'
+315:      : 'Bạn được thêm vào một giải đấu';
+316:    return `
+317:      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 560px;">
+318:        <div style="background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;">
+319:          <h1 style="color: #ffffff; font-size: 18px; margin: 0;">${heading}</h1>
+320:        </div>
+321:        <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+322:          <p style="font-size: 14px; color: #0f172a; margin: 0 0 16px;">
+323:            Xin chào ${escapeHtml(args.participantName ?? 'bạn')},
+324:          </p>
+325:          <p style="font-size: 14px; color: #334155; margin: 0 0 16px;">
+326:            Ban tổ chức đã thêm bạn vào giải
+327:            <strong>${escapeHtml(args.tournamentName)}</strong>.
+328:          </p>
+329:          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;">
+330:            <p style="font-size: 14px; color: #78350f; margin: 0;">
+331:              Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+332:              <br />
+333:              Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+334:              tính — các trận đã đấu trước đó không tính.
+335:            </p>
+336:          </div>
+337:          <a href="${escapeHtml(args.link)}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+338:            Đăng nhập để xác nhận
+339:          </a>
+340:          <p style="font-size: 13px; color: #64748b; margin: 20px 0 0;">
+341:            Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+342:          </p>
+343:        </div>
+344:      </div>
+345:    `;
+346:  }
+347:
+348:  private buildGuestClaimHtml(args: {
+349:    displayName: string;
+350:    tournamentName: string;
+351:    link: string;
+352:  }): string {
+353:    return `
+354:      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 560px;">
+355:        <p>Xin chào ${escapeHtml(args.displayName)},</p>
+356:        <p>Ban tổ chức đã ghi danh bạn vào giải <strong>${escapeHtml(args.tournamentName)}</strong>.</p>
+357:        <p>Đăng nhập bằng email này để nhận suất tham gia:</p>
+358:        <a href="${escapeHtml(args.link)}">Nhận suất tham gia</a>
+359:      </div>
+360:    `;
+361:  }
+362:}
+363:
+364:const HTML_ESCAPE_MAP: Record<string, string> = {
+365:  '&': '&amp;',
+366:  '<': '&lt;',
+367:  '>': '&gt;',
+368:  '"': '&quot;',
+369:  "'": '&#39;',
+370:};
+371:
+372:function escapeHtml(value: string): string {
+373:  return value.replace(/[&<>"']/g, (character) => HTML_ESCAPE_MAP[character]);
+374:}
+
+### region 34 (read, ~1344 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#4041]
+177:  private isReminderDue(row: ConsentScheduleRow, now: Date): boolean {
+…
+179:    const anchor = row.consentNotifiedAt ?? row.joinedAt;
+180:    if (!anchor) return false;
+181:    const delayHours =
+182:      CONSENT_REMINDER_DELAYS_HOURS[
+183:        Math.min(
+184:          Math.max(row.attempts - 1, 0),
+185:          CONSENT_REMINDER_DELAYS_HOURS.length - 1,
+186:        )
+187:      ];
+188:    return now.getTime() - new Date(anchor).getTime() >= delayHours * 3_600_000;
+189:  }
+190:
+191:  /**
+192:   * Gửi 1 mail và ghi nhận số lần đã gửi.
+193:   *
+194:   * Chỉ tăng bộ đếm khi gửi THÀNH CÔNG — nếu không, một hệ thống mail hỏng sẽ đốt
+195:   * hết 3 lượt nhắc rồi im lặng, biến "chưa gửi được" thành "đã bỏ qua".
+196:   */
+197:  private async dispatch(
+198:    rosterId: string,
+199:    kind: ConsentDispatchKind,
+200:  ): Promise<boolean> {
+201:    if (!this.mailService) return false;
+202:
+203:    try {
+204:      return await this.db.transaction(async (tx) => {
+205:        const [row] = await tx
+206:          .select({
+207:            userEmail: schema.users.email,
+208:            userEmailVerified: schema.users.isEmailVerified,
+209:            userDeletedAt: schema.users.deletedAt,
+210:            participantName: schema.tournamentParticipants.teamName,
+211:            participantStatus: schema.tournamentParticipants.teamStatus,
+212:            tournamentName: schema.tournaments.name,
+213:            tournamentId: schema.tournaments.id,
+214:            tournamentStatus: schema.tournaments.status,
+215:            tournamentEndDate: schema.tournaments.endDate,
+216:            tournamentDeletedAt: schema.tournaments.deletedAt,
+217:            isRanked: schema.tournaments.isRanked,
+218:            attempts: schema.tournamentRosters.consentNotifiedCount,
+219:            consentNotifiedAt: schema.tournamentRosters.consentNotifiedAt,
+220:            consentedAt: schema.tournamentRosters.rankingConsentAt,
+221:            joinedAt: schema.tournamentRosters.joinedAt,
+222:            rosterStatus: schema.tournamentRosters.status,
+223:          })
+224:          .from(schema.tournamentRosters)
+225:          .innerJoin(
+226:            schema.users,
+227:            eq(schema.users.id, schema.tournamentRosters.userId),
+228:          )
+229:          .innerJoin(
+230:            schema.tournamentParticipants,
+231:            eq(
+232:              schema.tournamentParticipants.id,
+233:              schema.tournamentRosters.participantId,
+234:            ),
+235:          )
+236:          .innerJoin(
+237:            schema.tournaments,
+238:            eq(
+239:              schema.tournaments.id,
+240:              schema.tournamentParticipants.tournamentId,
+241:            ),
+242:          )
+243:          .where(eq(schema.tournamentRosters.id, rosterId))
+244:          .for('update')
+245:          .limit(1);
+246:
+247:        const now = new Date();
+248:        if (
+249:          !row ||
+250:          !row.userEmail ||
+251:          !row.userEmailVerified ||
+252:          row.userDeletedAt ||
+253:          !row.isRanked ||
+254:          row.consentedAt ||
+255:          row.rosterStatus !== 'ACTIVE' ||
+256:          !CAPACITY_RESERVING_TEAM_STATUSES.some(
+257:            (status) => status === row.participantStatus,
+258:          ) ||
+259:          row.tournamentDeletedAt ||
+260:          FINAL_TOURNAMENT_STATUSES[row.tournamentStatus] ||
+261:          (row.tournamentEndDate && row.tournamentEndDate <= now) ||
+262:          row.attempts >= CONSENT_MAX_NOTIFICATIONS ||
+263:          (kind === 'INITIAL' && row.attempts !== 0) ||
+264:          (kind === 'REMINDER' && !this.isReminderDue(row, now))
+265:        ) {
+266:          return false;
+267:        }
+268:
+269:        const link = this.buildFrontendLink(
+270:          `/tournaments/${encodeURIComponent(row.tournamentId)}`,
+271:        );
+272:        if (!link) return false;
+273:        const isReminder = kind === 'REMINDER';
+274:        const subject = isReminder
+275:          ? 'Nhắc xác nhận tham gia giải đấu'
+276:          : 'Xác nhận tham gia giải đấu';
+277:        const tournamentName = row.tournamentName
+278:          .replace(/[\r\n]+/g, ' ')
+279:          .trim();
+280:        const sent = await this.mailService.sendMail(
+281:          row.userEmail,
+282:          `[Sporto] ${subject}: ${tournamentName}`,
+283:          this.buildHtml({
+284:            participantName: row.participantName,
+285:            tournamentName,
+286:            link,
+287:            isReminder,
+288:          }),
+289:        );
+290:        if (!sent) return false;
+291:
+292:        await tx
+293:          .update(schema.tournamentRosters)
+294:          .set({
+295:            consentNotifiedAt: now,
+296:            consentNotifiedCount: row.attempts + 1,
+297:          })
+298:          .where(eq(schema.tournamentRosters.id, rosterId));
+299:        return true;
+300:      });
+301:    } catch {
+302:      this.logger.warn(`Gửi mail xác nhận thất bại cho roster ${rosterId}.`);
+303:      return false;
+304:    }
+305:  }
+306:
+307:  private buildHtml(args: {
+308:    participantName: string | null;
+309:    tournamentName: string;
+…
+312:  }): string {
+…
+346:  }
+
+[Showing lines 179-309 of 374. Use :310 to continue]
+
+### region 35 (grep, ~228 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#D394]
+ 41:import { AddAthleteCandidatesDto } from './dto/add-athlete-candidates.dto';
+*42:import { AddAthletesDto } from './dto/add-athletes.dto';
+ 43:import { ClaimGuestRosterDto } from './dto/claim-guest-roster.dto';
+ 44:import { UploadGalleryDto } from './dto/gallery.dto';
+ 45:import { CreateParentTournamentDto } from './dto/create-parent-tournament.dto';
+...
+ 1547:
+*1548:  @Get(':id/add-athletes/candidates')
+ 1549:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+ 1550:  @Verified()
+ 1551:  @ApiBearerAuth()
+...
+ 1565:
+*1566:  @Post(':id/add-athletes')
+ 1567:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+ 1568:  @Verified()
+ 1569:  @ApiBearerAuth()
+...
+ 1583:
+*1584:  @Post(':id/guest-rosters/:guestId/claim')
+ 1585:  @Verified()
+ 1586:  @ApiBearerAuth()
+ 1587:  @ApiOperation({ summary: 'Nhận suất khách mời bằng mã dùng một lần' })
+
+### region 36 (grep, ~489 tok)
+
+# backend/src/database/
+
+## schema/
+### tournaments.schema.ts#29A1
+ 265:  // force-enrolled and then have old results land against them.
+*266:  rankingConsentAt: timestamp('ranking_consent_at', { withTimezone: true }),
+ 267:  joinedAt: timestamp('joined_at', { withTimezone: true })
+ 268:    .defaultNow()
+ 269:    .notNull(),
+...
+ 281:export const tournamentGuestRosters = pgTable(
+*282:  'tournament_guest_rosters',
+ 283:  {
+ 284:    id: uuid('id').primaryKey().defaultRandom(),
+ 285:    participantId: uuid('participant_id')
+...
+ 291:    contactPhone: varchar('contact_phone', { length: 30 }),
+*292:    claimTokenHash: varchar('claim_token_hash', { length: 64 }).notNull(),
+*293:    claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true })
+ 294:      .notNull(),
+ 295:    createdAt: timestamp('created_at', { withTimezone: true })
+ 296:      .defaultNow()
+...
+ 299:  (table) => ({
+*300:    idxGuestRostersParticipant: index('tournament_guest_rosters_participant_idx').on(
+ 301:      table.participantId,
+ 302:    ),
+ 303:    idxGuestRostersClaimHash: uniqueIndex(
+*304:      'tournament_guest_rosters_claim_hash_unique_idx',
+ 305:    ).on(table.claimTokenHash),
+ 306:  }),
+ 307:);
+
+## migrations/
+### 2026-10-05_tournament_guest_roster_claims.sql#B942
+ 5:
+*6:CREATE TABLE IF NOT EXISTS tournament_guest_rosters (
+ 7:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ 8:  participant_id uuid NOT NULL
+ 9:    REFERENCES tournament_participants(id) ON DELETE CASCADE,
+...
+ 13:  contact_phone varchar(30),
+*14:  claim_token_hash varchar(64) NOT NULL,
+*15:  claim_expires_at timestamptz NOT NULL,
+ 16:  created_at timestamptz NOT NULL DEFAULT now()
+ 17:);
+ 18:
+*19:CREATE INDEX IF NOT EXISTS tournament_guest_rosters_participant_idx
+*20:  ON tournament_guest_rosters (participant_id);
+ 21:
+*22:CREATE UNIQUE INDEX IF NOT EXISTS tournament_guest_rosters_claim_hash_unique_idx
+*23:  ON tournament_guest_rosters (claim_token_hash);
+ 24:
+ 25:COMMIT;
+
+### region 37 (grep, ~1026 tok)
+
+# backend/src/modules/
+
+## tournaments/
+### tournaments-lite-pairing.spec.ts#3CF6
+ 631:          teamName: 'Thành viên CLB',
+*632:          rankingConsent: false,
+ 633:        },
+ 634:        undefined,
+ 635:        'moderator-1',
+
+### repositories/
+#### tournament-participant.repository.ts#A8E3
+ 131:      .update(schema.tournamentRosters)
+*132:      .set({ rankingConsentAt: new Date() })
+ 133:      .where(
+ 134:        and(
+ 135:          eq(schema.tournamentRosters.participantId, participant.id),
+...
+ 141:        participantId: schema.tournamentRosters.participantId,
+*142:        rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+ 143:      });
+ 144:
+ 145:    if (updated) {
+...
+ 159:        participantId: schema.tournamentRosters.participantId,
+*160:        rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+ 161:      })
+ 162:      .from(schema.tournamentRosters)
+ 163:      .where(
+#### tournament-registration.repository.ts#DE49
+ 1039:          // ELO eligibility uses each roster user's consent timestamp below.
+*1040:          rankingConsent: data.rankingConsent === true,
+ 1041:          customResponses: registrationResponses,
+ 1042:          isPaid,
+ 1043:          entryFeeAtRegistration: payableEntryFeeAmount.toFixed(2),
+...
+ 1110:          .update(schema.tournamentRosters)
+*1111:          .set({ rankingConsentAt: new Date() })
+ 1112:          .where(
+ 1113:            and(
+ 1114:              eq(schema.tournamentRosters.participantId, participant.id),
+
+### services/
+#### tournament-lite.service.ts#9260
+ 1431:        teamName: profile.fullName.trim(),
+*1432:        rankingConsent: false,
+ 1433:        ...(divisionId ? { tournamentDivisionId: divisionId } : {}),
+ 1434:      },
+ 1435:      undefined,
+#### tournament-participant-admin.service.spec.ts#5ABF
+ 762:      teamStatus: 'COMPLETE',
+*763:      rankingConsent: false,
+ 764:      organizerNote: 'Late addition',
+ 765:      isPresent: false,
+ 766:      isPaid: false,
+#### tournament-participant-admin.service.ts#4877
+ 302:          teamStatus: 'COMPLETE',
+*303:          rankingConsent: false,
+ 304:          organizerNote: dto.organizerNote?.trim() || null,
+ 305:          isPaid: entryFee === 0,
+ 306:          isPresent: false,
+
+## rankings/
+### ranking-consent-gate.spec.ts#4A21
+ 87:    participantId,
+*88:    rankingConsentAt: at(iso),
+ 89:  });
+ 90:
+ 91:  it('allows a match completed after every roster user confirmed', async () => {
+...
+ 116:      consented(P1),
+*117:      { participantId: P1, rankingConsentAt: null },
+ 118:      consented(P2),
+ 119:    ]);
+ 120:
+### rankings.service.ts#E43A
+ 2080:          userId: schema.tournamentRosters.userId,
+*2081:          rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+ 2082:        })
+ 2083:        .from(schema.tournamentRosters)
+ 2084:        .where(eq(schema.tournamentRosters.participantId, winnerParticipantId));
+...
+ 2089:          userId: schema.tournamentRosters.userId,
+*2090:          rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+ 2091:        })
+ 2092:        .from(schema.tournamentRosters)
+ 2093:        .where(eq(schema.tournamentRosters.participantId, loserParticipantId));
+...
+ 2096:      // lookup per match would turn a batch recalculation into 2N round-trips.
+*2097:      // Same rule as hasEligibleRankingConsent: EVERY user must have confirmed
+ 2098:      // before the match completed, otherwise the delete + reinsert further down
+ 2099:      // writes elo_history_logs for players who never agreed — which is exactly
+ 2100:      // how this function used to void the enqueue and apply gates.
+...
+ 2346:        participantId: schema.tournamentRosters.participantId,
+*2347:        rankingConsentAt: schema.tournamentRosters.rankingConsentAt,
+ 2348:      })
+ 2349:      .from(schema.tournamentRosters)
+ 2350:      .where(inArray(schema.tournamentRosters.participantId, participantIds));
+### recalculate-elo-consent.spec.ts#6CF1
+ 36:    userId,
+*37:    rankingConsentAt: consentedAt,
+ 38:  });
+ 39:
+ 40:  /** Return query rows by source table so each test exercises real side grouping. */
+
+### region 38 (grep, ~337 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx#7209]
+ 251:    : '';
+*252:  const selectedParticipantFee = Number(selectedParticipant?.entryFeeAtRegistration ?? 0);
+ 253:  const locale = useLocale();
+ 254:  const displayTranslate = useTranslations('TournamentDisplay');
+ 255:  const registrationTranslate = useTranslations('OrganizerRegistration');
+...
+ 311:    unpaid: participants.filter(
+*312:      (participant) => Number(participant.entryFeeAtRegistration) > 0 && !participant.isPaid,
+ 313:    ).length,
+ 314:    rejected: participants.filter((participant) => participant.teamStatus === 'REJECTED').length,
+ 315:    partnerInvite: participants.filter((participant) => Boolean(participant.teamInviteToken)).length,
+...
+ 324:        filter === 'UNPAID'
+*325:          ? Number(participant.entryFeeAtRegistration) > 0 && !participant.isPaid
+ 326:          :
+ 327:        filter === 'REJECTED' ? participant.teamStatus === 'REJECTED' :
+ 328:        true;
+...
+ 995:                        <td className="py-4 align-top text-center">
+*996:                          {Number(participant.entryFeeAtRegistration) > 0 && (
+ 997:                            <div className="inline-flex flex-col items-center justify-center gap-1">
+ 998:                              <input
+ 999:                                type="checkbox"
+
+### region 39 (read, ~667 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#D394]
+1535:  async importRoster(
+…
+1537:    @Body() dto: RosterImportDto,
+1538:    @CurrentUser() user: JwtPayload,
+1539:  ) {
+1540:    return this.tournamentsService.importRosterFromForm(
+1541:      id,
+1542:      user.sub,
+1543:      this.getSystemRoles(user),
+1544:      dto,
+1545:    );
+1546:  }
+1547:
+1548:  @Get(':id/add-athletes/candidates')
+1549:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1550:  @Verified()
+1551:  @ApiBearerAuth()
+1552:  @ApiOperation({ summary: 'Lấy ứng viên từ bạn bè hoặc thành viên CLB' })
+1553:  async listAddAthleteCandidates(
+1554:    @Param('id', ParseUUIDPipe) id: string,
+1555:    @Query() dto: AddAthleteCandidatesDto,
+1556:    @CurrentUser() user: JwtPayload,
+1557:  ) {
+1558:    return this.tournamentsService.listAddAthleteCandidates(
+1559:      id,
+1560:      user.sub,
+1561:      this.getSystemRoles(user),
+1562:      dto,
+1563:    );
+1564:  }
+1565:
+1566:  @Post(':id/add-athletes')
+1567:  @Roles(UserRole.ORGANIZER, UserRole.ADMIN)
+1568:  @Verified()
+1569:  @ApiBearerAuth()
+1570:  @ApiOperation({ summary: 'Thêm VĐV từ bạn bè, CLB hoặc nhập trực tiếp' })
+1571:  async addAthletes(
+1572:    @Param('id', ParseUUIDPipe) id: string,
+1573:    @Body() dto: AddAthletesDto,
+1574:    @CurrentUser() user: JwtPayload,
+1575:  ) {
+1576:    return this.tournamentsService.addAthletes(
+1577:      id,
+1578:      user.sub,
+1579:      this.getSystemRoles(user),
+1580:      dto,
+1581:    );
+1582:  }
+1583:
+1584:  @Post(':id/guest-rosters/:guestId/claim')
+1585:  @Verified()
+1586:  @ApiBearerAuth()
+1587:  @ApiOperation({ summary: 'Nhận suất khách mời bằng mã dùng một lần' })
+1588:  async claimGuestRoster(
+1589:    @Param('id', ParseUUIDPipe) id: string,
+1590:    @Param('guestId', ParseUUIDPipe) guestId: string,
+1591:    @Body() dto: ClaimGuestRosterDto,
+1592:    @CurrentUser() user: JwtPayload,
+1593:  ) {
+1594:    return this.tournamentsService.claimGuestRoster(
+1595:      id,
+1596:      guestId,
+1597:      user.sub,
+1598:      dto.claimToken,
+1599:    );
+1600:  }
+1601:
+1602:  @Delete(':id/mock-participants')
+1603:  @ApiBearerAuth()
+1604:  @ApiOperation({ summary: 'Xóa toàn bộ VĐV giả lập' })
+1605:  async clearMockParticipants(
+1606:    @Param('id', ParseUUIDPipe) id: string,
+1607:    @Query('divisionId') divisionId: string | undefined,
+1608:    @CurrentUser() user: JwtPayload,
+1609:  ) {
+1610:    return this.tournamentsService.clearMockParticipants(
+1611:      id,
+1612:      user.sub,
+1613:      this.getSystemRoles(user),
+…
+1615:    );
+1616:  }
+
+[Showing lines 1537-1613 of 2077. Use :1614 to continue]
+
+### region 40 (read, ~962 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#D394]
+1:import {
+2:  Controller,
+3:  Get,
+4:  Header,
+5:  Post,
+6:  Body,
+7:  Patch,
+8:  Param,
+9:  Delete,
+10:  Query,
+11:  ParseUUIDPipe,
+12:  ParseIntPipe,
+13:  Req,
+14:  UnauthorizedException,
+15:  UseInterceptors,
+16:  UploadedFile,
+17:  ParseFilePipe,
+18:  MaxFileSizeValidator,
+19:} from '@nestjs/common';
+20:import { Throttle, SkipThrottle } from '@nestjs/throttler';
+21:import { FileInterceptor } from '@nestjs/platform-express';
+22:import type { Request } from 'express';
+23:import { TournamentsService } from './tournaments.service';
+24:import { CreateTournamentVenueDto } from './dto/create-tournament-venue.dto';
+25:import { CreateLiteTournamentDto } from './dto/create-lite-tournament.dto';
+26:import { UpdateTournamentDto } from './dto/update-tournament.dto';
+27:import { QueryTournamentDto } from './dto/query-tournament.dto';
+28:import { QueryMyManagementTournamentsDto } from './dto/query-my-management-tournaments.dto';
+29:import { QueryMyWorkspaceDto } from './dto/query-my-workspace.dto';
+30:import { RegisterTournamentDto } from './dto/register-tournament.dto';
+31:import { AddLiteClubMemberDto } from './dto/add-lite-club-member.dto';
+32:import { UpdateFootballRosterDto } from './dto/update-football-roster.dto';
+33:import { PairLiteParticipantsDto } from './dto/pair-lite-participants.dto';
+34:import { GenerateLitePairsDto } from './dto/generate-lite-pairs.dto';
+35:import { UpdateStageDto } from './dto/update-stage.dto';
+36:import { UpdateGroupDto } from './dto/update-group.dto';
+37:import { SeedMockParticipantsDto } from './dto/seed-mock-participants.dto';
+38:import { ImportParticipantsDto } from './dto/import-participants.dto';
+39:import { RosterImportPreviewDto } from './dto/roster-import-preview.dto';
+40:import { RosterImportDto } from './dto/roster-import.dto';
+41:import { AddAthleteCandidatesDto } from './dto/add-athlete-candidates.dto';
+42:import { AddAthletesDto } from './dto/add-athletes.dto';
+43:import { ClaimGuestRosterDto } from './dto/claim-guest-roster.dto';
+44:import { UploadGalleryDto } from './dto/gallery.dto';
+45:import { CreateParentTournamentDto } from './dto/create-parent-tournament.dto';
+46:import { UpdateParentTournamentDto } from './dto/update-parent-tournament.dto';
+47:import { CreateDivisionDto } from './dto/create-division.dto';
+48:import { UpdateDivisionDto } from './dto/update-division.dto';
+49:import { UpdateBracketSlotsDto } from './dto/update-bracket-slots.dto';
+50:import { UpdateParticipantFeePaymentDto } from './dto/update-participant-fee-payment.dto';
+51:import { UpdateParticipantPresenceDto } from './dto/update-participant-presence.dto';
+52:import { ConfirmRankingConsentResultDto } from './dto/confirm-ranking-consent-result.dto';
+53:
+54:import { AddRefereeDto } from './dto/add-referee.dto';
+55:import { AddStaffMemberDto } from './dto/add-staff-member.dto';
+56:import { CreateVenueCourtDto } from '../venues/dto/create-venue-court.dto';
+57:import { CreateVenueDto } from '../venues/dto/create-venue.dto';
+58:import { UpdateVenueDto } from '../venues/dto/update-venue.dto';
+59:import { CreateBatchCourtsDto } from '../venues/dto/create-batch-courts.dto';
+60:import {
+61:  ApiTags,
+62:  ApiOperation,
+63:  ApiBearerAuth,
+64:  ApiResponse,
+65:} from '@nestjs/swagger';
+66:import { Roles } from '../../common/decorators/roles.decorator';
+67:import { UserRole } from '../../common/constants/enums';
+68:import { Public } from '../../common/decorators/public.decorator';
+69:import { Verified } from '../../common/decorators/verified.decorator';
+70:import { CurrentUser } from '../../common/decorators/current-user.decorator';
+71:import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+72:import { JwtService } from '@nestjs/jwt';
+73:
+
+[Showing lines 1-73 of 2077. Use :74 to continue]
+
+### region 41 (read, ~384 tok)
+
+[backend/src/modules/tournaments/tournaments.controller.ts#D394]
+73:
+74:@ApiTags('tournaments')
+75:@Controller('tournaments')
+76:export class TournamentsController {
+77:  constructor(
+78:    private readonly tournamentsService: TournamentsService,
+79:    private readonly jwtService: JwtService,
+80:  ) {}
+81:
+82:  private getSystemRoles(user: JwtPayload): string[] {
+83:    if (Array.isArray(user.roles) && user.roles.length > 0) {
+84:      return user.roles;
+85:    }
+86:    return user.role ? [user.role] : [];
+87:  }
+88:
+89:  @Public()
+90:  @Get('fees')
+91:  @ApiOperation({
+92:    summary: 'Lấy cấu hình các loại phí giải đấu và phí hoa hồng',
+93:  })
+94:  async getFeesConfig() {
+95:    return this.tournamentsService.getFeesConfig();
+96:  }
+97:
+98:  @Public()
+99:  @Header(
+100:    'Cache-Control',
+101:    'public, max-age=0, s-maxage=60, stale-while-revalidate=30',
+102:  )
+103:  @Header('Vary', 'Accept-Encoding')
+104:  @Get('public')
+105:  @ApiOperation({ summary: 'Chỉ lấy danh sách giải đấu PUBLIC công khai' })
+106:  async findPublic(@Query() query: QueryTournamentDto) {
+107:    return this.tournamentsService.findPublic(query);
+108:  }
+109:
+110:  @Get('my')
+111:  @ApiBearerAuth()
+112:  @ApiOperation({
+113:    summary: 'Lấy danh sách giải đấu người dùng tạo hoặc tham gia',
+114:  })
+115:  async findMy(@CurrentUser() user: JwtPayload) {
+116:    return this.tournamentsService.findMy(user.sub);
+117:  }
+118:
+…
+2077:}
+
+[Showing lines 73-118 of 2077. Use :119 to continue]
+
+### region 42 (grep, ~75 tok)
+
+# backend/src/database/migrations/
+## 2026-10-05_tournament_guest_roster_claims.sql#B942
+ 3:ALTER TABLE tournament_participants
+*4:  ADD COLUMN IF NOT EXISTS organizer_note varchar(280);
+ 5:
+ 6:CREATE TABLE IF NOT EXISTS tournament_guest_rosters (
+ 7:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+### region 43 (grep, ~320 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#29A1]
+ 206:  customResponses: jsonb('custom_responses'),
+*207:  organizerNote: varchar('organizer_note', { length: 280 }),
+ 208:  isPaid: boolean('is_paid').default(false).notNull(),
+ 209:  // Organizer's own day-of-event mark. Carries no meaning anywhere else: it does
+ 210:  // not gate roster approval, does not affect ELO, and does not block playing.
+*211:  isPresent: boolean('is_present').default(false).notNull(),
+ 212:  // Effective registration fee captured when this participant is created.
+ 213:  // This is distinct from isPaid: zero means free at registration, while
+ 214:  // isPaid=true after a paid flow means the payment was captured.
+*215:  entryFeeAtRegistration: numeric('entry_fee_at_registration', {
+ 216:    precision: 12,
+ 217:    scale: 2,
+ 218:  }).default('0.00').notNull(),
+...
+ 265:  // force-enrolled and then have old results land against them.
+*266:  rankingConsentAt: timestamp('ranking_consent_at', { withTimezone: true }),
+ 267:  joinedAt: timestamp('joined_at', { withTimezone: true })
+ 268:    .defaultNow()
+ 269:    .notNull(),
+...
+ 280:}));
+*281:export const tournamentGuestRosters = pgTable(
+ 282:  'tournament_guest_rosters',
+ 283:  {
+ 284:    id: uuid('id').primaryKey().defaultRandom(),
+
+### region 44 (read, ~245 tok)
+
+[backend/src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql#B942]
+1:BEGIN;
+2:
+3:ALTER TABLE tournament_participants
+4:  ADD COLUMN IF NOT EXISTS organizer_note varchar(280);
+5:
+6:CREATE TABLE IF NOT EXISTS tournament_guest_rosters (
+7:  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+8:  participant_id uuid NOT NULL
+9:    REFERENCES tournament_participants(id) ON DELETE CASCADE,
+10:  display_name varchar(255) NOT NULL,
+11:  role varchar(50) NOT NULL DEFAULT 'MAIN',
+12:  contact_email varchar(320),
+13:  contact_phone varchar(30),
+14:  claim_token_hash varchar(64) NOT NULL,
+15:  claim_expires_at timestamptz NOT NULL,
+16:  created_at timestamptz NOT NULL DEFAULT now()
+17:);
+18:
+19:CREATE INDEX IF NOT EXISTS tournament_guest_rosters_participant_idx
+20:  ON tournament_guest_rosters (participant_id);
+21:
+22:CREATE UNIQUE INDEX IF NOT EXISTS tournament_guest_rosters_claim_hash_unique_idx
+23:  ON tournament_guest_rosters (claim_token_hash);
+24:
+25:COMMIT;
+
+### region 45 (read, ~91 tok)
+
+[backend/src/modules/tournaments/dto/claim-guest-roster.dto.ts#AFD7]
+1:import { ApiProperty } from '@nestjs/swagger';
+2:import { IsString, Length } from 'class-validator';
+3:
+4:export class ClaimGuestRosterDto {
+5:  @ApiProperty({ description: 'Bearer claim token from the one-time invitation' })
+6:  @IsString()
+7:  @Length(32, 128)
+8:  claimToken: string;
+9:}
+
+### region 46 (bash, ~693 tok)
+
+## main...origin/main
+?? ./
+branch omp/issue-9
+staged 0, unstaged 15, untracked 6
+M src/database/schema/tournaments.schema.ts
+M src/modules/rankings/ranking-consent-gate.spec.ts
+M src/modules/rankings/rankings.service.ts
+M src/modules/rankings/recalculate-elo-consent.spec.ts
+M src/modules/tournaments/repositories/tournament-registration.repository.ts
+M src/modules/tournaments/services/ranking-consent.service.spec.ts
+M src/modules/tournaments/services/ranking-consent.service.ts
+M src/modules/tournaments/services/tournament-capacity.service.spec.ts
+M src/modules/tournaments/services/tournament-capacity.service.ts
+M src/modules/tournaments/services/tournament-lite.service.ts
+M src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+M src/modules/tournaments/services/tournament-participant-admin.service.ts
+M src/modules/tournaments/tournaments-lite-pairing.spec.ts
+M src/modules/tournaments/tournaments.controller.ts
+M src/modules/tournaments/tournaments.service.ts
+?? .ripwire_quality_baseline
+?? src/database/migrations/2026-10-05_tournament_guest_roster_claims.sql
+?? src/modules/tournaments/dto/add-athlete-candidates.dto.ts
+?? src/modules/tournaments/dto/add-athletes.dto.ts
+?? src/modules/tournaments/dto/claim-guest-roster.dto.ts
+?? src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts
+## omp/issue-9
+ M messages/en.json
+ M messages/vi.json
+ M src/app/(public)/communities/[id]/components/CommunityTournamentRosterWidget.tsx
+ M src/app/(public)/tournaments/[id]/components/RegisterModal.tsx
+ M src/app/(public)/tournaments/[id]/register/components/DoublesRegistrationFlow.tsx
+ M src/app/(public)/tournaments/[id]/register/components/TeamRegistrationFlow.tsx
+ M src/app/(public)/tournaments/[id]/register/page.tsx
+ M src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx
+ M src/features/tournaments/api.ts
+ M src/types/tournament.ts
+?? .ripwire_quality_baseline
+?? changes/organizer-add-athlete-consent-20261005/
+?? src/app/(public)/tournaments/[id]/guest-claim/
+?? src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx
+?? test/e2e/organizer-add-athlete.spec.ts
+## omp/issue-9
+ M lib/core/router/app_router.dart
+ M lib/data/repositories/api/api_tournament_repository.dart
+ M lib/domain/repositories/tournament_repository.dart
+ M lib/features/register/screens/doubles_registration_screen.dart
+ M lib/features/register/screens/football_team_register_screen.dart
+ M lib/features/register/screens/tournament_register_screen.dart
+ M lib/l10n/app_en.arb
+ M lib/l10n/app_localizations.dart
+ M lib/l10n/app_localizations_en.dart
+ M lib/l10n/app_localizations_vi.dart
+ M lib/l10n/app_vi.arb
+?? .ripwire_quality_baseline
+[raw output: artifact://76]
+
+
+Wall time: 0.10 seconds
+
+### region 47 (read, ~351 tok)
+
+# mcp__ripwire_affected — ripwire/affected
+
+WHICH TESTS TO RUN for a change — test files that transitively reach the changed files/symbols, ranked by evidence (edited > partner-named > hop distance). files = changed files and/or symbols, comma-separated: each item is tried as an indexed PATH pattern first, then — only if that fails — as a symbol name (file:name / path::scope::name also resolve). seeded_by= on the root says which reading fired; a test file matched by the argument gets seed_kind="test" rather than being subtracted from its own answer. script_gates_unmodelled= discloses test/*.sh runners this call-graph walk cannot see (script-to-binary is not a call edge) — never counted in tests=/reached=. Pairs with quality_delta (structure) and the CLI-only --test-gate (the same rows as a PASS/FAIL gate; not MCP-exposed).
+
+## Schema
+```ts
+type Args = {
+  /** a STRING repo directory */
+  path?: string;
+  /** an ARRAY of 1..16 repo roots */
+  paths?: string[];
+  /** changed files and/or symbols to seed the test-reach walk (comma-separated): each item is tried as an indexed PATH pattern first, then — only if that fails — as a symbol name (file:name / path::scope::name also resolve) */
+  files: string;
+  /** a STRING legend posture: compact (the default) or full (restores the full legend) */
+  legend?: string;
+};
+```
+Execute by writing JSON to xd://mcp__ripwire_affected.
+
+### region 48 (write, ~1478 tok)
+
+<!-- ripwire affected schema=ripwire.affected/v1: test files that transitively reach the changed files/symbols: <test p= partner= hops= run=> in evidence order (order= partners=); seeded_by= the reading taken. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. root=: p= relative to it. seeds=N: symbols the argument matched; only those outside test files seed the caller walk. seed_test_files=N: matched files that are TESTS; listed to run (seed_kind=test), never walk seeds. tests=N: test files listed to run (the rows). reached=N: symbols the transitive caller walk reached from the seeds (seeds excluded). script_gates_unmodelled=N: test/*.sh runners; their subprocess reach is unmodelled, never in tests=/reached=. changed=: the files/symbols argument as given. --><affected schema="ripwire.affected/v1" changed="src/modules/tournaments/services/tournament-participant-admin.service.ts,src/modules/tournaments/services/tournament-lite.service.ts,src/modules/tournaments/repositories/tournament-registration.repository.ts,src/modules/tournaments/services/ranking-consent.service.ts,src/modules/rankings/rankings.service.ts,src/modules/tournaments/services/tournament-capacity.service.ts,src/modules/tournaments/tournaments.controller.ts" seeded_by="file" seeds="289" seed_test_files="0" tests="25" reached="81" script_gates_unmodelled="0" order="evidence" partners="3" root="backend" graph_ambiguous="524" graph_unresolved="655" graph_unindexed="140" counts_floor="1"><test p="src/modules/tournaments/services/ranking-consent.service.spec.ts" partner="1" hops="1" run="npx jest src/modules/tournaments/services/ranking-consent.service.spec.ts"/><test p="src/modules/tournaments/services/tournament-capacity.service.spec.ts" partner="1" hops="1" run="npx jest src/modules/tournaments/services/tournament-capacity.service.spec.ts"/><test p="src/modules/tournaments/services/tournament-participant-admin.service.spec.ts" partner="1" hops="1" run="npx jest src/modules/tournaments/services/tournament-participant-admin.service.spec.ts"/><test p="src/modules/rankings/ranking-consent-gate.spec.ts" hops="1" run="npx jest src/modules/rankings/ranking-consent-gate.spec.ts"/><test p="src/modules/rankings/recalculate-elo-consent.spec.ts" hops="1" run="npx jest src/modules/rankings/recalculate-elo-consent.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-registration-capacity-mutation.spec.ts" hops="1" run="npx jest src/modules/tournaments/repositories/tournament-registration-capacity-mutation.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-registration-capacity.spec.ts" hops="1" run="npx jest src/modules/tournaments/repositories/tournament-registration-capacity.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts" hops="1" run="npx jest src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-registration-custom-responses.spec.ts" hops="1" run="npx jest src/modules/tournaments/repositories/tournament-registration-custom-responses.spec.ts"/><test p="src/modules/tournaments/services/tournament-division.service.spec.ts" hops="1" run="npx jest src/modules/tournaments/services/tournament-division.service.spec.ts"/><test p="src/modules/tournaments/tournaments-lite-pairing.spec.ts" hops="1" run="npx jest src/modules/tournaments/tournaments-lite-pairing.spec.ts"/><test p="src/modules/tournaments/tournaments.service.lite-create.spec.ts" hops="1" run="npx jest src/modules/tournaments/tournaments.service.lite-create.spec.ts"/><test p="src/modules/tournaments/utils/registration-lifecycle.spec.ts" hops="1" run="npx jest src/modules/tournaments/utils/registration-lifecycle.spec.ts"/><test p="src/modules/rankings/elo-outbox.processor.spec.ts" hops="2" run="npx jest src/modules/rankings/elo-outbox.processor.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-catalog-capacity.spec.ts" hops="2" run="npx jest src/modules/tournaments/repositories/tournament-catalog-capacity.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-import-capacity.spec.ts" hops="2" run="npx jest src/modules/tournaments/repositories/tournament-import-capacity.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-import-email-link.spec.ts" hops="2" run="npx jest src/modules/tournaments/repositories/tournament-import-email-link.spec.ts"/><test p="src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts" hops="2" run="npx jest src/modules/tournaments/repositories/tournament-import-legacy-contract.spec.ts"/><test p="src/modules/tournaments/services/tournament-division-capacity.spec.ts" hops="2" run="npx jest src/modules/tournaments/services/tournament-division-capacity.spec.ts"/><test p="src/modules/tournaments/tournament-scheduler.service.spec.ts" hops="2" run="npx jest src/modules/tournaments/tournament-scheduler.service.spec.ts"/><test p="src/modules/users/users-gender-normalization.spec.ts" hops="2" run="npx jest src/modules/users/users-gender-normalization.spec.ts"/><test p="src/modules/tournaments/services/tournament-import.service.spec.ts" hops="3" run="npx jest src/modules/tournaments/services/tournament-import.service.spec.ts"/><test p="src/modules/matches/matches.service.authorization.spec.ts" hops="6" run="npx jest src/modules/matches/matches.service.authorization.spec.ts"/><test p="src/modules/matches/matches.service.completion.spec.ts" hops="6" run="npx jest src/modules/matches/matches.service.completion.spec.ts"/><test p="src/modules/matches/matches.service.referee-claim.spec.ts" hops="6" run="npx jest src/modules/matches/matches.service.referee-claim.spec.ts"/></affected>
+
+### region 49 (write, ~379 tok)
+
+<!-- ripwire affected schema=ripwire.affected/v1: test files that transitively reach the changed files/symbols: <test p= partner= hops= run=> in evidence order (order= partners=); seeded_by= the reading taken. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. root=: p= relative to it. seeds=N: symbols the argument matched; only those outside test files seed the caller walk. seed_test_files=N: matched files that are TESTS; listed to run (seed_kind=test), never walk seeds. tests=N: test files listed to run (the rows). reached=N: symbols the transitive caller walk reached from the seeds (seeds excluded). script_gates_unmodelled=N: test/*.sh runners; their subprocess reach is unmodelled, never in tests=/reached=. changed=: the files/symbols argument as given. --><affected schema="ripwire.affected/v1" changed="src/app/organizer/tournaments/[id]/manage/components/RegistrationTab.tsx,src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx,src/app/(public)/tournaments/[id]/guest-claim/[guestId]/page.tsx,src/app/(public)/tournaments/[id]/register/page.tsx,src/features/tournaments/api.ts" seeded_by="file" seeds="118" seed_test_files="0" tests="0" reached="4" script_gates_unmodelled="0" order="evidence" partners="0" root="web" graph_ambiguous="84" graph_unresolved="776" graph_unindexed="47" counts_floor="1"></affected>
+
+### region 50 (write, ~513 tok)
+
+<!-- ripwire affected schema=ripwire.affected/v1: test files that transitively reach the changed files/symbols: <test p= partner= hops= run=> in evidence order (order= partners=); seeded_by= the reading taken. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. run_unknown=1: no runner derivable (a guess would be worse). <g n= p=a,b,c>: n runner-less rows with equal attrs as ONE row, paths verbatim; a path holding ',' is never grouped, so p= splits into exactly n=; shown=/total= over these rows counts test FILES. root=: p= relative to it. seeds=N: symbols the argument matched; only those outside test files seed the caller walk. seed_test_files=N: matched files that are TESTS; listed to run (seed_kind=test), never walk seeds. tests=N: test files listed to run (the rows). reached=N: symbols the transitive caller walk reached from the seeds (seeds excluded). script_gates_unmodelled=N: test/*.sh runners; their subprocess reach is unmodelled, never in tests=/reached=. changed=: the files/symbols argument as given. --><affected schema="ripwire.affected/v1" changed="lib/core/router/app_router.dart,lib/data/repositories/api/api_tournament_repository.dart,lib/domain/repositories/tournament_repository.dart,lib/features/register/screens/tournament_register_screen.dart,lib/features/register/screens/doubles_registration_screen.dart,lib/features/register/screens/football_team_register_screen.dart" seeded_by="file" seeds="175" seed_test_files="0" tests="3" reached="105" script_gates_unmodelled="0" order="evidence" partners="0" root="app" graph_ambiguous="1392" graph_unresolved="1675" graph_unindexed="102" counts_floor="1"><g hops="1" n="2" p="test/features/doubles_registration_saved_status_test.dart,test/tournament_search_repository_contract_test.dart" run_unknown="1"/><test p="test/tournament_management_repository_api_test.dart" hops="2" run_unknown="1"/></affected>
+
+### region 51 (read, ~508 tok)
+
+# mcp__ripwire_edit_check — ripwire/edit_check
+
+Just edited a symbol? Did its CONTRACT (param count + publicness) change vs git HEAD, and which 1-hop callers are NOW INCOMPATIBLE with the new arity by fixed-arity evidence (not a guess — every folded definition disagrees)? This is call sites worth OPENING, not a proof: call edges are matched by NAME, so a same-named callee this tool does not index can flag a caller that never touches the edited symbol at all, and a clean tree can carry a nonzero incompatible= with nothing edited. status is one of unchanged / new-symbol / contract-change, and callers= is itself a FLOOR — 'no incompatible caller' is not proof of safety either. Fast and targeted; for the same question over a WHOLE diff use quality_delta. symbol = the def name (file:name to disambiguate); at= names the commit compared against. @FILE:LINE line-seeds resolve here too (see find_symbol). limit/offset page the unflagged caller rows only. PRE-APPLY PREVIEW: pass new_body to ask the same question about a replacement that has NOT been written — it is spliced in memory, re-parsed, and the answer carries preview=1. Nothing is written; a payload that does not parse, or does not define the symbol, is refused.
+
+## Schema
+```ts
+type Args = {
+  /** a STRING repo directory */
+  path?: string;
+  /** an ARRAY of 1..16 repo roots */
+  paths?: string[];
+  /** the def name you just edited (file:name disambiguates; @FILE:LINE = the def at that line) */
+  symbol: string;
+  /** OPTIONAL — the replacement definition to PREVIEW rather than apply: the answer then describes the contract AFTER these bytes would be spliced over the symbol, and nothing is written */
+  new_body?: string;
+  /** a positive integer (omit for the default window) */
+  limit?: number;
+  /** a non-negative integer (omit to start at row 1) */
+  offset?: number;
+  /** a STRING legend posture: compact (the default) or full (restores the full legend) */
+  legend?: string;
+};
+```
+Execute by writing JSON to xd://mcp__ripwire_edit_check.
+
+### region 52 (write, ~361 tok)
+
+<!-- ripwire edit-check schema=ripwire.edit-check/v1: sym='s contract NOW vs HEAD: status=unchanged|new-symbol|contract-change; <c n= p= incompatible=1 sites_l=> callers. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. est_tokens=: price as emitted (an upper bound under compact). at=: commit+dirty+shallow. root=: p= relative to it. next=: the one pasteable follow-up. defs=N: overloads at this site (same file, scope, name) folded into one contract; params compared by MAX. callers=N: callers of sym= (the c rows' total; a floor). <file-scope> (t=modscope): a file's MODULE SCOPE — where a top-level call and an anonymous callback body's calls live; a CALLER, never a callee, with no body to expand. --><edit-check schema="ripwire.edit-check/v1" sym="addAthletes" t="method" p="src/modules/tournaments/services/tournament-participant-admin.service.ts:225" status="new-symbol" defs="1" callers="1" incompatible="0" at="ac00381e1+dirty" graph_ambiguous="524" graph_unresolved="655" graph_unindexed="140" counts_floor="1" root="backend" next="--test-gate=src/modules/tournaments/services/tournament-participant-admin.service.ts" est_tokens="578"><c n="&lt;file-scope&gt;" p="src/modules/tournaments/services/tournament-participant-admin.service.spec.ts:1"/></edit-check>
+
+### region 53 (write, ~362 tok)
+
+<!-- ripwire edit-check schema=ripwire.edit-check/v1: sym='s contract NOW vs HEAD: status=unchanged|new-symbol|contract-change; <c n= p= incompatible=1 sites_l=> callers. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. est_tokens=: price as emitted (an upper bound under compact). at=: commit+dirty+shallow. root=: p= relative to it. next=: the one pasteable follow-up. defs=N: overloads at this site (same file, scope, name) folded into one contract; params compared by MAX. callers=N: callers of sym= (the c rows' total; a floor). <file-scope> (t=modscope): a file's MODULE SCOPE — where a top-level call and an anonymous callback body's calls live; a CALLER, never a callee, with no body to expand. --><edit-check schema="ripwire.edit-check/v1" sym="claimGuestRoster" t="method" p="src/modules/tournaments/services/tournament-participant-admin.service.ts:397" status="new-symbol" defs="1" callers="1" incompatible="0" at="ac00381e1+dirty" graph_ambiguous="524" graph_unresolved="655" graph_unindexed="140" counts_floor="1" root="backend" next="--test-gate=src/modules/tournaments/services/tournament-participant-admin.service.ts" est_tokens="580"><c n="&lt;file-scope&gt;" p="src/modules/tournaments/services/tournament-participant-admin.service.spec.ts:1"/></edit-check>
+
+### region 54 (write, ~283 tok)
+
+<!-- ripwire edit-check schema=ripwire.edit-check/v1: sym='s contract NOW vs HEAD: status=unchanged|new-symbol|contract-change; <c n= p= incompatible=1 sites_l=> callers. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. est_tokens=: price as emitted (an upper bound under compact). at=: commit+dirty+shallow. root=: p= relative to it. next=: the one pasteable follow-up. defs=N: overloads at this site (same file, scope, name) folded into one contract; params compared by MAX. callers=N: callers of sym= (the c rows' total; a floor). --><edit-check schema="ripwire.edit-check/v1" sym="joinLite" t="method" p="src/modules/tournaments/services/tournament-lite.service.ts:1150" status="unchanged" defs="1" callers="0" incompatible="0" at="ac00381e1+dirty" graph_ambiguous="524" graph_unresolved="655" graph_unindexed="140" counts_floor="1" root="backend" next="--test-gate=src/modules/tournaments/services/tournament-lite.service.ts" est_tokens="454"></edit-check>
+
+### region 55 (write, ~286 tok)
+
+<!-- ripwire edit-check schema=ripwire.edit-check/v1: sym='s contract NOW vs HEAD: status=unchanged|new-symbol|contract-change; <c n= p= incompatible=1 sites_l=> callers. counts_floor=1: every count is a FLOOR, never a total. graph_ambiguous=/graph_unresolved=: resolver gauge. graph_unindexed=N: N files no grammar could read (the map header's unindexed=); their calls raise neither gauge. est_tokens=: price as emitted (an upper bound under compact). at=: commit+dirty+shallow. root=: p= relative to it. next=: the one pasteable follow-up. defs=N: overloads at this site (same file, scope, name) folded into one contract; params compared by MAX. callers=N: callers of sym= (the c rows' total; a floor). --><edit-check schema="ripwire.edit-check/v1" sym="addLiteClubMember" t="method" p="src/modules/tournaments/services/tournament-lite.service.ts:1387" status="unchanged" defs="1" callers="0" incompatible="0" at="ac00381e1+dirty" graph_ambiguous="524" graph_unresolved="655" graph_unindexed="140" counts_floor="1" root="backend" next="--test-gate=src/modules/tournaments/services/tournament-lite.service.ts" est_tokens="458"></edit-check>
+
+### region 56 (write, ~30 tok)
+
+EISDIR: illegal operation on a directory, open '/home/runner/work/agent-orchestrator/agent-orchestrator/workspace/web'
+
+### region 57 (find, ~102 tok)
+
+1 hit(s) for "Playwright configuration that defines projects baseURL and optional web server startup command" in web/ (τ 0.20), strongest first
+
+web/playwright.config.ts  0.71  44 lines judged
+  web/playwright.config.ts:1-44  0.71  import { defineConfig, devices } from '@playwright/test';
+
+listed 707 · judged 128 · read 17 files (21.9KB) · 5 requests · 23K tokens · $0.0010 · 1.9s wall / 2.8s api
+
+### region 58 (read, ~965 tok)
+
+[backend/package.json#83C5]
+1:{
+2:  "name": "backend-api_qlgiaidau",
+3:  "version": "0.0.2",
+4:  "description": "",
+5:  "author": "",
+6:  "private": true,
+7:  "license": "UNLICENSED",
+8:  "scripts": {
+9:    "build": "nest build && node scripts/copy-ai-prompt.js",
+10:    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+11:    "start": "nest start",
+12:    "start:dev": "nest start --watch",
+13:    "start:debug": "nest start --debug --watch",
+14:    "start:prod": "node --enable-source-maps dist/main",
+15:    "db:migrate": "node run-prod-migration.js",
+16:    "db:push": "npx drizzle-kit push",
+17:    "db:setup": "npx drizzle-kit push && npx ts-node src/database/seeds/seed-prod.ts",
+18:    "seed:prod": "npx ts-node src/database/seeds/seed-prod.ts",
+19:    "seed:roles": "npx ts-node src/database/seeds/roles.seed.ts",
+20:    "seed:categories": "npx ts-node src/database/seeds/categories.seed.ts",
+21:    "seed:regions": "npx ts-node src/database/seeds/seed-regions.ts",
+22:    "sync:regions": "npx ts-node src/database/seeds/seed-regions.ts",
+23:    "seed:admin": "npx ts-node src/database/seeds/admin.seed.ts",
+24:    "seed:test": "npx ts-node src/database/seeds/seed-test.ts",
+25:    "seed:brackets": "npx ts-node src/database/seeds/generate-brackets.ts",
+26:    "seed:play": "npx ts-node src/database/seeds/play-matches.ts",
+27:    "seed:data": "npx ts-node src/database/seeds/seed-data-prod.ts",
+28:    "seed:rankings": "npx ts-node src/database/seeds/seed-rankings.ts",
+29:    "seed:hide-banner": "npx ts-node src/database/seeds/seed-hide-banner-tournaments.ts",
+30:    "repair:hide-banner": "npx ts-node src/database/seeds/repair-hide-banner-seed.ts",
+31:    "repair:brackets": "npx ts-node src/database/seeds/repair-double-elim-brackets.ts",
+32:    "seed:clear": "npx ts-node src/database/seeds/clear-tournaments.ts",
+33:    "seed:standings-recompute": "npx ts-node src/database/seeds/recompute-group-standings.ts",
+34:    "test": "jest",
+35:    "test:watch": "jest --watch",
+36:    "test:cov": "jest --coverage",
+37:    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+38:    "test:e2e": "jest --config ./test/jest-e2e.json",
+39:    "verify:football-schema": "node scripts/verify-football-schema.js"
+40:  },
+41:  "dependencies": {
+42:    "@moderation-api/unicode-spoofing": "0.4.0",
+43:    "@nestjs/bullmq": "^11.0.4",
+44:    "@nestjs/common": "^11.0.1",
+45:    "@nestjs/config": "^4.0.4",
+46:    "@nestjs/core": "^11.0.1",
+47:    "@nestjs/jwt": "^11.0.2",
+48:    "@nestjs/mapped-types": "*",
+49:    "@nestjs/passport": "^11.0.5",
+50:    "@nestjs/platform-express": "^11.0.1",
+51:    "@nestjs/platform-socket.io": "^11.1.24",
+52:    "@nestjs/schedule": "^6.1.3",
+53:    "@nestjs/swagger": "^11.4.4",
+54:    "@nestjs/throttler": "^6.5.0",
+55:    "@nestjs/websockets": "^11.1.24",
+56:    "@payos/node": "^2.0.5",
+57:    "@scalar/nestjs-api-reference": "^1.1.20",
+58:    "@sentry/nestjs": "^10.73.0",
+59:    "@zxing/library": "^0.23.0",
+60:    "bcrypt": "^6.0.0",
+61:    "bullmq": "^5.79.1",
+62:    "class-transformer": "^0.5.1",
+63:    "class-validator": "^0.15.1",
+64:    "cloudinary": "^2.10.0",
+65:    "cookie-parser": "^1.4.7",
+66:    "dotenv": "^17.4.2",
+67:    "drizzle-orm": "^0.45.2",
+68:    "firebase-admin": "^13.10.0",
+69:    "google-auth-library": "^10.7.0",
+70:    "helmet": "^8.2.0",
+71:    "ioredis": "^5.11.1",
+72:    "joi": "^18.2.1",
+73:    "jsonwebtoken": "^9.0.3",
+74:    "nodemailer": "^9.0.1",
+75:    "openai": "^6.44.0",
+76:    "passport": "^0.7.0",
+77:    "passport-google-oauth20": "^2.0.0",
+78:    "passport-jwt": "^4.0.1",
+79:    "pg": "^8.23.0",
+80:    "postgres": "^3.4.7",
+81:    "reflect-metadata": "^0.2.2",
+82:    "rxjs": "^7.8.1",
+83:    "sharp": "^0.35.4",
+…
+87:  },
+…
+139:}
+
+[Showing lines 1-83 of 139. Use :84 to continue]
+
+### region 59 (read, ~589 tok)
+
+[web/package.json#2C06]
+1:{
+2:  "name": "frontend-web_qlgiaidau",
+3:  "version": "0.1.1",
+4:  "private": true,
+5:  "type": "module",
+6:  "scripts": {
+7:    "dev": "next dev --turbo -p 3001",
+8:    "build": "next build",
+9:    "start": "next start",
+10:    "lint": "eslint",
+11:    "i18n:check": "node scripts/check-i18n-messages.mjs",
+12:    "test:e2e": "node --env-file-if-exists=.env.playwright node_modules/@playwright/test/cli.js test"
+13:  },
+14:  "dependencies": {
+15:    "@dnd-kit/core": "^6.3.1",
+16:    "@dnd-kit/sortable": "^10.0.0",
+17:    "@dnd-kit/utilities": "^3.2.2",
+18:    "@editorjs/editorjs": "^2.31.6",
+19:    "@editorjs/header": "^2.8.9",
+20:    "@editorjs/image": "^2.10.3",
+21:    "@editorjs/list": "^2.0.9",
+22:    "@g-loot/react-tournament-brackets": "1.0.31-rc",
+23:    "@hookform/resolvers": "^5.4.0",
+24:    "@radix-ui/react-avatar": "^1.1.11",
+25:    "@radix-ui/react-dialog": "^1.1.15",
+26:    "@radix-ui/react-dropdown-menu": "^2.1.16",
+27:    "@radix-ui/react-select": "^2.2.6",
+28:    "@radix-ui/react-slot": "^1.2.4",
+29:    "@sentry/nextjs": "^10.73.0",
+30:    "@types/mapbox-gl": "^3.5.0",
+31:    "axios": "^1.16.1",
+32:    "bracketry": "^1.1.3",
+33:    "clsx": "^2.1.1",
+34:    "date-fns-tz": "^3.2.0",
+35:    "exceljs": "^4.4.0",
+36:    "framer-motion": "^12.40.0",
+37:    "hls.js": "^1.6.16",
+38:    "lucide-react": "^1.17.0",
+39:    "mammoth": "^1.13.0",
+40:    "mapbox-gl": "^3.24.0",
+41:    "mpegts.js": "^1.8.2",
+42:    "next": "16.2.7",
+43:    "next-intl": "^4.13.4",
+44:    "qrcode.react": "^4.2.0",
+45:    "react": "19.2.4",
+46:    "react-dom": "19.2.4",
+47:    "react-hook-form": "^7.77.0",
+48:    "react-hot-toast": "^2.6.0",
+49:    "react-map-gl": "^8.1.1",
+50:    "react-markdown": "^10.1.0",
+51:    "recharts": "^3.8.1",
+52:    "remark-gfm": "^4.0.1",
+53:    "socket.io-client": "^4.8.3",
+54:    "tailwind-merge": "^3.6.0",
+55:    "tailwindcss-animate": "^1.0.7",
+56:    "xlsx": "^0.18.5",
+57:    "zod": "^4.4.3",
+58:    "zustand": "^5.0.14"
+59:  },
+60:  "devDependencies": {
+61:    "@playwright/test": "^1.62.1",
+62:    "@tailwindcss/postcss": "^4",
+63:    "@types/hls.js": "^1.0.0",
+64:    "@types/node": "^20",
+65:    "@types/react": "^19",
+66:    "@types/react-dom": "^19",
+67:    "eslint": "^9",
+68:    "eslint-config-next": "16.2.7",
+69:    "tailwindcss": "^4",
+70:    "typescript": "^5"
+71:  }
+72:}
+
+### region 60 (read, ~570 tok)
+
+[app/pubspec.yaml#3052]
+1:name: app_quanly_giaidau
+2:description: "Ứng dụng Quản lý Giải đấu Thể thao"
+3:publish_to: 'none'
+4:version: 1.0.27+30
+5:
+6:flutter_launcher_icons:
+7:  android: true
+8:  ios: true
+9:  image_path: "assets/logos/icon.png"
+10:  remove_alpha_ios: true
+11:  adaptive_icon_background: "#FFFFFF"
+12:  adaptive_icon_foreground: "assets/logos/icon.png"
+13:
+14:environment:
+15:  sdk: ^3.10.3
+16:  flutter: ">=3.41.0"
+17:
+18:dependencies:
+19:  # Live video (HLS): phat duoc tren ca Android (ExoPlayer) va iOS (AVPlayer)
+20:  video_player: ^2.9.2
+21:  flutter:
+22:    sdk: flutter
+23:
+24:  cupertino_icons: ^1.0.8
+25:
+26:  flutter_localizations:
+27:    sdk: flutter
+28:
+29:  # State Management
+30:  flutter_riverpod: ^3.3.1
+31:
+32:  # Navigation
+33:  go_router: ^17.2.3
+34:
+35:  # UI
+36:  google_fonts: ^8.1.0
+37:  flutter_animate: ^4.5.2
+38:  shimmer: ^3.0.0
+39:  flutter_svg: ^2.3.0
+40:  flutter_widget_from_html: ^0.15.2
+41:  webview_flutter: ^4.10.0
+42:
+43:  # Import/Export
+44:  excel: ^4.0.6
+45:  csv: ^8.0.0
+46:  file_picker: ^12.0.0-beta.5
+47:  pdf: ^3.11.1
+48:  printing: ^5.13.2
+49:
+50:  # QR Code
+51:  qr_flutter: ^4.1.0
+52:  mobile_scanner: ^7.2.0
+53:
+54:  # Utils
+55:  uuid: ^4.5.1
+56:  crypto: ^3.0.6
+57:  intl: ^0.20.2
+58:  share_plus: ^13.1.0
+59:  wakelock_plus: ^1.2.10
+60:  shared_preferences: ^2.3.4
+61:  flutter_dotenv: ^6.0.1
+62:  path_provider: ^2.1.5
+63:  flutter_cache_manager: ^3.4.1
+64:  package_info_plus: ^10.2.0
+65:  graphview: ^1.5.1
+66:  dio: ^5.4.0
+67:  flutter_secure_storage: ^10.3.1
+68:  google_sign_in: ^6.2.1
+69:  google_sign_in_platform_interface: ^2.5.0
+70:
+71:  sign_in_with_apple: ^7.0.1
+72:  image_picker: ^1.1.2
+73:  image: ^4.3.0
+74:  socket_io_client: ^3.1.6
+75:  url_launcher: ^6.3.2
+76:  fl_chart: ^0.69.2
+77:  phosphor_flutter: ^2.1.0
+78:  shadcn_ui: ^0.53.6
+79:
+80:  # Firebase & Push Notifications
+81:  firebase_core: ^3.12.1
+82:  firebase_messaging: ^15.2.4
+83:  flutter_local_notifications: ^18.0.1
+84:  sentry_flutter: ^9.30.0
+85:  lucide_icons_flutter: ^3.1.20
+86:  liquid_glass_widgets: ^1.7.2
+87:
+88:  # Location (Social gần bạn: xin quyền khi vào tab Social, ghim map khi tạo kèo)
+…
+92:  latlong2: ^0.9.1
+…
+111:    - assets/logos/
+
+[Showing lines 1-88 of 111. Use :89 to continue]
+
+### region 61 (read, ~284 tok)
+
+[web/playwright.config.ts#8D01]
+1:import { defineConfig, devices } from '@playwright/test';
+2:
+3:export default defineConfig({
+4:  testDir: './test/e2e',
+5:  timeout: 45_000,
+6:  expect: {
+7:    timeout: 10_000,
+8:  },
+9:  fullyParallel: false,
+10:  retries: process.env.CI ? 2 : 0,
+11:  workers: 1,
+12:  reporter: [['html', { open: 'never' }], ['list']],
+13:  use: {
+14:    baseURL: process.env.FRONTEND_URL || 'http://localhost:3001',
+15:    trace: 'on-first-retry',
+16:    screenshot: 'only-on-failure',
+17:    video: 'retain-on-failure',
+18:    headless: true,
+19:    launchOptions: {
+20:      args: [
+21:        '--disable-gpu',
+22:        '--disable-dev-shm-usage',
+23:        '--disable-extensions',
+24:        '--mute-audio',
+25:      ],
+26:    },
+27:  },
+28:  projects: [
+29:    {
+30:      name: 'chromium',
+31:      use: {
+32:        ...devices['Desktop Chrome'],
+33:        launchOptions: {
+34:          args: [
+35:            '--disable-gpu',
+36:            '--disable-dev-shm-usage',
+37:            '--disable-extensions',
+38:            '--mute-audio',
+39:          ],
+40:        },
+41:      },
+42:    },
+43:  ],
+44:});
+
+### region 62 (read, ~904 tok)
+
+[web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx#5BDA]
+1:'use client';
+2:
+3:import * as React from 'react';
+4:import { useTranslations } from 'next-intl';
+5:import { Loader2, Search, UserPlus } from 'lucide-react';
+6:import { Button } from '@/components/ui/Button';
+7:import { Input } from '@/components/ui/Input';
+8:import { Textarea } from '@/components/ui/Textarea';
+9:import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from '@/components/ui/Modal';
+10:import { tournamentsApi, type AddAthleteCandidate, type AddAthleteSource, type Division } from '@/features/tournaments/api';
+11:import type { Tournament } from '@/types/tournament';
+12:import { getErrorMessage } from '@/utils/error';
+13:import toast from 'react-hot-toast';
+14:
+15:interface AddAthleteModalProps {
+16:  open: boolean;
+17:  onOpenChange: (open: boolean) => void;
+18:  tournament: Tournament;
+19:  divisions: Division[];
+20:  selectedDivisionId: string;
+21:  onSuccess: () => Promise<void> | void;
+22:}
+23:
+24:const SOURCES: AddAthleteSource[] = ['FRIENDS', 'CLUB', 'DIRECT'];
+25:
+26:export function AddAthleteModal({ open, onOpenChange, tournament, divisions, selectedDivisionId, onSuccess }: AddAthleteModalProps) {
+27:  const t = useTranslations('AddAthlete');
+28:  const initialDivisionId = selectedDivisionId || divisions[0]?.id || '';
+29:  const [divisionId, setDivisionId] = React.useState(initialDivisionId);
+30:  const [source, setSource] = React.useState<AddAthleteSource>('FRIENDS');
+31:  const [search, setSearch] = React.useState('');
+32:  const [rows, setRows] = React.useState<AddAthleteCandidate[]>([]);
+33:  const [nextCursor, setNextCursor] = React.useState<string | null>(null);
+34:  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+35:  const [pageLoading, setPageLoading] = React.useState(false);
+36:  const [candidateError, setCandidateError] = React.useState(false);
+37:  const [submitError, setSubmitError] = React.useState('');
+38:  const candidateRequestId = React.useRef(0);
+39:  const [submitting, setSubmitting] = React.useState(false);
+40:  const [players, setPlayers] = React.useState([{ displayName: '', email: '', phone: '' }]);
+41:  const [teamName, setTeamName] = React.useState('');
+42:  const [organizerNote, setOrganizerNote] = React.useState('');
+43:  const selectedDivision = divisions.find((division) => division.id === divisionId);
+44:  const matchType = selectedDivision?.matchType ?? tournament.matchType;
+45:  const maxPlayers = matchType === 'DOUBLES' || matchType === 'MIXED_DOUBLES' ? 2 : 1;
+46:
+47:  const loadCandidates = React.useCallback(async (cursor?: string, append = false) => {
+…
+79:  }, [divisionId, open, search, source, tournament.id]);
+80:
+81:  React.useEffect(() => {
+82:    if (open && source !== 'DIRECT') void loadCandidates();
+83:  }, [loadCandidates, open, source]);
+84:
+85:  React.useEffect(() => {
+…
+96:  }, [initialDivisionId, maxPlayers, open]);
+97:
+98-104:  const switchSource = (value: AddAthleteSource) => { … };
+105:
+106-143:  const submit = async () => { … };
+144:
+145:  const canSubmit = source === 'DIRECT'
+146:    ? players.length === maxPlayers && players.every((player) => player.displayName.trim().length > 0)
+147:    : selectedIds.length === maxPlayers;
+148:
+149:  return (
+150:    <Modal open={open} onOpenChange={(nextOpen) => { if (submitting && !nextOpen) return; onOpenChange(nextOpen); }}>
+…
+218:    </Modal>
+219:  );
+220:}
+
+[…149ln elided; re-read needed ranges, e.g. web/src/app/organizer/tournaments/[id]/manage/components/AddAthleteModal.tsx:48-78,86-95]
+
+### region 63 (read, ~534 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#67C8]
+1:import { expect, test } from '@playwright/test';
+2:import { fulfillApi, openManage, tournamentId } from './support/organizer-manage';
+3:
+4:const divisionId = 'synthetic-wide-division';
+5:
+6:test('organizer can add a directly entered guest with optional contact and note', async ({ page }) => {
+7:  let addRequest: Record<string, unknown> | undefined;
+8:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+9:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+10:  });
+11:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+12:    addRequest = route.request().postDataJSON();
+13:    await fulfillApi(route, { data: { participant: { id: 'new-participant' } } }, 201);
+14:  });
+15:  await openManage(page, { tab: 'registration' });
+16:
+17:  await expect(page.getByRole('button', { name: 'Import Excel' })).toBeVisible();
+18:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+19:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+20:  await expect(dialog).toBeVisible();
+21:  await dialog.getByRole('button', { name: 'Nhập trực tiếp' }).click();
+22:  await dialog.getByLabel('Tên VĐV').fill('Guest Athlete');
+23:  await dialog.getByLabel('Ghi chú ban tổ chức').fill('Arrives late');
+24:  await dialog.getByRole('button', { name: 'Thêm vào giải' }).click();
+25:
+26:  await expect.poll(() => addRequest).toEqual({
+27:    source: 'DIRECT',
+28:    divisionId,
+29:    players: [{ displayName: 'Guest Athlete', role: 'MAIN' }],
+30:    organizerNote: 'Arrives late',
+31:  });
+32:  await expect(dialog).toBeHidden();
+33:});
+34:
+35:test('candidate search paginates and selecting a player does not expose contact information', async ({ page }) => {
+36:  const queries: URL[] = [];
+37:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+38:    const url = new URL(route.request().url());
+39:    queries.push(url);
+…
+43:  });
+…
+54:});
+
+[Showing lines 1-39 of 69. Use :40 to continue]
+
+### region 64 (read, ~643 tok)
+
+[web/src/components/ui/Modal.tsx#574B]
+1:"use client";
+2:
+3:import * as React from "react";
+…
+8:import { cn } from "@/utils/cn";
+9:
+10:const Modal = DialogPrimitive.Root;
+11:
+12:const ModalTrigger = DialogPrimitive.Trigger;
+13:
+14:const ModalPortal = DialogPrimitive.Portal;
+15:
+16:const ModalClose = DialogPrimitive.Close;
+17:
+18:const ModalOverlay = React.forwardRef<
+19:  React.ElementRef<typeof DialogPrimitive.Overlay>,
+20:  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+21:>(({ className, ...props }, ref) => (
+22:  <DialogPrimitive.Overlay
+…
+29:  />
+30:));
+31:ModalOverlay.displayName = DialogPrimitive.Overlay.displayName;
+32:
+33:/**
+34: * `closeButtonClassName` lets a single screen enlarge the dismiss target
+35: * without changing the default used by every other modal.
+36: */
+37:type ModalContentProps = React.ComponentPropsWithoutRef<
+38:  typeof DialogPrimitive.Content
+39:> & { closeButtonClassName?: string };
+40:
+41:const ModalContent = React.forwardRef<
+42:  React.ElementRef<typeof DialogPrimitive.Content>,
+43:  ModalContentProps
+44-66:>(({ className, children, closeButtonClassName, ...props }, ref) => { … });
+67:ModalContent.displayName = DialogPrimitive.Content.displayName;
+68:
+69:const ModalHeader = ({
+70:  className,
+71:  ...props
+72:}: React.HTMLAttributes<HTMLDivElement>) => (
+73:  <div
+…
+79:  />
+80:);
+81:ModalHeader.displayName = "ModalHeader";
+82:
+83:const ModalFooter = ({
+84:  className,
+85:  ...props
+86:}: React.HTMLAttributes<HTMLDivElement>) => (
+87:  <div
+…
+93:  />
+94:);
+95:ModalFooter.displayName = "ModalFooter";
+96:
+97:const ModalTitle = React.forwardRef<
+98:  React.ElementRef<typeof DialogPrimitive.Title>,
+99:  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+100:>(({ className, ...props }, ref) => (
+101:  <DialogPrimitive.Title
+…
+108:  />
+109:));
+110:ModalTitle.displayName = DialogPrimitive.Title.displayName;
+111:
+112:const ModalDescription = React.forwardRef<
+113:  React.ElementRef<typeof DialogPrimitive.Description>,
+114:  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+115:>(({ className, ...props }, ref) => (
+116:  <DialogPrimitive.Description
+…
+120:  />
+121:));
+122:ModalDescription.displayName = DialogPrimitive.Description.displayName;
+123:
+124:export {
+125:  Modal,
+126:  ModalPortal,
+127:  ModalOverlay,
+128:  ModalTrigger,
+129:  ModalClose,
+130:  ModalContent,
+131:  ModalHeader,
+132:  ModalFooter,
+133:  ModalTitle,
+134:  ModalDescription,
+135:};
+136:
+
+[…50ln elided; re-read needed ranges, e.g. web/src/components/ui/Modal.tsx:4-7,23-28]
+
+### region 65 (edit, ~299 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#5717]
+4:const divisionId = 'synthetic-wide-division';
+5:
+6:test('organizer can add a directly entered guest and hand off a claim link', async ({ page }) => {
+7:  let addRequest: Record<string, unknown> | undefined;
+8:  let handoffUrl = '';
+9:  page.on('dialog', async (dialog) => {
+…
+12:    await dialog.accept();
+13:  });
+14:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+15:    await fulfillApi(route, { data: { rows: [], nextCursor: null } });
+16:  });
+17:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes`, async (route) => {
+18:    addRequest = route.request().postDataJSON();
+19:    await fulfillApi(route, {
+20:      data: {
+…
+23:      },
+24:    }, 201);
+25:  });
+26:  await openManage(page, { tab: 'registration' });
+
+37:  await expect.poll(() => addRequest).toEqual({
+
+41:    organizerNote: 'Arrives late',
+42:  });
+43:  expect(handoffUrl).toBe(
+44:    `${new URL(page.url()).origin}/tournaments/${tournamentId}/guest-claim/guest-1#token=one-time-secret`,
+45:  );
+46:  expect(new URL(handoffUrl).search).toBe('');
+47:  await expect(dialog).toBeHidden();
+48:});
+
+### region 66 (edit, ~118 tok)
+
+This edit anchors to lines 69 of web/test/e2e/organizer-add-athlete.spec.ts that [web/test/e2e/organizer-add-athlete.spec.ts#5717] never displayed (it showed a partial range, a search hit, or a folded summary). Actual file content at those lines:
+  69:});
+Verify the content matches what you intend to touch, then re-issue the edit with the same [path#tag] header — a straight retry now succeeds without a re-read. If the content does NOT match, fix your line numbers.
+
+### region 67 (read, ~493 tok)
+
+[web/test/e2e/organizer-add-athlete.spec.ts#5717]
+50:test('candidate search paginates and selecting a player does not expose contact information', async ({ page }) => {
+…
+52:  await page.route(`**/api/v1/tournaments/${tournamentId}/add-athletes/candidates**`, async (route) => {
+53:    const url = new URL(route.request().url());
+54:    queries.push(url);
+55:    await fulfillApi(route, url.searchParams.get('cursor')
+56:      ? { data: { rows: [], nextCursor: null } }
+57:      : { data: { rows: [{ userId: 'friend-1', displayName: 'Friend Athlete', avatarUrl: null, source: 'FRIENDS' }], nextCursor: 'page-2' } });
+58:  });
+59:  await openManage(page, { tab: 'registration' });
+60:  await page.getByRole('button', { name: 'Thêm VĐV' }).click();
+61:  const dialog = page.getByRole('dialog', { name: 'Thêm VĐV' });
+62:  await dialog.getByRole('button', { name: 'Bạn bè' }).click();
+63:  await dialog.getByLabel('Tìm VĐV').fill('Friend');
+64:  await expect(dialog.getByText('Friend Athlete')).toBeVisible();
+65:  await expect(dialog.getByText(/@|09\d{8}/)).toHaveCount(0);
+66:  await dialog.getByRole('button', { name: 'Trang tiếp' }).click();
+67:  await expect.poll(() => queries.some((url) => url.searchParams.get('cursor') === 'page-2')).toBe(true);
+68:  expect(queries[0].searchParams.get('source')).toBe('FRIENDS');
+69:});
+70:
+71:test('player claims a guest roster with the URL fragment and the fragment is removed', async ({ page }) => {
+72:  let claimRequest: Record<string, unknown> | undefined;
+73:  await openManage(page);
+74:  await page.route(`**/api/v1/tournaments/${tournamentId}/guest-rosters/guest-1/claim`, async (route) => {
+75:    claimRequest = route.request().postDataJSON();
+76:    await fulfillApi(route, { data: { success: true } });
+77:  });
+78:  await page.goto(`/tournaments/${tournamentId}/guest-claim/guest-1#token=one-time-secret`, { waitUntil: 'domcontentloaded' });
+…
+84:});
+
+[Showing lines 52-78 of 84. Use :79 to continue]

@@ -1,0 +1,734 @@
+# web/src/app/organizer/tournaments/
+
+## [id]/
+
+### manage/
+#### page.tsx
+ 7|import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+*8|import { Modal, ModalContent, ModalHeader, ModalTitle } from '@/components/ui/Modal';
+ 9|import { DateTimePicker } from '@/components/ui/Input';
+ 10|import { AlertTriangle, ExternalLink, Plus, X, Loader2, Trash2, Lock, Trophy, User, Users, Zap, Pencil, MapPin, CalendarDays, GitMerge, GitBranch, GitFork, RotateCw, DollarSign, Download, ChevronRight, ChevronLeft, Check, Play, ChevronDown, Activity, Layers, Calendar, ArrowUpRight, Share2, Globe, Clock, ShieldCheck, Unlock, Video, LayoutDashboard, Info, Phone, Mail, Camera, ImagePlus, Save, Edit3, Settings, Handshake, Eye, EyeOff, FileText } from 'lucide-react';
+ 11|import TournamentBannerCover from '@/components/ui/TournamentBannerCover';
+*12|import CircularImageCropModal from '@/components/common/CircularImageCropModal';
+ 13|import RichTextEditor from '@/components/ui/RichTextEditor';
+ 14|import { uploadApi } from '@/features/upload/api';
+ 15|import type { Division } from '@/features/tournaments/api';
+...
+ 18|import {
+*19|  DropdownMenu,
+*20|  DropdownMenuContent,
+*21|  DropdownMenuItem,
+*22|  DropdownMenuTrigger,
+*23|} from '@/components/ui/DropdownMenu';
+ 24|import toast from 'react-hot-toast';
+ 25|import { useRouter } from 'next/navigation';
+ 26|import { isClubSuperLiteTournament } from '@/features/tournaments/lite-qr';
+...
+ 49|import { type ManageSection } from './components/TournamentManageSidebar';
+*50|import { VenueCourtsModal } from './components/VenueCourtsModal';
+*51|import { CreateVenueModal } from './components/CreateVenueModal';
+*52|import { EditVenueModal } from './components/EditVenueModal';
+*53|import { CreateDivisionModal } from './components/CreateDivisionModal';
+ 54|import { getSportRulePresentation } from '@/features/tournaments/sport-rules/presentation';
+ 55|import { getScoreEntryGuidance, getSportRulePresets } from '@/features/tournaments/sport-rules/ui-guidance';
+ 56|import { resolveSportRuleView } from '@/features/tournaments/sport-rules/normalize';
+...
+ 62|import { getPlatformFeeBreakdown } from '@/utils/platform-fee';
+*63|import ShareModal from '@/components/common/ShareModal';
+ 64|import { triggerShare } from '@/utils/share.util';
+ 65|import CountdownTimer from '@/components/shared/CountdownTimer';
+ 66|import { toApiIsoDateTime, toDateTimeLocalValue } from '@/utils/dateTimeInput';
+...
+ 226|  const [wideSectionOpen, setWideSectionOpen] = useState<ManageWideSection | null>(null);
+*227|  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+ 228|
+ 229|  // Direct Interactive Editing States for Banner, Logo, and Description
+ 230|  const bannerFileInputRef = useRef<HTMLInputElement | null>(null);
+...
+ 232|  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+*233|  const [cropModalOpen, setCropModalOpen] = useState(false);
+ 234|  const [pendingLogoSrc, setPendingLogoSrc] = useState('');
+ 235|  const [isEditingDescription, setIsEditingDescription] = useState(false);
+ 236|  const [isSavingDescInline, setIsSavingDescInline] = useState(false);
+...
+ 289|        setPendingLogoSrc(reader.result);
+*290|        setCropModalOpen(true);
+ 291|      }
+ 292|    };
+ 293|    reader.readAsDataURL(file);
+...
+ 296|  const handleDirectLogoCropConfirm = async (croppedBlob: Blob) => {
+*297|    setCropModalOpen(false);
+ 298|    try {
+ 299|      toast.loading('Đang cập nhật logo...', { id: 'direct-logo-upload' });
+ 300|      const file = new File([croppedBlob], 'tournament_logo.png', { type: 'image/png' });
+...
+ 337|
+*338|  const [isDatesModalOpen, setIsDatesModalOpen] = useState(false);
+ 339|  const [tempRegistrationStartDate, setTempRegistrationStartDate] = useState('');
+ 340|  const [tempRegistrationEndDate, setTempRegistrationEndDate] = useState('');
+ 341|  const [tempStartDate, setTempStartDate] = useState('');
+...
+ 354|  // Quick edit state for Entry Fee
+*355|  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+ 356|  const [tempEntryFee, setTempEntryFee] = useState(0);
+ 357|  const [isSavingFee, setIsSavingFee] = useState(false);
+ 358|
+...
+ 364|
+*365|  // Modals for venue & courts management
+ 366|  const [selectedVenueForCourts, setSelectedVenueForCourts] = useState<TournamentVenueWithCourts | null>(null);
+ 367|  // URL phát của sân, khóa theo courtId. Nạp khi mở modal vì venue.courts không mang field này.
+ 368|  const [courtPlaybackUrls, setCourtPlaybackUrls] = useState<Record<string, string>>({});
+...
+ 441|      toast.success('Đã cập nhật thời gian giải đấu thành công!');
+*442|      setIsDatesModalOpen(false);
+ 443|      await s.fetchTournamentData();
+ 444|    } catch (err) {
+ 445|      toast.error(getErrorMessage(err));
+
+#### components/
+##### ScheduleGridView.tsx
+ 31|import {
+*32|  Modal,
+*33|  ModalContent,
+*34|  ModalHeader,
+*35|  ModalTitle,
+*36|  ModalDescription,
+*37|  ModalFooter,
+*38|  ModalClose,
+*39|} from '@/components/ui/Modal';
+ 40|import toast from 'react-hot-toast';
+ 41|import { tournamentsApi, type Division } from '@/features/tournaments/api';
+ 42|import type { Tournament, BracketStage, BracketMatch } from '@/types/tournament';
+...
+ 117|
+*118|  // ── 4. Cell Click / Smart Match Assignment Modal State ──
+*119|  const [activeCellModal, setActiveCellModal] = useState<{
+ 120|    courtId: string;
+ 121|    courtName: string;
+ 122|    timeSlot: string; // ISO string
+...
+ 324|
+*325|  // ── 12. Smart Assign from Modal ──
+ 326|  const handleAssignSelectedMatches = () => {
+*327|    if (!activeCellModal) return;
+ 328|    if (selectedMatchIds.length === 0) {
+ 329|      toast.error('Vui lòng chọn ít nhất 1 trận để xếp.');
+ 330|      return;
+...
+ 332|
+*333|    const { courtId, timeSlot } = activeCellModal;
+ 334|    const baseTime = new Date(timeSlot).getTime();
+ 335|    const newDrafts = { ...draftMatches };
+ 336|
+...
+ 364|    toast.success(`Đã xếp ${selectedMatchIds.length} trận đấu!`);
+*365|    setActiveCellModal(null);
+ 366|    setSelectedMatchIds([]);
+ 367|  };
+ 368|
+...
+ 606|                        onClick={() => {
+*607|                          setActiveCellModal({
+ 608|                            courtId: court.id,
+ 609|                            courtName: court.courtName,
+ 610|                            timeSlot: slot.isoString,
+...
+ 619|                        {/* Hover Plus Icon */}
+*620|                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+ 621|                          <span className="flex items-center gap-1 rounded-md bg-blue-600 px-2 py-0.5 text-xs font-bold text-white shadow-xs">
+ 622|                            <Plus className="h-3 w-3" />
+ 623|                            Xếp trận
+...
+ 712|      {/* ── SMART MATCH ASSIGNMENT MODAL (Click Cell Popup) ── */}
+*713|      {activeCellModal && (
+*714|        <Modal open={Boolean(activeCellModal)} onOpenChange={(open) => !open && setActiveCellModal(null)}>
+*715|          <ModalContent className="max-w-2xl bg-white p-6 rounded-2xl shadow-2xl">
+*716|            <ModalHeader className="border-b border-slate-100 pb-3">
+ 717|              <div className="flex items-center justify-between">
+ 718|                <div>
+##### ScheduleTab.tsx
+ 11|import { livestreamApi, TournamentVenueWithCourts } from '@/features/tournaments/api';
+*12|import { VenueCourtsModal } from './VenueCourtsModal';
+*13|import { CreateVenueModal } from './CreateVenueModal';
+*14|import { EditVenueModal } from './EditVenueModal';
+ 15|
+ 16|interface Venue {
+ 17|  id: string;
+...
+ 116|  // Update selected venue reference when tournamentVenues change
+*117|  const activeCourtsModalVenue = selectedVenueForCourts
+ 118|    ? displayVenues.find((v) => v.id === selectedVenueForCourts.id) || selectedVenueForCourts
+ 119|    : null;
+ 120|
+*121|  const activeEditModalVenue = selectedVenueForEdit
+ 122|    ? displayVenues.find((v) => v.id === selectedVenueForEdit.id) || selectedVenueForEdit
+ 123|    : null;
+ 124|
+...
+ 128|  useEffect(() => {
+*129|    if (!activeCourtsModalVenue) return;
+ 130|    let cancelled = false;
+ 131|    void livestreamApi
+ 132|      .getCameras(_tournament?.id ?? '')
+...
+ 148|    };
+*149|  }, [_tournament?.id, activeCourtsModalVenue]);
+ 150|
+ 151|
+ 152|  return (
+...
+ 334|
+*335|      {/* Modal Cài đặt Sân của Địa điểm */}
+*336|      <VenueCourtsModal
+*337|        key={activeCourtsModalVenue?.id ?? 'none'}
+*338|        isOpen={Boolean(activeCourtsModalVenue)}
+ 339|        onClose={() => setSelectedVenueForCourts(null)}
+*340|        venue={activeCourtsModalVenue}
+ 341|        venues={displayVenues}
+ 342|        onSelectVenue={(v) => setSelectedVenueForCourts(v)}
+ 343|        onRequestCreateVenue={() => setIsCreateVenueOpen(true)}
+...
+ 381|
+*382|      {/* Modal Thêm Địa Điểm Mới */}
+*383|      <CreateVenueModal
+ 384|        key={isCreateVenueOpen ? 'create-open' : 'create-closed'}
+ 385|        isOpen={isCreateVenueOpen}
+ 386|        onClose={() => setIsCreateVenueOpen(false)}
+...
+ 398|
+*399|      {/* Modal Chỉnh Sửa Địa Điểm */}
+*400|      <EditVenueModal
+*401|        key={activeEditModalVenue?.id || 'edit-closed'}
+*402|        isOpen={Boolean(activeEditModalVenue)}
+ 403|        onClose={() => setSelectedVenueForEdit(null)}
+*404|        venue={activeEditModalVenue}
+ 405|        provinces={provinces}
+ 406|        wards={wards}
+ 407|        setWards={setWards}
+##### SponsorSettingsPanel.tsx
+ 256|                  />
+*257|                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 transition group-hover:opacity-100">
+ 258|                    <Upload className="h-5 w-5 text-white" />
+ 259|                  </div>
+ 260|                </>
+##### TournamentManageSidebar.tsx
+ 333|
+*334|      {isOpen ? <button type="button" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden" aria-label={t('sidebar.closeMenu')} /> : null}
+ 335|
+ 336|      <aside
+ 337|        aria-label={t('sidebar.manageMenu')}
+##### TournamentStepper.tsx
+ 5|import {
+*6|  Modal, ModalContent, ModalHeader, ModalTitle,
+*7|} from '@/components/ui/Modal';
+ 8|import {
+ 9|  isTournamentCompleted,
+ 10|  isTournamentDraft,
+...
+ 39|  // Phase 3 end modal
+*40|  isEndModalOpen?: boolean;
+*41|  setIsEndModalOpen?: (open: boolean) => void;
+ 42|  handleConfirmEnd?: () => void;
+ 43|  isEnding?: boolean;
+ 44|  endChecklist?: {
+...
+ 59|  onOpenRegistrationNow, isOpeningRegistration = false,
+*60|  isEndModalOpen, setIsEndModalOpen, handleConfirmEnd, isEnding = false, endChecklist = null,
+ 61|  participants = [], divisions = [], matches = [],
+ 62|  onChecklistNavigate,
+ 63|  }: TournamentStepperProps) {
+...
+ 464|      {/* Phase 3 — Tournament completion checklist modal */}
+*465|      {isEndModalOpen && (
+*466|        <Modal open={isEndModalOpen} onOpenChange={(open) => { if (!open) setIsEndModalOpen?.(false); }}>
+*467|          <ModalContent className="bg-white rounded-lg p-6 max-w-xl">
+*468|            <ModalHeader><ModalTitle className="text-xl font-bold text-slate-900">{translate('endModalTitle')}</ModalTitle></ModalHeader>
+ 469|            <div className="space-y-4 mt-4">
+ 470|              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 font-semibold">
+ 471|                {translate('endWarning')}
+...
+ 521|              <div className="flex justify-end gap-3 pt-2">
+*522|                <Button variant="outline" onClick={() => setIsEndModalOpen?.(false)} disabled={isEnding}>
+ 523|                  {translate('cancel')}
+ 524|                </Button>
+ 525|                <Button onClick={handleConfirmEnd} disabled={isEnding || !!endChecklist?.hasLiveMatches} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg">
+...
+ 529|            </div>
+*530|          </ModalContent>
+*531|        </Modal>
+ 532|      )}
+ 533|    </div>
+ 534|  );
+##### VenueCourtsModal.tsx
+ 8|
+*9|interface VenueCourtsModalProps {
+ 10|  isOpen: boolean;
+ 11|  onClose: () => void;
+ 12|  venue: TournamentVenueWithCourts | null;
+...
+ 25|
+*26|export function VenueCourtsModal({
+ 27|  isOpen,
+ 28|  onClose,
+ 29|  venue,
+...
+ 39|  onSetDefaultVenue,
+*40|}: VenueCourtsModalProps) {
+ 41|  const [batchCount, setBatchCount] = useState<number>(4);
+ 42|  const [batchPrefix, setBatchPrefix] = useState<string>('Sân');
+ 43|  const [isBatchAdding, setIsBatchAdding] = useState(false);
+...
+ 114|  return (
+*115|    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+ 116|      <div className="relative w-full max-w-2xl rounded-xl bg-white shadow-xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden">
+ 117|        {/* Header */}
+ 118|        <div className="border-b border-slate-200 bg-white">
+##### useManageState.ts
+ 153|  }, [selectedDivisionId]);
+*154|  const [isCreateDivisionModalOpen, setIsCreateDivisionModalOpen] = useState(false);
+ 155|  const [editingDivision, setEditingDivision] = useState<Division | null>(null);
+ 156|  const [newDivisionMatchType, setNewDivisionMatchType] = useState('MALE_DOUBLES');
+ 157|  const [newDivisionName, setNewDivisionName] = useState('');
+...
+ 301|  // ── Lock modal ──
+*302|  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+ 303|  const [isLocking, setIsLocking] = useState(false);
+ 304|  const [lockSummary, setLockSummary] = useState<{
+ 305|    totalParticipants: number;
+...
+ 316|  // ── Phase 3 End modal ──
+*317|  const [isEndModalOpen, setIsEndModalOpen] = useState(false);
+ 318|  const [isEnding, setIsEnding] = useState(false);
+ 319|  const [endChecklist, setEndChecklist] = useState<{
+ 320|    totalMatches: number;
+...
+ 1475|    applyDivisionFormValues(division);
+*1476|    setIsCreateDivisionModalOpen(true);
+ 1477|  };
+ 1478|
+ 1479|  const handleAttachExistingTournamentVenue = async (targetVenueId: string) => {
+...
+ 1628|      toast.success(editingDivision ? `Đã cập nhật "${divisionName}".` : `Đã thêm "${divisionName}" thành công!`);
+*1629|      setIsCreateDivisionModalOpen(false);
+ 1630|      resetDivisionEditor();
+ 1631|      await fetchDivisions(tournament.id);
+ 1632|      if (res.data) setSelectedDivisionId(res.data.id);
+...
+ 1744|  const handleTournamentStepTransition = async (nextStatus: Tournament['status']) => {
+*1745|    if (nextStatus === 'UPCOMING') { handleOpenLockModal(); return; }
+ 1746|    if (nextStatus === 'IN_PROGRESS') { handleConfirmOpen(); return; }
+*1747|    if (nextStatus === 'COMPLETED') { handleOpenEndModal(); return; }
+ 1748|    try { setIsLoading(true); await tournamentsApi.updateTournament(id, { status: nextStatus }); toast.success('Đã cập nhật trạng thái!'); await fetchTournamentData(); }
+ 1749|    catch (err) { toast.error(getErrorMessage(err)); }
+ 1750|    finally { setIsLoading(false); }
+...
+ 1772|
+*1773|  const handleOpenLockModal = () => {
+ 1774|    if (!tournament) return;
+ 1775|    if (participants.length < 2) { toast.error('Cần ít nhất 2 đội để chốt'); return; }
+ 1776|    setHasConfigBeforeLock(!!divisions.find(d=>d.id===selectedDivisionId)?.roundConfig?.setsToWin);
+...
+ 1796|    });
+*1797|    setIsLockModalOpen(true);
+ 1798|  };
+ 1799|
+ 1800|  const handleConfirmLock = async () => {
+...
+ 1804|      toast.success('Chốt danh sách thành công!');
+*1805|      setIsLockModalOpen(false);
+ 1806|      // Cập nhật registrationEndDate = thời gian chốt danh sách để đóng form đăng ký
+ 1807|      const now = new Date();
+ 1808|      const pad = (v: number) => String(v).padStart(2, '0');
+...
+ 1831|
+*1832|  const handleOpenEndModal = async () => {
+ 1833|    // Fetch fresh bracket data to avoid stale state
+ 1834|    let bracketData = bracket;
+ 1835|    try {
+...
+ 1850|      setEndChecklist({ totalMatches: 0, completedMatches: 0, liveMatches: 0, hasLiveMatches: false, allCompleted: true });
+*1851|      setIsEndModalOpen(true);
+ 1852|      return;
+ 1853|    }
+ 1854|    const allMatches = bracketData.stages?.flatMap(stage =>
+...
+ 1866|    });
+*1867|    setIsEndModalOpen(true);
+ 1868|  };
+ 1869|
+ 1870|  const handleConfirmEnd = async () => {
+...
+ 1875|    setIsEnding(true);
+*1876|    try { await tournamentsApi.updateTournament(id, { status: 'COMPLETED' }); toast.success('Giải đấu đã kết thúc!'); setIsEndModalOpen(false); await fetchTournamentData(); }
+ 1877|    catch (err) { toast.error(getErrorMessage(err)); }
+ 1878|    finally { setIsEnding(false); }
+ 1879|  };
+...
+ 1973|
+*1974|  const handleOpenRoundModal = (stage: BracketStage, roundNumber: number) => {
+ 1975|    setSelectedStage(stage); setSelectedRoundNumber(roundNumber);
+ 1976|    // Group-stage legs use 'leg_N' so they cannot collide with knockout round keys.
+ 1977|    const isGroupStageLeg = stage.type === 'ROUND_ROBIN' && roundNumber !== 0;
+...
+ 2735|    divisions, setDivisions, selectedDivisionId, setSelectedDivisionId,
+*2736|    isCreateDivisionModalOpen, setIsCreateDivisionModalOpen, editingDivision, openDivisionEditor, resetDivisionEditor,
+ 2737|    newDivisionMatchType, setNewDivisionMatchType, newDivisionName, setNewDivisionName, newDivisionBracketType, setNewDivisionBracketType,
+ 2738|    newDivisionEloEnabled, setNewDivisionEloEnabled, newDivisionMinElo, setNewDivisionMinElo, newDivisionMaxElo, setNewDivisionMaxElo,
+ 2739|    newDivisionMaxParticipants, setNewDivisionMaxParticipants,
+...
+ 2786|    stageSuperTiebreakPoints, setStageSuperTiebreakPoints,
+*2787|    isLockModalOpen, setIsLockModalOpen, isLocking, setIsLocking, lockSummary, setLockSummary,
+ 2788|    isOpening, setIsOpening,
+ 2789|    isOpeningRegistration, setIsOpeningRegistration,
+*2790|    isEndModalOpen, setIsEndModalOpen, isEnding, setIsEnding, endChecklist, setEndChecklist,
+ 2791|    selectedCategory,
+ 2792|    selectedMatch, setSelectedMatch, matchCourtId, setMatchCourtId, matchCourtName, setMatchCourtName,
+ 2793|    matchCourtAddress, setMatchCourtAddress, matchScheduledAt, setMatchScheduledAt,
+...
+ 2817|    handlePublish, handlePayPublishFee, handleDeleteTournament, handlePayPlatformFee,
+*2818|    handleTournamentStepTransition, handleOpenLockModal, handleConfirmLock,
+ 2819|    handleOpenRegistrationNow,
+ 2820|    handleConfirmOpen,
+*2821|    handleOpenEndModal, handleConfirmEnd,
+ 2822|    handleSeedMockData, handleClearMockData, handleAssignWildcard, handleAutoSeed, handleSwapSeeds, handleReorderSeeds, handleApproveParticipant, handleRejectParticipant, handleKickParticipant,
+
+##### roster-import/
+###### RosterImportModal.tsx
+ 9|import {
+*10|  Modal,
+*11|  ModalContent,
+*12|  ModalDescription,
+*13|  ModalFooter,
+*14|  ModalHeader,
+*15|  ModalTitle,
+*16|} from '@/components/ui/Modal';
+ 17|import { tournamentsApi, type Division, type RosterImportItem, type RosterPreviewRow } from '@/features/tournaments/api';
+ 18|import type { Tournament } from '@/types/tournament';
+ 19|import { getErrorMessage } from '@/utils/error';
+...
+ 48|
+*49|interface RosterImportModalProps {
+ 50|  open: boolean;
+ 51|  onOpenChange: (open: boolean) => void;
+ 52|  tournament: Tournament;
+...
+ 57|
+*58|export function RosterImportModal({
+ 59|  open,
+ 60|  onOpenChange,
+ 61|  tournament,
+...
+ 64|  onSuccess,
+*65|}: RosterImportModalProps) {
+ 66|  const translate = useTranslations('RosterImport');
+ 67|  const locale = useLocale();
+ 68|  const fileRef = React.useRef<File | null>(null);
+...
+ 396|  return (
+*397|    <Modal
+ 398|      open={open}
+ 399|      onOpenChange={(next) => {
+ 400|        if (!next && isBusy) return;
+...
+ 411|    >
+*412|      <ModalContent data-testid="roster-import-modal" className="max-w-7xl w-[96vw] max-h-[94vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+ 413|        <div className="shrink-0 border-b border-border bg-surface-subtle px-5 py-4">
+*414|          <ModalHeader>
+*415|            <ModalTitle className="flex items-center gap-2 text-base font-bold text-text-primary">
+ 416|              <FileSpreadsheet className="h-5 w-5 text-text-link" aria-hidden="true" />
+ 417|              {translate('title')}
+*418|            </ModalTitle>
+*419|            <ModalDescription className="text-xs font-medium text-text-muted">
+ 420|              {translate('description')}
+*421|            </ModalDescription>
+*422|          </ModalHeader>
+ 423|
+ 424|          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+ 425|            <label className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+...
+ 580|
+*581|        <ModalFooter className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-subtle px-5 py-3">
+ 582|          <div className="flex flex-wrap items-center gap-4">
+ 583|            <label className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+ 584|              <input
+...
+ 657|          </div>
+*658|        </ModalFooter>
+
+### ops/
+#### page.tsx
+ 6|import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+*7|import { Modal, ModalContent, ModalHeader, ModalTitle } from '@/components/ui/Modal';
+ 8|import { DateTimePicker } from '@/components/ui/Input';
+ 9|import { Activity, AlertTriangle, BarChart3, Calendar, ExternalLink, Network, Settings, Trophy, Video } from 'lucide-react';
+ 10|import { useOrganizerOps } from '@/features/organizer/ops/hooks/useOrganizerOps';
+...
+ 621|                    handleOpenScheduling={handleBracketOpenScheduling}
+*622|          handleOpenRoundModal={bracketManager.handleOpenRoundModal}
+ 623|          refetchDivisionData={bracketManager.refetchDivisionData}
+ 624|          onBracketPersisted={(updatedMatches) => bracketManager.setBracket((current) => mergeBracketMatches(current, updatedMatches) ?? current)}
+ 625|
+...
+ 722|      {bracketManager.selectedMatch && (
+*723|        <Modal
+ 724|          open={!!bracketManager.selectedMatch}
+ 725|          onOpenChange={() => bracketManager.setSelectedMatch(null)}
+ 726|        >
+*727|          <ModalContent className="max-w-lg rounded-lg bg-card p-6">
+*728|            <ModalHeader>
+*729|              <ModalTitle className="text-lg font-bold">{translate('scheduleMatchTitle')}</ModalTitle>
+*730|            </ModalHeader>
+ 731|            <div className="mt-4 space-y-4">
+ 732|              <div>
+ 733|                <label className="text-xs font-bold text-content-muted">{translate('courtLabel')}</label>
+...
+ 836|            </div>
+*837|          </ModalContent>
+*838|        </Modal>
+ 839|      )}
+ 840|    </div>
+ 841|  );
+
+#### components/
+##### OpsMatches.tsx
+ 13|import {
+*14|  Modal,
+*15|  ModalContent,
+*16|  ModalDescription,
+*17|  ModalFooter,
+*18|  ModalHeader,
+*19|  ModalTitle,
+*20|} from '@/components/ui/Modal';
+ 21|import type { Match, MatchPenaltyRecord } from '@/types/match';
+ 22|import { formatDateTime } from '@/utils/format';
+ 23|import { cn } from '@/utils/cn';
+...
+ 303|
+*304|  const openScheduleModal = (match: Match) => {
+ 305|    setSelectedScheduleMatch(match);
+ 306|    setScheduleDraft({
+ 307|      courtName: match.courtName || '',
+...
+ 325|
+*326|  const openScoreModal = (match: Match) => {
+ 327|    setSelectedScoreMatch(match);
+ 328|    setScoreDraft(buildScoreDraft(match, tournamentSportRules));
+ 329|  };
+...
+ 345|
+*346|  const openOperationModal = (match: Match) => {
+ 347|    setSelectedOperationMatch(match);
+ 348|    setOperationDraft({
+ 349|      action: 'WALKOVER',
+...
+ 595|              className="border-border text-content-secondary"
+*596|              onClick={() => openScheduleModal(match)}
+ 597|              disabled={isBusy || isDirectAdvance || isBlocked}
+ 598|            >
+ 599|              <CalendarClock className="mr-2 h-4 w-4" />
+...
+ 618|              className="border-border font-bold text-accent-foreground hover:bg-accent"
+*619|              onClick={() => openScoreModal(match)}
+ 620|              disabled={scoreEntryDisabled}
+ 621|            >
+ 622|              <PencilLine className="mr-2 h-4 w-4" />
+...
+ 627|              className="border-amber-200 text-amber-700 hover:bg-amber-50"
+*628|              onClick={() => openOperationModal(match)}
+ 629|              disabled={
+ 630|                isBusy ||
+ 631|                isDirectAdvance ||
+...
+ 754|
+*755|      <Modal open={Boolean(selectedScheduleMatch)} onOpenChange={(open) => !open && setSelectedScheduleMatch(null)}>
+*756|        <ModalContent className="sm:max-w-2xl">
+*757|          <ModalHeader>
+*758|            <ModalTitle>{translate('scheduleModalTitle')}</ModalTitle>
+*759|            <ModalDescription>{translate('scheduleModalDescription')}</ModalDescription>
+*760|          </ModalHeader>
+ 761|
+ 762|          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+ 763|            <div className="space-y-2">
+...
+ 795|
+*796|          <ModalFooter className="gap-2">
+ 797|            <Button variant="outline" className="border-border text-content-secondary" onClick={() => setSelectedScheduleMatch(null)}>
+ 798|              {translate('cancel')}
+ 799|            </Button>
+##### OpsParticipants.tsx
+ 8|import {
+*9|  DropdownMenu,
+*10|  DropdownMenuContent,
+*11|  DropdownMenuItem,
+*12|  DropdownMenuLabel,
+*13|  DropdownMenuSeparator,
+*14|  DropdownMenuTrigger,
+*15|} from '@/components/ui/DropdownMenu';
+ 16|import {
+*17|  Modal,
+*18|  ModalContent,
+*19|  ModalDescription,
+*20|  ModalFooter,
+*21|  ModalHeader,
+*22|  ModalTitle,
+*23|} from '@/components/ui/Modal';
+ 24|import type { TournamentParticipant } from '@/types/tournament';
+ 25|import { formatDate } from '@/utils/format';
+ 26|import { cn } from '@/utils/cn';
+...
+ 229|                      <td className="py-4 text-right">
+*230|                        <DropdownMenu>
+*231|                          <DropdownMenuTrigger asChild>
+ 232|                            <Button
+ 233|                              variant="outline"
+ 234|                              size="sm"
+...
+ 239|                            </Button>
+*240|                          </DropdownMenuTrigger>
+*241|                          <DropdownMenuContent align="end" className="w-56">
+*242|                            <DropdownMenuLabel>{opsTranslate('operationsAction')}</DropdownMenuLabel>
+*243|                            <DropdownMenuSeparator />
+
+##### scoring/
+###### ScoringPanel.tsx
+ 5|import { Button } from '@/components/ui/Button';
+*6|import { ModalFooter } from '@/components/ui/Modal';
+ 7|import {
+ 8|  extractMatchScores,
+ 9|  getMatchScorePresentation,
+...
+ 666|
+*667|      <ModalFooter className="gap-2">
+ 668|        <Button variant="outline" className="border-border text-content-secondary" onClick={onCancel}>
+ 669|          {scoringTranslate('cancel')}
+ 670|        </Button>
+...
+ 677|        </Button>
+*678|      </ModalFooter>
+ 679|    </div>
+ 680|  );
+ 681|}
+
+## create/
+### QuickTournamentCreate.tsx
+ 29|import { tournamentsApi } from '@/features/tournaments/api';
+*30|import CircularImageCropModal from '@/components/common/CircularImageCropModal';
+ 31|import { regionsApi, Region } from '@/features/regions/api';
+ 32|import { getErrorMessage } from '@/utils/error';
+ 33|import RichTextEditor from '@/components/ui/RichTextEditor';
+...
+ 37|import { deriveRegistrationWindow } from '@/utils/tournamentRegistrationSchedule';
+*38|import SmartAiTournamentModal from './SmartAiTournamentModal';
+ 39|import {
+ 40|  DEFAULT_FOOTBALL_FORMATS,
+ 41|  DEFAULT_FOOTBALL_FORMAT_OPTIONS,
+...
+ 322|  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+*323|  const [logoCropModalOpen, setLogoCropModalOpen] = useState(false);
+ 324|  const [pendingLogoSrc, setPendingLogoSrc] = useState('');
+ 325|  const { register, handleSubmit, setValue, control, formState: { errors } } = useForm<QuickValues>({
+ 326|    resolver: zodResolver(quickSchema),
+...
+ 414|        setPendingLogoSrc(reader.result);
+*415|        setLogoCropModalOpen(true);
+ 416|      }
+ 417|    };
+ 418|    reader.onerror = () => toast.error(translate('mediaUploadFailed'));
+...
+ 422|  const handleLogoCropConfirm = async (blob: Blob) => {
+*423|    setLogoCropModalOpen(false);
+ 424|    setIsUploadingMedia(true);
+ 425|    const toastId = 'quick-tournament-logo-upload';
+ 426|    toast.loading(translate('uploadingLogo'), { id: toastId });
+...
+ 469|  };
+*470|  const [isFormatModalOpen, setIsFormatModalOpen] = useState(false);
+*471|  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+ 472|  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+ 473|  const [showCreateOptions, setShowCreateOptions] = useState(false);
+ 474|  const [editingFormatId, setEditingFormatId] = useState<string | null>(null);
+...
+ 495|  useEffect(() => {
+*496|    if (!isFormatModalOpen && !isAiModalOpen) return;
+ 497|    const handleEscape = (event: KeyboardEvent) => {
+ 498|      if (event.key !== 'Escape') return;
+*499|      if (isFormatModalOpen) setIsFormatModalOpen(false);
+*500|      if (isAiModalOpen) setIsAiModalOpen(false);
+ 501|    };
+ 502|    window.addEventListener('keydown', handleEscape);
+ 503|    return () => window.removeEventListener('keydown', handleEscape);
+*504|  }, [isAiModalOpen, isFormatModalOpen]);
+ 505|
+ 506|  const draftKey = `sporto:tournament-quick-draft:${communityId || 'public'}`;
+ 507|
+...
+ 618|
+*619|  const openFormatModal = (formatId?: string) => {
+ 620|    const isFootball = sport === 'football';
+ 621|    const sportOptions = QUICK_FORMAT_OPTIONS.filter((item) =>
+ 622|      isFootball ? DEFAULT_FOOTBALL_FORMATS.includes(item.key) : DEFAULT_RACKET_FORMATS.includes(item.key)
+...
+ 637|        setShowAdvancedOptions(Boolean(existing.bracketType || existing.eloEnabled));
+*638|        setIsFormatModalOpen(true);
+ 639|        return;
+ 640|      }
+ 641|    }
+...
+ 659|    setShowAdvancedOptions(false);
+*660|    setIsFormatModalOpen(true);
+ 661|  };
+ 662|
+ 663|  const removeFormat = (formatId: string) => {
+...
+ 704|    syncLegacyFormat(normalizedDraft.key);
+*705|    setIsFormatModalOpen(false);
+ 706|  };
+ 707|
+ 708|  const handleSportChange = (newSport: QuickSport) => {
+...
+ 893|              type="button"
+*894|              onClick={() => setIsAiModalOpen(true)}
+ 895|              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition cursor-pointer hover:border-blue-500 hover:text-blue-600"
+ 896|            >
+ 897|              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+...
+ 1471|                              type="button"
+*1472|                              onClick={() => openFormatModal(formatId)}
+ 1473|                              className="inline-flex items-center gap-1 rounded p-1 text-slate-400 transition-colors hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+ 1474|                              title={translate('editFormat')}
+ 1475|                              aria-label={translate('editFormatAria', { label: config.label })}
+...
+ 1496|                  type="button"
+*1497|                  onClick={() => openFormatModal()}
+ 1498|                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition-colors cursor-pointer hover:border-blue-500 hover:text-blue-600"
+ 1499|                >
+ 1500|                  <Plus className="h-3.5 w-3.5" /> {translate('addFormat')}
+...
+ 1712|      </div>
+*1713|      {isFormatModalOpen && (
+ 1714|        <div
+*1715|          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+### SmartAiTournamentModal.tsx
+ 49|
+*50|interface SmartAiTournamentModalProps {
+ 51|  isOpen: boolean;
+ 52|  onClose: () => void;
+ 53|  onSuccess: (tournamentId: string) => void;
+...
+ 124|
+*125|export default function SmartAiTournamentModal({
+ 126|  isOpen,
+ 127|  onClose,
+ 128|  onSuccess,
+*129|}: SmartAiTournamentModalProps) {
+ 130|  const translate = useTranslations('SmartAiTournament');
+ 131|  const locale = useLocale();
+ 132|  const [step, setStep] = useState<1 | 2 | 3>(1);
+...
+ 632|    <div
+*633|      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+ 634|      onMouseDown={(event) => {
+ 635|        if (event.target === event.currentTarget && !isAnalyzing && !isCreating) onClose();
+ 636|      }}

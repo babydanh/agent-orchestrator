@@ -1,0 +1,2940 @@
+### region 1 (edit, ~394 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#DCC6]
+416:async function selectParticipantEntries(
+
+422:): Promise<CapacityEntryRow[]> {
+
+424:  const reservingRows = inArray(schema.tournamentParticipants.teamStatus, [
+
+426:  ]);
+427:  const entryColumns = {
+428:    participantId: participants.id,
+429:    teamStatus: schema.tournamentParticipants.teamStatus,
+430:    rosterMemberCount: count(schema.tournamentRosters.userId),
+
+432:  };
+
+435:  if (scope.divisionIds !== undefined) {
+436:    const rows = await executor
+
+449:      .groupBy(
+
+452:        entryColumns.teamStatus,
+453:        entryColumns.customResponses,
+454:        participants.id,
+455:      );
+456:
+457:    const guestMemberCounts = await selectGuestRosterCounts(
+458:      executor,
+…
+471:      ),
+472:    );
+473:  }
+474:
+
+478:  const rows = await executor
+
+494:    .groupBy(
+
+496:      participants.tournamentId,
+497:      entryColumns.teamStatus,
+498:      participants.id,
+499:      entryColumns.customResponses,
+500:      schema.tournamentDivisions.matchType,
+501:    );
+502:
+503:  const guestMemberCounts = await selectGuestRosterCounts(
+504:    executor,
+505:    rows.map(({ participantId }) => participantId),
+506:  );
+507:  return rows.map((row) =>
+508:    toCapacityEntry(
+509:      row.scopeId,
+…
+516:      row.divisionMatchType,
+517:    ),
+518:  );
+519:}
+520:
+521:async function selectGuestRosterCounts(
+522:  executor: AppDbOrTx,
+…
+544:  return guestMemberCounts;
+545:}
+546:function toCapacityEntry(
+547:  scopeId: string | null,
+
+554:): CapacityEntryRow {
+
+566:}
+
+### region 2 (read, ~1318 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#DCC6]
+415:
+416:async function selectParticipantEntries(
+417:  executor: AppDbOrTx,
+418:  scope: {
+419:    divisionIds?: readonly string[];
+420:    tournamentIds?: readonly string[];
+421:  },
+422:): Promise<CapacityEntryRow[]> {
+423:  const ids = [...(scope.divisionIds ?? scope.tournamentIds ?? [])];
+424:  const reservingRows = inArray(schema.tournamentParticipants.teamStatus, [
+425:    ...CAPACITY_RESERVING_TEAM_STATUSES,
+426:  ]);
+427:  const entryColumns = {
+428:    participantId: participants.id,
+429:    teamStatus: schema.tournamentParticipants.teamStatus,
+430:    rosterMemberCount: count(schema.tournamentRosters.userId),
+431:    customResponses: schema.tournamentParticipants.customResponses,
+432:  };
+433:  const participants = schema.tournamentParticipants;
+434:
+435:  if (scope.divisionIds !== undefined) {
+436:    const rows = await executor
+437:      .select({
+438:        scopeId: participants.tournamentDivisionId,
+439:        ...entryColumns,
+440:      })
+441:      .from(participants)
+442:      .leftJoin(
+443:        schema.tournamentRosters,
+444:        eq(schema.tournamentRosters.participantId, participants.id),
+445:      )
+446:      .where(
+447:        and(inArray(participants.tournamentDivisionId, ids), reservingRows),
+448:      )
+449:      .groupBy(
+450:        participants.id,
+451:        participants.tournamentDivisionId,
+452:        entryColumns.teamStatus,
+453:        entryColumns.customResponses,
+454:        participants.id,
+455:      );
+456:
+457:    const guestMemberCounts = await selectGuestRosterCounts(
+458:      executor,
+459:      rows.map(({ participantId }) => participantId),
+460:    );
+461:    return rows.map((row) =>
+462:      toCapacityEntry(
+463:        row.scopeId,
+464:        {
+465:          ...row,
+466:          rosterMemberCount:
+467:            Number(row.rosterMemberCount) +
+468:            (guestMemberCounts.get(row.participantId) ?? 0),
+469:        },
+470:        null,
+471:      ),
+472:    );
+473:  }
+474:
+475:  // A tournament-wide read spans divisions of different formats, so each row
+476:  // has to carry its own; a division read already knows its format and never
+477:  // joins. A row without a division keeps the tournament's format.
+478:  const rows = await executor
+479:    .select({
+480:      scopeId: participants.tournamentId,
+481:      ...entryColumns,
+482:      divisionMatchType: schema.tournamentDivisions.matchType,
+483:    })
+484:    .from(participants)
+485:    .leftJoin(
+486:      schema.tournamentRosters,
+487:      eq(schema.tournamentRosters.participantId, participants.id),
+488:    )
+489:    .leftJoin(
+490:      schema.tournamentDivisions,
+491:      eq(schema.tournamentDivisions.id, participants.tournamentDivisionId),
+492:    )
+493:    .where(and(inArray(participants.tournamentId, ids), reservingRows))
+494:    .groupBy(
+495:      participants.id,
+496:      participants.tournamentId,
+497:      entryColumns.teamStatus,
+498:      participants.id,
+499:      entryColumns.customResponses,
+500:      schema.tournamentDivisions.matchType,
+501:    );
+502:
+503:  const guestMemberCounts = await selectGuestRosterCounts(
+504:    executor,
+505:    rows.map(({ participantId }) => participantId),
+506:  );
+507:  return rows.map((row) =>
+508:    toCapacityEntry(
+509:      row.scopeId,
+510:      {
+511:        ...row,
+512:        rosterMemberCount:
+513:          Number(row.rosterMemberCount) +
+514:          (guestMemberCounts.get(row.participantId) ?? 0),
+515:      },
+516:      row.divisionMatchType,
+517:    ),
+518:  );
+519:}
+520:
+521:async function selectGuestRosterCounts(
+522:  executor: AppDbOrTx,
+523:  participantIds: readonly string[],
+524:): Promise<Map<string, number>> {
+525:  if (participantIds.length === 0) return new Map();
+526:
+527:  const guestRows = await executor
+528:    .select({
+529:      participantId: schema.tournamentGuestRosters.participantId,
+530:      guestMemberCount: count(schema.tournamentGuestRosters.id),
+531:    })
+532:    .from(schema.tournamentGuestRosters)
+533:    .where(
+534:      inArray(
+535:        schema.tournamentGuestRosters.participantId,
+536:        [...participantIds],
+537:      ),
+538:    )
+539:    .groupBy(schema.tournamentGuestRosters.participantId);
+540:  const guestMemberCounts = new Map<string, number>();
+541:  for (const row of guestRows) {
+542:    guestMemberCounts.set(row.participantId, Number(row.guestMemberCount));
+543:  }
+544:  return guestMemberCounts;
+545:}
+546:function toCapacityEntry(
+547:  scopeId: string | null,
+548:  row: {
+549:    teamStatus: string | null;
+550:    rosterMemberCount: number;
+551:    customResponses: unknown;
+552:  },
+553:  matchType: string | null | undefined,
+554:): CapacityEntryRow {
+555:  const rosterMemberCount = Number(row.rosterMemberCount ?? 0);
+556:  return {
+557:    scopeId: scopeId ?? '',
+558:    teamStatus: row.teamStatus,
+559:    rosterMemberCount,
+560:    importedMemberCount: importedPairMemberCount(
+561:      row.customResponses,
+562:      rosterMemberCount,
+563:    ),
+564:    matchType: matchType ?? null,
+565:  };
+566:}
+567:
+568:function buildSnapshot(
+569:  owner: CapacityOwnerRow,
+…
+571:): TournamentCapacitySnapshot {
+…
+585:}
+
+[Showing lines 415-569 of 617. Use :570 to continue]
+
+### region 3 (edit, ~279 tok)
+
+[backend/src/modules/tournaments/services/tournament-capacity.service.ts#CA07]
+424:  const reservingRows = inArray(schema.tournamentParticipants.teamStatus, [
+425:    ...CAPACITY_RESERVING_TEAM_STATUSES,
+426:  ]);
+427:  const participants = schema.tournamentParticipants;
+428:  const entryColumns = {
+429:    participantId: participants.id,
+430:    teamStatus: participants.teamStatus,
+431:    rosterMemberCount: count(schema.tournamentRosters.userId),
+432:    customResponses: participants.customResponses,
+433:  };
+434:
+435:  if (scope.divisionIds !== undefined) {
+436:    const rows = await executor
+
+449:      .groupBy(
+
+452:        entryColumns.teamStatus,
+453:        entryColumns.customResponses,
+454:      );
+455:
+
+472:  }
+
+495:      participants.tournamentId,
+496:      entryColumns.teamStatus,
+497:      entryColumns.customResponses,
+498:      schema.tournamentDivisions.matchType,
+
+519:async function selectGuestRosterCounts(
+
+522:): Promise<Map<string, number>> {
+
+542:  return guestMemberCounts;
+543:}
+544:
+545:function toCapacityEntry(
+546:  scopeId: string | null,
+
+553:): CapacityEntryRow {
+
+565:}
+
+### region 4 (bash, ~76 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       33 skipped, 1 passed, 34 total
+Snapshots:   0 total
+Time:        0.863 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/tournament-capacity.service.spec.ts with tests matching "counts guest roster slots".
+
+
+Wall time: 1.28 seconds
+
+### region 5 (read, ~2552 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#7C50]
+124:
+125:      // 1.5 Kiểm tra Exclusion Rule (khóa đăng ký đối với chặng đấu thuộc chuỗi giải đấu)
+126:      const [seriesEvent] = await tx
+127:        .select({
+128:          event: schema.seriesEvents,
+129:          leg: schema.seriesLegs,
+130:          series: schema.tournamentSeries,
+131:        })
+132:        .from(schema.seriesEvents)
+133:        .innerJoin(
+134:          schema.seriesLegs,
+135:          eq(schema.seriesEvents.legId, schema.seriesLegs.id),
+136:        )
+137:        .innerJoin(
+138:          schema.tournamentSeries,
+139:          eq(schema.seriesLegs.seriesId, schema.tournamentSeries.id),
+140:        )
+141:        .where(eq(schema.seriesEvents.tournamentId, tournamentId))
+142:        .limit(1);
+143:
+144:      if (seriesEvent && seriesEvent.series.rules) {
+145:        const rules = seriesEvent.series.rules as unknown as {
+146:          exclusionRule?: boolean;
+147:          exclusionScope?: 'CATEGORY' | 'ALL';
+148:        };
+149:        if (rules.exclusionRule) {
+150:          const scope = rules.exclusionScope || 'CATEGORY';
+151:          const conds = [
+152:            eq(schema.seriesStandings.legId, seriesEvent.leg.id),
+153:            eq(schema.seriesStandings.userId, userId),
+154:            eq(schema.seriesStandings.lockedOut, true),
+155:          ];
+156:          if (scope === 'CATEGORY') {
+157:            conds.push(
+158:              eq(schema.seriesStandings.categoryId, tournament.categoryId),
+159:            );
+160:          }
+161:          const [standing] = await tx
+162:            .select()
+163:            .from(schema.seriesStandings)
+164:            .where(and(...conds))
+165:            .limit(1);
+166:
+167:          if (standing) {
+168:            throw new ExclusionRuleException(
+169:              `Bạn đã giành Vé Thẳng trong chặng này và bị khóa không được đăng ký tiếp nội dung ${
+170:                scope === 'CATEGORY' ? 'này' : 'thi đấu thuộc chặng'
+171:              }.`,
+172:            );
+173:          }
+174:        }
+175:      }
+176:
+177:      // The lifecycle status is the registration gate. UPCOMING is scheduled,
+178:      // not open; the organizer action moves it to REGISTRATION_OPEN.
+179:      if (
+180:        !isRegistrationOpenStatus(tournament.status) ||
+181:        tournament.isRegistrationLocked
+182:      ) {
+183:        throw new BadRequestException('Giải đấu chưa hoặc đã đóng đăng ký.');
+184:      }
+185:
+186:      // 3. Kiểm tra thời hạn đăng ký; the status gate above has already
+187:      // rejected UPCOMING, so the configured start date cannot override it.
+188:      const now = new Date();
+189:      if (
+190:        tournament.registrationEndDate &&
+191:        now > tournament.registrationEndDate
+192:      ) {
+193:        throw new BadRequestException('Thời gian đăng ký đã kết thúc.');
+194:      }
+195:
+196:      // 4. Kiểm tra mã mời nếu giải PRIVATE hoặc ở chế độ INVITE_ONLY
+197:      const tConfig = (tournament.tournamentConfig || {}) as Record<
+198:        string,
+199:        unknown
+200:      >;
+201:      const configuredDoublesPairingMode =
+202:        tConfig.doublesPairingMode === 'SELF' ? 'SELF' : 'ORGANIZER';
+203:      const requestedDoublesPairingMode =
+204:        data.doublesPairingMode === 'SELF' ||
+205:        data.doublesPairingMode === 'ORGANIZER'
+206:          ? data.doublesPairingMode
+207:          : configuredDoublesPairingMode;
+208:      const rawRegMode = (tConfig.registrationMode as string) || 'OPEN';
+209:      const regMode = rawRegMode;
+210:
+211:      if (regMode === 'INVITE_ONLY' || tournament.visibility === 'PRIVATE') {
+212:        if (!inviteCode || tournament.inviteCode !== inviteCode) {
+213:          throw new BadRequestException(
+214:            'Mã mời giải đấu không hợp lệ hoặc thiếu.',
+215:          );
+216:        }
+217:      }
+218:      const isLiteTournament = Boolean(
+219:        tConfig.isLite || tConfig.mode === 'LITE',
+220:      );
+221:      const divisions = await tx
+222:        .select()
+223:        .from(schema.tournamentDivisions)
+224:        .where(
+225:          and(
+226:            eq(schema.tournamentDivisions.tournamentId, tournamentId),
+227:            ne(schema.tournamentDivisions.status, 'CANCELLED'),
+228:          ),
+229:        );
+230:      const requestedDivisionId =
+231:        data.tournamentDivisionId ?? data.divisionId;
+232:      if (!requestedDivisionId && divisions.length > 1) {
+233:        throw new BadRequestException(
+234:          'Vui lòng chọn nội dung thi đấu trước khi đăng ký.',
+235:        );
+236:      }
+237:      const requestedDivision = requestedDivisionId
+238:        ? divisions.find((division) => division.id === requestedDivisionId)
+239:        : divisions.length === 1
+240:          ? divisions[0]
+241:          : undefined;
+242:
+243:
+244:      const getProfileGender = async (targetUserId: string, label: string) => {
+245:        const [profile] = await tx
+246:          .select({ gender: schema.profiles.gender })
+247:          .from(schema.profiles)
+248:          .where(eq(schema.profiles.userId, targetUserId))
+249:          .limit(1);
+250:
+251:        const rawGender = (profile?.gender || '').trim().toUpperCase();
+252:        let gender = rawGender;
+253:        if (rawGender === 'NAM' || rawGender === 'MALE') gender = 'MALE';
+254:        else if (
+255:          rawGender === 'NỮ' ||
+256:          rawGender === 'NU' ||
+257:          rawGender === 'FEMALE'
+258:        )
+259:          gender = 'FEMALE';
+260:
+261:        if (gender !== 'MALE' && gender !== 'FEMALE') {
+262:          throw new BadRequestException(
+263:            `${label} cần cập nhật giới tính trong hồ sơ cá nhân để đăng ký.`,
+264:          );
+265:        }
+266:        return gender;
+267:      };
+268:
+269:      const normalizeMatchType = (matchType: string | null) => {
+270:        if (
+271:          matchType === 'SINGLES' ||
+272:          matchType === 'DOUBLES' ||
+273:          matchType === 'MIXED_DOUBLES'
+274:        ) {
+275:          return matchType;
+276:        }
+277:        return 'DOUBLES';
+278:      };
+279:
+280:      type ResolvedDivisionResult = {
+281:        division: typeof schema.tournamentDivisions.$inferSelect;
+282:        isWaitlisted: boolean;
+283:      };
+284:
+285:      const resolveMatchingDivision = async (
+286:        partnerUserId: string | null,
+287:      ): Promise<ResolvedDivisionResult | null> => {
+288:        const requestedGenderRestriction = (
+289:          requestedDivision?.genderRestriction || ''
+290:        ).toUpperCase();
+291:        const isExplicitOpenDivision = Boolean(
+292:          isLiteTournament ||
+293:          (requestedDivision &&
+294:            isGenderUnrestricted(requestedDivision.genderRestriction)) ||
+295:          (!requestedDivision &&
+296:            !requestedDivisionId &&
+297:            divisions.length === 0 &&
+298:            ['SINGLES', 'DOUBLES'].includes(
+299:              normalizeMatchType(tournament.matchType),
+300:            ) &&
+301:            isGenderUnrestricted(tournament.genderRestriction)),
+302:        );
+303:        const requiresLeaderGender =
+304:          !isExplicitOpenDivision &&
+305:          (Boolean(partnerUserId) ||
+306:            !requestedDivisionId ||
+307:            Boolean(
+308:              requestedDivision &&
+309:                !isGenderUnrestricted(requestedDivision.genderRestriction),
+310:            ));
+311:        const leaderGender = requiresLeaderGender
+312:          ? await getProfileGender(userId, 'Bạn')
+313:          : null;
+314:        let targetMatchType = normalizeMatchType(tournament.matchType);
+315:        let targetGenderRestriction: 'MALE' | 'FEMALE' | 'MIXED' | null =
+316:          leaderGender === 'MALE' || leaderGender === 'FEMALE'
+317:            ? leaderGender
+318:            : null;
+319:
+320:        if (partnerUserId && !isExplicitOpenDivision) {
+321:          const partnerGender = await getProfileGender(
+322:            partnerUserId,
+323:            'Đồng đội',
+324:          );
+325:          targetGenderRestriction =
+326:            leaderGender === partnerGender ? leaderGender : 'MIXED';
+327:          targetMatchType =
+328:            targetGenderRestriction === 'MIXED' ? 'MIXED_DOUBLES' : 'DOUBLES';
+329:        } else if (
+330:          !partnerUserId &&
+331:          targetMatchType === 'MIXED_DOUBLES' &&
+332:          !requestedDivisionId &&
+333:          !isLiteTournament &&
+334:          requestedDoublesPairingMode === 'SELF'
+335:        ) {
+336:          throw new BadRequestException(
+337:            'Hình thức Đôi Nam Nữ yêu cầu nhập đồng đội để xác định giới tính cặp.',
+338:          );
+339:        }
+340:
+341:        if (requestedDivision) {
+342:          targetMatchType = normalizeMatchType(requestedDivision.matchType);
+343:          const reqGender = requestedGenderRestriction;
+344:          if (
+345:            reqGender === 'MALE' ||
+346:            reqGender === 'FEMALE' ||
+347:            reqGender === 'MIXED'
+348:          ) {
+349:            targetGenderRestriction = reqGender;
+350:          }
+351:        }
+352:        if (
+353:          tournament.genderRestriction &&
+354:          !requestedDivision &&
+355:          !requestedDivisionId
+356:        ) {
+357:          const restriction = tournament.genderRestriction.toUpperCase();
+358:          if (restriction === 'MALE' && targetGenderRestriction !== 'MALE') {
+359:            throw new BadRequestException('Giải đấu chỉ dành cho Nam.');
+360:          }
+361:          if (
+362:            restriction === 'FEMALE' &&
+363:            targetGenderRestriction !== 'FEMALE'
+364:          ) {
+365:            throw new BadRequestException('Giải đấu chỉ dành cho Nữ.');
+366:          }
+367:          if (restriction === 'MIXED' && targetGenderRestriction !== 'MIXED') {
+368:            throw new BadRequestException(
+…
+370:            );
+371:          }
+372:        }
+…
+438:      };
+
+[Showing lines 124-368 of 2795. Use :369 to continue]
+
+### region 6 (read, ~537 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#7C50]
+84:  private isDoublesMatchType(matchType: string | null | undefined) {
+85:    return matchType === 'DOUBLES' || matchType === 'MIXED_DOUBLES';
+86:  }
+87:  async reopenRegistration(id: string, registrationStartDate?: Date) {
+88:    const [updated] = await this.db
+89:      .update(schema.tournaments)
+90:      .set({
+91:        status: 'REGISTRATION_OPEN',
+92:        isRegistrationLocked: false,
+93:        ...(registrationStartDate ? { registrationStartDate } : {}),
+94:        updatedAt: new Date(),
+95:      })
+96:      .where(eq(schema.tournaments.id, id))
+97:      .returning();
+98:    return updated;
+99:  }
+100:  async registerParticipant(
+101:    tournamentId: string,
+102:    userId: string,
+103:    data: RegisterTournamentDto,
+104:    inviteCode?: string,
+105:  ) {
+106:    return await this.db.transaction(async (tx) => {
+107:      // 1. Kiểm tra giải đấu
+108:      const [tournament] = await tx
+109:        .select()
+110:        .from(schema.tournaments)
+111:        .where(eq(schema.tournaments.id, tournamentId))
+112:        .for('update')
+113:        .limit(1);
+114:
+115:      if (!tournament) {
+116:        throw new BadRequestException('Giải đấu không tồn tại');
+117:      }
+118:
+119:      if (tournament.isRanked && data.rankingConsent !== true) {
+120:        throw new BadRequestException(
+121:          'Giải đấu có xếp hạng yêu cầu bạn đồng ý gửi kết quả lên bảng xếp hạng.',
+122:        );
+123:      }
+124:
+125:      // 1.5 Kiểm tra Exclusion Rule (khóa đăng ký đối với chặng đấu thuộc chuỗi giải đấu)
+126:      const [seriesEvent] = await tx
+127:        .select({
+128:          event: schema.seriesEvents,
+129:          leg: schema.seriesLegs,
+…
+131:        })
+132:        .from(schema.seriesEvents)
+133:        .innerJoin(
+…
+136:        )
+137:        .innerJoin(
+…
+140:        )
+141:        .where(eq(schema.seriesEvents.tournamentId, tournamentId))
+142:        .limit(1);
+…
+1258:    });
+1259:  }
+
+[Showing lines 84-129 of 2795. Use :130 to continue]
+
+### region 7 (write, ~57 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts#45C7]
+Successfully wrote 1759 bytes to backend/src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts
+
+### region 8 (bash, ~421 tok)
+
+FAIL src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts
+  ● TournamentRegistrationRepository ranking consent › reaches registration lifecycle validation without ranking consent
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Giải đấu chưa hoặc đã đóng đăng ký."
+    Received message:   "Giải đấu có xếp hạng yêu cầu bạn đồng ý gửi kết quả lên bảng xếp hạng."
+
+          118 |
+          119 |       if (tournament.isRanked && data.rankingConsent !== true) {
+        > 120 |         throw new BadRequestException(
+              |               ^
+          121 |           'Giải đấu có xếp hạng yêu cầu bạn đồng ý gửi kết quả lên bảng xếp hạng.',
+          122 |         );
+          123 |       }
+
+      at modules/tournaments/repositories/tournament-registration.repository.ts:120:15
+      at TournamentRegistrationRepository.registerParticipant (modules/tournaments/repositories/tournament-registration.repository.ts:106:12)
+      at Object.<anonymous> (modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts:48:5)
+      at Object.toThrow (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts:54:15)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        1.171 s
+Ran all test suites matching src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts.
+
+
+Wall time: 1.60 seconds
+
+Command exited with code 1
+
+### region 9 (edit, ~66 tok)
+
+[backend/src/modules/tournaments/repositories/tournament-registration.repository.ts#9AD8]
+115:      if (!tournament) {
+
+117:      }
+118:
+119:
+120:      // 1.5 Kiểm tra Exclusion Rule (khóa đăng ký đối với chặng đấu thuộc chuỗi giải đấu)
+
+### region 10 (bash, ~62 tok)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        1.064 s
+Ran all test suites matching src/modules/tournaments/repositories/tournament-registration-consent-optional.spec.ts.
+
+
+Wall time: 1.49 seconds
+
+### region 11 (read, ~2415 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#8232]
+1:import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
+2:import { and, eq, isNull } from 'drizzle-orm';
+3:import { PG_CONNECTION } from '../../../database/database.module';
+4:import type { AppDb } from '../../../database/db.types';
+5:import * as schema from '../../../database/schema';
+6:import { MailService } from '../../../providers/mail/mail.service';
+7:
+8:/**
+9: * Thông báo XÁC NHẬN (không phải lời mời) cho người tham gia.
+10: *
+11: * Mail KHÔNG mang token: bấm xác nhận phải đi qua endpoint đã đăng nhập, nên không
+12: * có bí mật nào nằm trong link để lộ. Link chỉ đưa người chơi tới trang giải để bấm.
+13: *
+14: * Tự động nhắc tối đa 3 lần rồi dừng — bấm tay từ phía ban tổ chức là thao tác
+15: * không còn thiết.
+16: */
+17:export const CONSENT_MAX_NOTIFICATIONS = 3;
+18:
+19:/** Số giờ chờ trước mỗi lần nhắc, tính từ lần gửi gần nhất. */
+20:export const CONSENT_REMINDER_DELAYS_HOURS = [24, 72] as const;
+21:
+22:@Injectable()
+23:export class RankingConsentService {
+24:  private readonly logger = new Logger(RankingConsentService.name);
+25:
+26:  constructor(
+27:    @Inject(PG_CONNECTION) private readonly db: AppDb,
+28:    @Optional() private readonly mailService?: MailService,
+29:  ) {}
+30:
+31:  private get frontendUrl(): string {
+32:    return (
+33:      process.env.FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3001'
+34:    );
+35:  }
+36:
+37:  /** Gửi ngay cho một roster row cụ thể (dùng khi vừa thêm người). */
+38:  async sendConfirmationRequest(rosterId: string): Promise<boolean> {
+39:    return this.dispatch(rosterId, 'Xác nhận tham gia giải đấu');
+40:  }
+41:
+42:  /** Nhắc lại cho những ai đã quá hạn mà chưa xác nhận. */
+43:  async sendDueReminders(): Promise<number> {
+44:    const now = Date.now();
+45:
+46:    // Rows whose notifiedAt is still NULL are included on purpose. dispatch stamps
+47:    // that column only after a successful send, so filtering NULLs out would mean a
+48:    // single temporary mail outage silently ends all reminders — the player never
+49:    // hears again and never learns their matches go unscored. That is exactly the
+50:    // silent-exclusion failure this feature exists to prevent.
+51:    const due = await this.db
+52:      .select({
+53:        id: schema.tournamentRosters.id,
+54:        attempts: schema.tournamentRosters.consentNotifiedCount,
+55:        notifiedAt: schema.tournamentRosters.consentNotifiedAt,
+56:        joinedAt: schema.tournamentRosters.joinedAt,
+57:      })
+58:      .from(schema.tournamentRosters)
+59:      .innerJoin(
+60:        schema.tournamentParticipants,
+61:        eq(
+62:          schema.tournamentParticipants.id,
+63:          schema.tournamentRosters.participantId,
+64:        ),
+65:      )
+66:      .innerJoin(
+67:        schema.tournaments,
+68:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+69:      )
+70:      .where(
+71:        and(
+72:          isNull(schema.tournamentRosters.rankingConsentAt),
+73:          // A tournament that does not rank scores nothing, so asking its players to
+74:          // consent would be noise.
+75:          eq(schema.tournaments.isRanked, true),
+76:        ),
+77:      );
+78:
+79:    let sent = 0;
+80:    for (const row of due) {
+81:      // Three sends in total: the one at add time plus two reminders. Past the cap
+82:      // the row is left alone — nobody gets nagged forever.
+83:      if (row.attempts >= CONSENT_MAX_NOTIFICATIONS) continue;
+84:
+85:      // attempts === 0 means the first send never landed, so the clock runs from
+86:      // when the player joined instead of from a send that does not exist.
+87:      const anchor = row.notifiedAt ?? row.joinedAt;
+88:      if (!anchor) continue;
+89:
+90:      // attempts counts DELIVERED sends, and the send at add time already made it 1.
+91:      // So the first reminder is attempts === 1 → delays[0] = 24h. Indexing by
+92:      // `attempts` would jump straight to 72h and leave delays[0] as dead code.
+93:      // attempts === 0 means nothing was delivered yet, so the 24h delay runs from
+94:      // joinedAt instead.
+95:      const delayHours =
+96:        CONSENT_REMINDER_DELAYS_HOURS[
+97:          Math.min(
+98:            Math.max(row.attempts - 1, 0),
+99:            CONSENT_REMINDER_DELAYS_HOURS.length - 1,
+100:          )
+101:        ];
+102:      const elapsedHours = (now - new Date(anchor).getTime()) / 3_600_000;
+103:      if (elapsedHours < delayHours) continue;
+104:
+105:      if (await this.dispatch(row.id, 'Nhắc xác nhận tham gia giải đấu')) {
+106:        sent += 1;
+107:      }
+108:    }
+109:    return sent;
+110:  }
+111:
+112:  /**
+113:   * Gửi 1 mail và ghi nhận số lần đã gửi.
+114:   *
+115:   * Chỉ tăng bộ đếm khi gửi THÀNH CÔNG — nếu không, một hệ thống mail hỏng sẽ đốt
+116:   * hết 3 lượt nhắc rồi im lặng, biến "chưa gửi được" thành "đã bỏ qua".
+117:   */
+118:  private async dispatch(rosterId: string, subject: string): Promise<boolean> {
+119:    if (!this.mailService) return false;
+120:
+121:    const rows = await this.db
+122:      .select({
+123:        userEmail: schema.users.email,
+124:        participantName: schema.tournamentParticipants.teamName,
+125:        tournamentName: schema.tournaments.name,
+126:        tournamentId: schema.tournaments.id,
+127:        attempts: schema.tournamentRosters.consentNotifiedCount,
+128:        consentedAt: schema.tournamentRosters.rankingConsentAt,
+129:      })
+130:      .from(schema.tournamentRosters)
+131:      .innerJoin(
+132:        schema.users,
+133:        eq(schema.users.id, schema.tournamentRosters.userId),
+134:      )
+135:      .innerJoin(
+136:        schema.tournamentParticipants,
+137:        eq(schema.tournamentParticipants.id, schema.tournamentRosters.participantId),
+138:      )
+139:      .innerJoin(
+140:        schema.tournaments,
+141:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+142:      )
+143:      .where(eq(schema.tournamentRosters.id, rosterId))
+144:      .limit(1);
+145:
+146:    const row = rows[0];
+147:    if (!row?.userEmail || row.consentedAt) return false;
+148:
+149:    const link = `${this.frontendUrl}/tournaments/${row.tournamentId}`;
+150:    const isReminder = row.attempts > 0;
+151:
+152:    try {
+153:      const ok = await this.mailService.sendMail(
+154:        row.userEmail,
+155:        `[Sporto] ${subject}: ${row.tournamentName}`,
+156:        this.buildHtml({
+157:          participantName: row.participantName,
+158:          tournamentName: row.tournamentName,
+159:          link,
+160:          isReminder,
+161:        }),
+162:      );
+163:      if (!ok) return false;
+164:    } catch (err) {
+165:      this.logger.warn(
+166:        `Gửi mail xác nhận thất bại cho roster ${rosterId}: ${
+167:          err instanceof Error ? err.message : String(err)
+168:        }`,
+169:      );
+170:      return false;
+171:    }
+172:
+173:    await this.db
+174:      .update(schema.tournamentRosters)
+175:      .set({
+176:        consentNotifiedAt: new Date(),
+177:        consentNotifiedCount: row.attempts + 1,
+178:      })
+179:      .where(eq(schema.tournamentRosters.id, rosterId));
+180:
+181:    return true;
+182:  }
+183:
+184:  private buildHtml(args: {
+185:    participantName: string | null;
+186:    tournamentName: string;
+187:    link: string;
+188:    isReminder: boolean;
+189:  }): string {
+190:    const heading = args.isReminder
+191:      ? 'Bạn chưa xác nhận tham gia'
+192:      : 'Bạn được thêm vào một giải đấu';
+193:    return `
+194:      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 560px;">
+195:        <div style="background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;">
+196:          <h1 style="color: #ffffff; font-size: 18px; margin: 0;">${heading}</h1>
+197:        </div>
+198:        <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+199:          <p style="font-size: 14px; color: #0f172a; margin: 0 0 16px;">
+200:            Xin chào ${args.participantName ?? 'bạn'},
+201:          </p>
+202:          <p style="font-size: 14px; color: #334155; margin: 0 0 16px;">
+203:            Ban tổ chức đã thêm bạn vào giải
+204:            <strong>${args.tournamentName}</strong>.
+205:          </p>
+206:          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;">
+207:            <p style="font-size: 14px; color: #78350f; margin: 0;">
+208:              Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+209:              <br />
+210:              Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+211:              tính — các trận đã đấu trước đó không tính.
+212:            </p>
+213:          </div>
+214:          <a href="${args.link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+215:            Đăng nhập để xác nhận
+216:          </a>
+217:          <p style="font-size: 13px; color: #64748b; margin: 20px 0 0;">
+218:            Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+219:          </p>
+220:        </div>
+221:      </div>
+222:    `;
+223:  }
+224:}
+
+### region 12 (read, ~1307 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#EDFC]
+1:import {
+2:  RankingConsentService,
+3:  CONSENT_MAX_NOTIFICATIONS,
+4:} from './ranking-consent.service';
+5:
+6:const HOUR = 3_600_000;
+7:const NOW = new Date('2026-06-10T12:00:00Z');
+8:
+9:/** What dispatch finds for the roster row it is about to notify. */
+10:const detailRow = () => ({
+11:  userEmail: 'player@example.com',
+12:  participantName: 'Nguyễn Văn A',
+13:  tournamentName: 'Cup Đông Nam',
+14:  tournamentId: 't-1',
+15:  attempts: 0,
+16:  consentedAt: null,
+17:});
+18:
+19:describe('RankingConsentService.sendDueReminders', () => {
+20:  const hoursAgo = (h: number) => new Date(NOW.getTime() - h * HOUR);
+21:
+22:  /**
+23:   * Resolves by call order: the first select is the candidate scan, every later
+24:   * select is a dispatch looking up its own roster detail row.
+25:   */
+26:  const createDb = (candidates: unknown[]) => {
+27:    let call = 0;
+28:    const chain: Record<string, unknown> = {};
+29:    const self = () => chain;
+30:    chain.select = jest.fn(self);
+31:    chain.from = jest.fn(self);
+32:    chain.innerJoin = jest.fn(self);
+33:    chain.where = jest.fn(self);
+34:    chain.limit = jest.fn(self);
+35:    chain.update = jest.fn(self);
+36:    chain.set = jest.fn(self);
+37:    chain.then = (resolve: (value: unknown) => unknown) =>
+38:      Promise.resolve().then(() => {
+39:        const value = call === 0 ? candidates : [detailRow()];
+40:        call += 1;
+41:        resolve(value);
+42:      });
+43:    return chain;
+44:  };
+45:
+46:  const build = (candidates: unknown[], sendOk = true) => {
+47:    const db = createDb(candidates);
+48:    const mailService = { sendMail: jest.fn().mockResolvedValue(sendOk) };
+49:    const service = new RankingConsentService(
+50:      db as never,
+51:      mailService as never,
+52:    );
+53:    return { service, mailService };
+54:  };
+55:
+56:  beforeEach(() => {
+57:    jest.useFakeTimers().setSystemTime(NOW);
+58:  });
+59:
+60:  afterEach(() => {
+61:    jest.useRealTimers();
+62:  });
+63:
+64:  it('retries a send that never landed, anchoring on the join time', async () => {
+65:    // The reason notifiedAt NULL rows stay in scope: one mail outage must not
+66:    // permanently silence the reminders, or the player never learns their
+67:    // matches will go unscored.
+68:    const { service, mailService } = build([
+69:      { id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(25) },
+70:    ]);
+71:
+72:    await expect(service.sendDueReminders()).resolves.toBe(1);
+73:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+74:  });
+75:
+76:  it('waits when the first reminder is not due yet', async () => {
+77:    const { service, mailService } = build([
+78:      { id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(10) },
+79:    ]);
+80:
+81:    await expect(service.sendDueReminders()).resolves.toBe(0);
+82:    expect(mailService.sendMail).not.toHaveBeenCalled();
+83:  });
+84:
+85:  it('sends the first reminder 24h after the send at add time', async () => {
+86:    // attempts === 1 means exactly one send landed — the one at add time — so the
+87:    // first reminder is due 24h after THAT send, not 72h.
+88:    const { service, mailService } = build([
+89:      {
+90:        id: 'r1',
+91:        attempts: 1,
+92:        notifiedAt: hoursAgo(30),
+93:        joinedAt: hoursAgo(100),
+94:      },
+95:    ]);
+96:
+97:    await expect(service.sendDueReminders()).resolves.toBe(1);
+98:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+99:  });
+100:
+101:  it('waits before the second reminder', async () => {
+102:    // Two sends landed, so the 72h delay runs from the second one.
+103:    const { service, mailService } = build([
+104:      {
+105:        id: 'r1',
+106:        attempts: 2,
+107:        notifiedAt: hoursAgo(30),
+108:        joinedAt: hoursAgo(100),
+109:      },
+110:    ]);
+111:
+112:    await expect(service.sendDueReminders()).resolves.toBe(0);
+113:    expect(mailService.sendMail).not.toHaveBeenCalled();
+114:  });
+115:
+116:  it('sends the second reminder once 72h have passed', async () => {
+117:    const { service, mailService } = build([
+118:      {
+119:        id: 'r1',
+120:        attempts: 2,
+121:        notifiedAt: hoursAgo(73),
+122:        joinedAt: hoursAgo(200),
+123:      },
+124:    ]);
+125:
+126:    await expect(service.sendDueReminders()).resolves.toBe(1);
+127:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+128:  });
+129:
+130:  it('stops at the notification cap so nobody is nagged forever', async () => {
+131:    const { service, mailService } = build([
+132:      {
+133:        id: 'r1',
+134:        attempts: CONSENT_MAX_NOTIFICATIONS,
+135:        notifiedAt: hoursAgo(200),
+136:        joinedAt: hoursAgo(400),
+137:      },
+138:    ]);
+139:
+140:    await expect(service.sendDueReminders()).resolves.toBe(0);
+141:    expect(mailService.sendMail).not.toHaveBeenCalled();
+142:  });
+143:
+144:  it('does not count a failed send as a delivered one', async () => {
+145:    const { service } = build(
+146:      [{ id: 'r1', attempts: 0, notifiedAt: null, joinedAt: hoursAgo(25) }],
+147:      false,
+148:    );
+149:
+150:    await expect(service.sendDueReminders()).resolves.toBe(0);
+151:  });
+152:});
+
+### region 13 (read, ~2006 tok)
+
+[backend/src/modules/matches/matches.repository.ts#67BD]
+1645:
+1646:  async updateStatus(id: string, data: UpdateMatchStatusDto) {
+1647:    const setClause: Record<string, unknown> = {
+1648:      status: data.status,
+1649:      updatedAt: new Date(),
+1650:      revision: sql`${schema.matches.revision} + 1`,
+1651:    };
+1652:
+1653:    if (data.status === 'ONGOING') {
+1654:      setClause.startedAt = new Date();
+1655:    } else if (data.status === 'COMPLETED') {
+1656:      setClause.completedAt = new Date();
+1657:    }
+1658:
+1659:    const [updated] = await this.db
+1660:      .update(schema.matches)
+1661:      .set(setClause)
+1662:      .where(eq(schema.matches.id, id))
+1663:      .returning();
+1664:
+1665:    return await this.findById(updated.id);
+1666:  }
+1667:
+1668:  /**
+1669:   * Return the already completed leg of a two-legged football tie. Keeping
+1670:   * this query in the repository makes aggregate resolution deterministic and
+1671:   * avoids letting the service scan arbitrary matches from another tie.
+1672:   */
+1673:  async findCompletedTieLeg(tieId: string, currentMatchId: string) {
+1674:    const [leg] = await this.db
+1675:      .select()
+1676:      .from(schema.matches)
+1677:      .where(
+1678:        and(
+1679:          eq(schema.matches.tieId, tieId),
+1680:          ne(schema.matches.id, currentMatchId),
+1681:          eq(schema.matches.status, 'COMPLETED'),
+1682:          isNull(schema.matches.deletedAt),
+1683:        ),
+1684:      )
+1685:      .orderBy(schema.matches.leg)
+1686:      .limit(1);
+1687:    return leg ?? null;
+1688:  }
+1689:
+1690:  async completeMatch(
+1691:    id: string,
+1692:    winnerId: string | null,
+1693:    matchDetails: {
+1694:      nextMatchId?: string | null;
+1695:      loserNextMatchId?: string | null;
+1696:      matchOrder: number;
+1697:      participant1Id: string | null;
+1698:      participant2Id: string | null;
+1699:      groupId?: string | null;
+1700:      isRoundRobin: boolean;
+1701:      p1SetsWon: number;
+1702:      p2SetsWon: number;
+1703:      scoreDetails: Record<string, unknown> | null | undefined;
+1704:      auditUserId?: string | null;
+1705:      expectedRevision?: number;
+1706:    },
+1707:  ) {
+1708:    return await this.db.transaction(async (tx) => {
+1709:      const updated = await this.completeMatchInTx(tx, id, winnerId, {
+1710:        p1SetsWon: matchDetails.p1SetsWon,
+1711:        p2SetsWon: matchDetails.p2SetsWon,
+1712:        scoreDetails: matchDetails.scoreDetails,
+1713:        auditUserId: matchDetails.auditUserId,
+1714:        expectedRevision: matchDetails.expectedRevision,
+1715:      });
+1716:
+1717:      // A stale-revision completion surfaces as a conflict — standings must NOT
+1718:      // run for it (the transaction did not win the completion).
+1719:      if (updated && typeof updated === 'object' && 'conflict' in updated) {
+1720:        return updated;
+1721:      }
+1722:
+1723:      // 5. Update standings if Round Robin
+1724:      if (matchDetails.isRoundRobin && updated) {
+1725:        // Query custom win/draw/loss points from sportRules
+1726:        const [group] = await tx
+1727:          .select({
+1728:            tournamentId: schema.tournamentStages.tournamentId,
+1729:          })
+1730:          .from(schema.tournamentGroups)
+1731:          .innerJoin(
+1732:            schema.tournamentStages,
+1733:            eq(schema.tournamentGroups.stageId, schema.tournamentStages.id),
+1734:          )
+1735:          .where(eq(schema.tournamentGroups.id, updated.groupId))
+1736:          .limit(1);
+1737:
+1738:        let winPoints = 3;
+1739:        let drawPoints = 1;
+1740:        let lossPoints = 0;
+1741:
+1742:        if (group) {
+1743:          const [tournament] = await tx
+1744:            .select({
+1745:              sportRules: schema.tournaments.sportRules,
+1746:            })
+1747:            .from(schema.tournaments)
+1748:            .where(eq(schema.tournaments.id, group.tournamentId))
+1749:            .limit(1);
+1750:
+1751:          if (tournament && tournament.sportRules) {
+1752:            const rules = tournament.sportRules as Record<string, unknown>;
+1753:            const scoring =
+1754:              (rules.scoring as Record<string, unknown> | undefined) ?? rules;
+1755:            if (typeof scoring.winPoints === 'number')
+1756:              winPoints = scoring.winPoints;
+1757:            if (typeof scoring.drawPoints === 'number')
+1758:              drawPoints = scoring.drawPoints;
+1759:            if (typeof scoring.lossPoints === 'number')
+1760:              lossPoints = scoring.lossPoints;
+1761:          }
+1762:        }
+1763:
+1764:        const p1Id = updated.participant1Id;
+1765:        const p2Id = updated.participant2Id;
+1766:        const participants = [p1Id, p2Id];
+1767:        const isDraw = !winnerId && p1Id && p2Id;
+1768:
+1769:        // points_for/points_against = TỔNG điểm ghi được qua các set (chuẩn
+1770:        // hiệu số điểm), không phải số set thắng. totalPoints giữ nguyên 3/1/0.
+1771:        const { p1: team1Total, p2: team2Total } = sumSetPoints(
+1772:          matchDetails.scoreDetails,
+1773:        );
+1774:
+1775:        for (const pId of participants) {
+1776:          if (!pId) continue;
+1777:          const isWinner = pId === winnerId;
+1778:          const pointsEarned = isDraw
+1779:            ? drawPoints
+1780:            : isWinner
+1781:              ? winPoints
+1782:              : lossPoints;
+1783:          const pointsFor = pId === p1Id ? team1Total : team2Total;
+1784:          const pointsAgainst = pId === p1Id ? team2Total : team1Total;
+1785:
+1786:          // Atomic upsert (NOTE-2): INSERT ... ON CONFLICT DO UPDATE with
+1787:          // SQL-side increments. Replaces read-modify-write, so concurrent
+1788:          // completions for the same group/participant never lose an update.
+1789:          await tx
+1790:            .insert(schema.groupStandings)
+1791:            .values({
+1792:              groupId: updated.groupId,
+1793:              participantId: pId,
+1794:              played: 1,
+1795:              won: isWinner ? 1 : 0,
+1796:              lost: !isWinner && !isDraw ? 1 : 0,
+1797:              draws: isDraw ? 1 : 0,
+1798:              pointsFor: pointsFor,
+1799:              pointsAgainst: pointsAgainst,
+1800:              totalPoints: pointsEarned,
+1801:              updatedAt: new Date(),
+1802:            })
+1803:            .onConflictDoUpdate({
+1804:              target: [
+1805:                schema.groupStandings.groupId,
+1806:                schema.groupStandings.participantId,
+1807:              ],
+1808:              set: {
+1809:                played: sql`${schema.groupStandings.played} + 1`,
+1810:                won: sql`${schema.groupStandings.won} + ${isWinner ? 1 : 0}`,
+1811:                lost: sql`${schema.groupStandings.lost} + ${!isWinner && !isDraw ? 1 : 0}`,
+1812:                draws: sql`${schema.groupStandings.draws} + ${isDraw ? 1 : 0}`,
+1813:                pointsFor: sql`${schema.groupStandings.pointsFor} + ${pointsFor}`,
+1814:                pointsAgainst: sql`${schema.groupStandings.pointsAgainst} + ${pointsAgainst}`,
+1815:                totalPoints: sql`${schema.groupStandings.totalPoints} + ${pointsEarned}`,
+1816:                updatedAt: new Date(),
+1817:              },
+1818:            });
+1819:        }
+1820:      }
+1821:
+1822:      return updated;
+1823:    });
+1824:  }
+1825:
+1826:  private async completeMatchInTx(
+1827:    tx: any,
+1828:    id: string,
+1829:    winnerId: string | null,
+1830:    details: {
+1831:      p1SetsWon: number;
+1832:      p2SetsWon: number;
+1833:      scoreDetails: Record<string, unknown> | null | undefined;
+1834:      auditUserId?: string | null;
+1835:      isBye?: boolean;
+1836:      expectedRevision?: number;
+1837:    },
+1838:  ) {
+1839:    const [existing] = await tx
+1840:      .select()
+1841:      .from(schema.matches)
+1842:      .where(eq(schema.matches.id, id))
+1843:      .limit(1);
+…
+2142:  }
+
+[Showing lines 1645-1843 of 2925. Use :1844 to continue]
+
+### region 14 (read, ~1093 tok)
+
+[backend/src/modules/rankings/rankings.service.ts#E43A]
+235:  async getEloHistory(
+…
+248:  ) {
+249:    if (query.genderRestriction && query.genderRestriction !== '__NONE__') {
+250:      const normalizedGenderRestriction = normalizeGenderRestriction(
+251:        query.genderRestriction,
+252:      );
+253:      if (!normalizedGenderRestriction) {
+254:        throw new BadRequestException('Invalid gender restriction');
+255:      }
+256:      return this.rankingsRepository.getEloHistory(userId, {
+257:        ...query,
+258:        genderRestriction: normalizedGenderRestriction,
+259:      });
+260:    }
+261:    return this.rankingsRepository.getEloHistory(userId, query);
+262:  }
+263:
+264:  // Recalculate ELO for a single match manually (via Admin Endpoint)
+265:  async updateMatchElo(dto: UpdateEloDto) {
+266:    const db = this.rankingsRepository.getDbInstance();
+267:    const [matchContext] = await db
+268:      .select({
+269:        status: schema.matches.status,
+270:        isRanked: schema.tournaments.isRanked,
+271:        tournamentType: schema.tournaments.tournamentType,
+272:        communityId: schema.tournaments.communityId,
+273:        categoryId: schema.tournaments.categoryId,
+274:        matchType: schema.tournaments.matchType,
+275:        genderRestriction: schema.tournaments.genderRestriction,
+276:        divisionMatchType: schema.tournamentDivisions.matchType,
+277:        divisionGenderRestriction: schema.tournamentDivisions.genderRestriction,
+278:      })
+279:      .from(schema.matches)
+280:      .innerJoin(
+281:        schema.tournaments,
+282:        eq(schema.matches.tournamentId, schema.tournaments.id),
+283:      )
+284:      .innerJoin(
+285:        schema.tournamentStages,
+286:        eq(schema.matches.stageId, schema.tournamentStages.id),
+287:      )
+288:      .leftJoin(
+289:        schema.tournamentDivisions,
+290:        eq(
+291:          schema.tournamentStages.tournamentDivisionId,
+292:          schema.tournamentDivisions.id,
+293:        ),
+294:      )
+295:      .where(eq(schema.matches.id, dto.matchId))
+296:      .limit(1);
+297:
+298:    if (!matchContext) {
+299:      throw new BadRequestException('Trận đấu không tồn tại.');
+300:    }
+301:    if (matchContext.status !== 'COMPLETED') {
+302:      throw new BadRequestException('Chỉ trận đã hoàn tất mới được tính ELO.');
+303:    }
+304:    if (!matchContext.isRanked) {
+305:      throw new BadRequestException('Trận đấu thuộc giải không xếp hạng ELO.');
+306:    }
+307:
+308:    if (!(await this.hasEligibleRankingConsent(dto.matchId))) {
+309:      throw new BadRequestException(
+310:        'ELO is unavailable until every roster player has consented before match completion.',
+311:      );
+312:    }
+313:    const effectiveMatchType =
+314:      matchContext.divisionMatchType ?? matchContext.matchType;
+315:    const rawEffectiveGenderRestriction =
+316:      matchContext.divisionGenderRestriction ?? matchContext.genderRestriction;
+317:    const effectiveGenderRestriction = rawEffectiveGenderRestriction
+318:      ? normalizeGenderRestriction(rawEffectiveGenderRestriction)
+319:      : null;
+320:    if (rawEffectiveGenderRestriction && !effectiveGenderRestriction) {
+321:      throw new BadRequestException('Cấu hình giới tính của trận đấu không hợp lệ.');
+322:    }
+323:    const requestedGenderRestriction = dto.genderRestriction
+324:      ? normalizeGenderRestriction(dto.genderRestriction)
+325:      : null;
+326:    if (dto.genderRestriction && !requestedGenderRestriction) {
+327:      throw new BadRequestException('Cấu hình giới tính không hợp lệ.');
+328:    }
+329:    if (
+330:      effectiveMatchType === 'DOUBLES' ||
+331:      effectiveMatchType === 'MIXED_DOUBLES'
+332:    ) {
+333:      throw new BadRequestException(
+334:        'Trận đôi phải được tính ELO qua luồng hoàn tất trận, không dùng endpoint ELO thủ công cho user đơn.',
+335:      );
+336:    }
+337:    const effectiveCommunityId =
+338:      matchContext.tournamentType === 'CLUB' ? matchContext.communityId : null;
+339:    if (matchContext.tournamentType === 'CLUB' && !effectiveCommunityId) {
+340:      throw new BadRequestException(
+341:        'Giải CLB phải có câu lạc bộ để ghi ELO nội bộ.',
+342:      );
+343:    }
+…
+567:  }
+
+[Showing lines 249-343 of 2816. Use :344 to continue]
+
+### region 15 (read, ~15 tok)
+
+Path 'backend/src/common/pipes/validation.pipe.ts' not found
+
+### region 16 (edit, ~375 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#16CA]
+8:
+9:/** What dispatch finds for the roster row it is about to notify. */
+10:const detailRow = (overrides: Record<string, unknown> = {}) => ({
+11:  userEmail: 'player@example.com',
+12:  participantName: 'Nguyễn Văn A',
+15:  attempts: 0,
+16:  consentedAt: null,
+17:  rosterStatus: 'ACTIVE',
+18:  participantStatus: 'COMPLETE',
+…
+24:  tournamentDeletedAt: null,
+25:  ...overrides,
+26:});
+27:
+28:describe('RankingConsentService.sendDueReminders', () => {
+
+31:  /**
+
+33:   * select is a dispatch looking up its own roster detail row.
+34:   */
+35:  const createDb = (
+36:    candidates: unknown[],
+37:    details: ReturnType<typeof detailRow> = detailRow(),
+38:  ) => {
+39:    let call = 0;
+40:    const chain: Record<string, unknown> = {};
+49:    chain.then = (resolve: (value: unknown) => unknown) =>
+50:      Promise.resolve().then(() => {
+51:        const value = call === 0 ? candidates : [details];
+52:        call += 1;
+53:        resolve(value);
+54:      });
+
+56:  };
+57:
+58:  const build = (
+59:    candidates: unknown[],
+…
+70:  };
+71:
+72:  const build = (candidates: unknown[], sendOk = true) => {
+73:    const db = createDb(candidates);
+
+80:  };
+
+170:  it('does not count a failed send as a delivered one', async () => {
+
+176:    await expect(service.sendDueReminders()).resolves.toBe(0);
+177:  });
+178:  it.each([
+179:    ['unverified email', { userEmailVerified: false }],
+…
+228:    }
+229:  });
+230:});
+
+### region 17 (read, ~729 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#16CA]
+1:import {
+2:  RankingConsentService,
+3:  CONSENT_MAX_NOTIFICATIONS,
+4:} from './ranking-consent.service';
+5:
+6:const HOUR = 3_600_000;
+7:const NOW = new Date('2026-06-10T12:00:00Z');
+8:
+9:/** What dispatch finds for the roster row it is about to notify. */
+10:const detailRow = (overrides: Record<string, unknown> = {}) => ({
+11:  userEmail: 'player@example.com',
+12:  participantName: 'Nguyễn Văn A',
+13:  tournamentName: 'Cup Đông Nam',
+14:  tournamentId: 't-1',
+15:  attempts: 0,
+16:  consentedAt: null,
+17:  rosterStatus: 'ACTIVE',
+18:  participantStatus: 'COMPLETE',
+19:  isRanked: true,
+20:  tournamentStatus: 'REGISTRATION_OPEN',
+21:  tournamentEndDate: null,
+22:  userEmailVerified: true,
+23:  userDeletedAt: null,
+24:  tournamentDeletedAt: null,
+25:  ...overrides,
+26:});
+27:
+28:describe('RankingConsentService.sendDueReminders', () => {
+29:  const hoursAgo = (h: number) => new Date(NOW.getTime() - h * HOUR);
+30:
+31:  /**
+32:   * Resolves by call order: the first select is the candidate scan, every later
+33:   * select is a dispatch looking up its own roster detail row.
+34:   */
+35:  const createDb = (
+36:    candidates: unknown[],
+37:    details: ReturnType<typeof detailRow> = detailRow(),
+38:  ) => {
+39:    let call = 0;
+40:    const chain: Record<string, unknown> = {};
+41:    const self = () => chain;
+42:    chain.select = jest.fn(self);
+43:    chain.from = jest.fn(self);
+44:    chain.innerJoin = jest.fn(self);
+45:    chain.where = jest.fn(self);
+46:    chain.limit = jest.fn(self);
+47:    chain.update = jest.fn(self);
+48:    chain.set = jest.fn(self);
+49:    chain.then = (resolve: (value: unknown) => unknown) =>
+50:      Promise.resolve().then(() => {
+51:        const value = call === 0 ? candidates : [details];
+52:        call += 1;
+53:        resolve(value);
+54:      });
+55:    return chain;
+56:  };
+57:
+58:  const build = (
+59:    candidates: unknown[],
+60:    sendOk = true,
+61:    details: ReturnType<typeof detailRow> = detailRow(),
+62:  ) => {
+63:    const db = createDb(candidates, details);
+64:    const mailService = { sendMail: jest.fn().mockResolvedValue(sendOk) };
+65:    const service = new RankingConsentService(
+66:      db as never,
+67:      mailService as never,
+68:    );
+69:    return { service, mailService };
+70:  };
+71:
+72:  const build = (candidates: unknown[], sendOk = true) => {
+73:    const db = createDb(candidates);
+74:    const mailService = { sendMail: jest.fn().mockResolvedValue(sendOk) };
+75:    const service = new RankingConsentService(
+76:      db as never,
+77:      mailService as never,
+78:    );
+79:    return { service, mailService };
+80:  };
+81:
+82:  beforeEach(() => {
+83:    jest.useFakeTimers().setSystemTime(NOW);
+84:  });
+85:
+86:  afterEach(() => {
+87:    jest.useRealTimers();
+88:  });
+…
+230:});
+
+[Showing lines 1-88 of 230. Use :89 to continue]
+
+### region 18 (edit, ~188 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#67A1]
+8:
+9:/** What dispatch finds for the roster row it is about to notify. */
+10:interface ReminderDetail {
+11:  userEmail: string | null;
+…
+28:  overrides: Partial<ReminderDetail> = {},
+29:): ReminderDetail => ({
+30:  userEmail: 'player@example.com',
+31:  participantName: 'Nguyễn Văn A',
+
+45:});
+
+54:  const createDb = (
+55:    candidates: unknown[],
+56:    details: ReminderDetail = detailRow(),
+57:  ) => {
+58:    let call = 0;
+
+75:  };
+
+77:  const build = (
+78:    candidates: unknown[],
+79:    sendOk = true,
+80:    details: ReminderDetail = detailRow(),
+81:  ) => {
+82:    const db = createDb(candidates, details);
+89:  };
+90:
+91:
+92:  beforeEach(() => {
+
+94:  });
+
+### region 19 (bash, ~259 tok)
+
+FAIL src/modules/tournaments/services/ranking-consent.service.spec.ts
+  ● RankingConsentService.sendDueReminders › escapes user-controlled names in the email body
+
+    TypeError: Cannot read properties of undefined (reading '2')
+
+      215 |     await service.sendConfirmationRequest('r1');
+      216 |
+    > 217 |     const html = mailService.sendMail.mock.calls[0][2];
+          |                                                    ^
+      218 |     expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+      219 |     expect(html).toContain('Cup &lt;script&gt;alert(1)&lt;/script&gt;');
+      220 |     expect(html).not.toContain('<script>');
+
+      at Object.<anonymous> (modules/tournaments/services/ranking-consent.service.spec.ts:217:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 12 passed, 13 total
+Snapshots:   0 total
+Time:        0.716 s
+Ran all test suites matching src/modules/tournaments/services/ranking-consent.service.spec.ts.
+
+
+Wall time: 1.14 seconds
+
+Command exited with code 1
+
+### region 20 (read, ~562 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#67A1]
+47:describe('RankingConsentService.sendDueReminders', () => {
+…
+180:  it('does not count a failed send as a delivered one', async () => {
+181:    const { service } = build(
+…
+184:    );
+185:
+186:    await expect(service.sendDueReminders()).resolves.toBe(0);
+187:  });
+188:  it.each([
+189:    ['unverified email', { userEmailVerified: false }],
+190:    ['removed roster row', { rosterStatus: 'REMOVED' }],
+191:    ['completed tournament', { tournamentStatus: 'COMPLETED' }],
+192:    ['ended tournament', { tournamentEndDate: NOW }],
+193:  ])('does not notify a player with %s', async (_reason, overrides) => {
+194:    const { service, mailService } = build(
+195:      [],
+196:      true,
+197:      detailRow(overrides),
+198:    );
+199:
+200:    await service.sendConfirmationRequest('r1');
+201:
+202:    expect(mailService.sendMail).not.toHaveBeenCalled();
+203:  });
+204:
+205:  it('escapes user-controlled names in the email body', async () => {
+206:    const { service, mailService } = build(
+207:      [],
+208:      true,
+209:      detailRow({
+210:        participantName: '<img src=x onerror="alert(1)">',
+211:        tournamentName: 'Cup <script>alert(1)</script>',
+212:      }),
+213:    );
+214:
+215:    await service.sendConfirmationRequest('r1');
+216:
+217:    const html = mailService.sendMail.mock.calls[0][2];
+218:    expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+219:    expect(html).toContain('Cup &lt;script&gt;alert(1)&lt;/script&gt;');
+220:    expect(html).not.toContain('<script>');
+221:  });
+222:
+223:  it('rejects unsafe frontend URL schemes before sending', async () => {
+224:    const previousFrontendUrl = process.env.FRONTEND_URL;
+225:    process.env.FRONTEND_URL = 'javascript:alert(1)';
+226:    try {
+227:      const { service, mailService } = build([]);
+228:
+229:      await service.sendConfirmationRequest('r1');
+230:
+231:      expect(mailService.sendMail).not.toHaveBeenCalled();
+232:    } finally {
+233:      if (previousFrontendUrl === undefined) {
+234:        delete process.env.FRONTEND_URL;
+235:      } else {
+236:        process.env.FRONTEND_URL = previousFrontendUrl;
+237:      }
+238:    }
+239:  });
+240:});
+
+### region 21 (edit, ~243 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#B634]
+188:  it.each([
+
+192:    ['ended tournament', { tournamentEndDate: NOW }],
+193:  ])('does not notify a player with %s', async (_reason, overrides) => {
+194:    const { service, mailService } = build([detailRow(overrides)]);
+195:
+196:    await service.sendConfirmationRequest('r1');
+
+199:  });
+200:
+201:  it('escapes user-controlled names in the email body', async () => {
+202:    const { service, mailService } = build([
+203:      detailRow({
+204:        participantName: '<img src=x onerror="alert(1)">',
+205:        tournamentName: 'Cup <script>alert(1)</script>',
+206:      }),
+207:    ]);
+208:
+209:    await service.sendConfirmationRequest('r1');
+
+215:  });
+
+219:    process.env.FRONTEND_URL = 'javascript:alert(1)';
+220:    try {
+221:      const { service, mailService } = build([detailRow()]);
+222:
+223:      await service.sendConfirmationRequest('r1');
+
+226:    } finally {
+
+232:    }
+
+### region 22 (bash, ~2199 tok)
+
+FAIL src/modules/tournaments/services/ranking-consent.service.spec.ts
+  ● RankingConsentService.sendDueReminders › does not notify a player with unverified email
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › does not notify a player with removed roster row
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"http://localhost:3001/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      196 |     await service.sendConfirmationRequest('r1');
+      197 |
+    > 198 |     expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                      ^
+      199 |   });
+      200 |
+      201 |   it('escapes user-controlled names in the email body', async () => {
+
+      at modules/tournaments/services/ranking-consent.service.spec.ts:198:38
+
+  ● RankingConsentService.sendDueReminders › does not notify a player with completed tournament
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+[…132ln elided…]
+  ● RankingConsentService.sendDueReminders › rejects unsafe frontend URL schemes before sending
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "player@example.com", "[Sporto] Xác nhận tham gia giải đấu: Cup Đông Nam", "
+          <div style=\"font-family: system-ui, -apple-system, sans-serif; max-width: 560px;\">
+            <div style=\"background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;\">
+              <h1 style=\"color: #ffffff; font-size: 18px; margin: 0;\">Bạn được thêm vào một giải đấu</h1>
+            </div>
+            <div style=\"background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;\">
+              <p style=\"font-size: 14px; color: #0f172a; margin: 0 0 16px;\">
+                Xin chào Nguyễn Văn A,
+              </p>
+              <p style=\"font-size: 14px; color: #334155; margin: 0 0 16px;\">
+                Ban tổ chức đã thêm bạn vào giải
+                <strong>Cup Đông Nam</strong>.
+              </p>
+              <div style=\"background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;\">
+                <p style=\"font-size: 14px; color: #78350f; margin: 0;\">
+                  Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+                  <br />
+                  Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+                  tính — các trận đã đấu trước đó không tính.
+                </p>
+              </div>
+              <a href=\"javascript:alert(1)/tournaments/t-1\" style=\"background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;\">
+                Đăng nhập để xác nhận
+              </a>
+              <p style=\"font-size: 13px; color: #64748b; margin: 20px 0 0;\">
+                Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+              </p>
+            </div>
+          </div>
+        "
+
+      223 |       await service.sendConfirmationRequest('r1');
+      224 |
+    > 225 |       expect(mailService.sendMail).not.toHaveBeenCalled();
+          |                                        ^
+      226 |     } finally {
+      227 |       if (previousFrontendUrl === undefined) {
+      228 |         delete process.env.FRONTEND_URL;
+
+      at Object.<anonymous> (modules/tournaments/services/ranking-consent.service.spec.ts:225:40)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 7 passed, 13 total
+Snapshots:   0 total
+Time:        0.632 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/ranking-consent.service.spec.ts.
+[raw output: artifact://44]
+
+
+Wall time: 1.06 seconds
+
+Command exited with code 1
+
+### region 23 (edit, ~129 tok)
+
+This edit anchors to lines 240 of backend/src/modules/tournaments/services/ranking-consent.service.spec.ts that [backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#B634] never displayed (it showed a partial range, a search hit, or a folded summary). Re-read them in full first with a ranged read like `backend/src/modules/tournaments/services/ranking-consent.service.spec.ts:240` — it skips summarization and mints a fresh tag (a plain re-read just re-folds them) — then re-issue the edit.
+
+### region 24 (read, ~152 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#B634]
+47:describe('RankingConsentService.sendDueReminders', () => {
+…
+217:  it('rejects unsafe frontend URL schemes before sending', async () => {
+…
+220:    try {
+…
+222:
+223:      await service.sendConfirmationRequest('r1');
+224:
+225:      expect(mailService.sendMail).not.toHaveBeenCalled();
+226:    } finally {
+227:      if (previousFrontendUrl === undefined) {
+228:        delete process.env.FRONTEND_URL;
+229:      } else {
+230:        process.env.FRONTEND_URL = previousFrontendUrl;
+231:      }
+232:    }
+233:  });
+234:});
+
+### region 25 (edit, ~117 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#BDB2]
+47:describe('RankingConsentService.sendDueReminders', () => {
+
+217:  it('rejects unsafe frontend URL schemes before sending', async () => {
+
+220:    try {
+
+226:    } finally {
+
+232:    }
+233:  });
+234:  it('serializes simultaneous reminder runs before sending', async () => {
+235:    let attempts = 1;
+…
+314:    expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+315:  });
+316:});
+
+### region 26 (read, ~374 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#BDB2]
+8:
+9:/** What dispatch finds for the roster row it is about to notify. */
+10:interface ReminderDetail {
+11:  userEmail: string | null;
+12:  participantName: string | null;
+13:  tournamentName: string;
+14:  tournamentId: string;
+15:  attempts: number;
+16:  consentedAt: Date | null;
+17:  rosterStatus: string;
+18:  participantStatus: string;
+19:  isRanked: boolean;
+20:  tournamentStatus: string;
+21:  tournamentEndDate: Date | null;
+22:  userEmailVerified: boolean;
+23:  userDeletedAt: Date | null;
+24:  tournamentDeletedAt: Date | null;
+25:}
+26:
+27:const detailRow = (
+28:  overrides: Partial<ReminderDetail> = {},
+29:): ReminderDetail => ({
+30:  userEmail: 'player@example.com',
+31:  participantName: 'Nguyễn Văn A',
+32:  tournamentName: 'Cup Đông Nam',
+33:  tournamentId: 't-1',
+34:  attempts: 0,
+35:  consentedAt: null,
+36:  rosterStatus: 'ACTIVE',
+37:  participantStatus: 'COMPLETE',
+38:  isRanked: true,
+39:  tournamentStatus: 'REGISTRATION_OPEN',
+40:  tournamentEndDate: null,
+41:  userEmailVerified: true,
+42:  userDeletedAt: null,
+43:  tournamentDeletedAt: null,
+44:  ...overrides,
+45:});
+46:
+47:describe('RankingConsentService.sendDueReminders', () => {
+48:  const hoursAgo = (h: number) => new Date(NOW.getTime() - h * HOUR);
+49:
+50:  /**
+51:   * Resolves by call order: the first select is the candidate scan, every later
+…
+53:   */
+…
+316:});
+
+[Showing lines 8-51 of 316. Use :52 to continue]
+
+### region 27 (edit, ~88 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#9AC4]
+14:  tournamentId: string;
+15:  attempts: number;
+16:  consentNotifiedAt: Date | null;
+17:  consentedAt: Date | null;
+18:  rosterStatus: string;
+34:  tournamentId: 't-1',
+35:  attempts: 0,
+36:  consentNotifiedAt: null,
+37:  consentedAt: null,
+38:  rosterStatus: 'ACTIVE',
+
+### region 28 (bash, ~236 tok)
+
+FAIL src/modules/tournaments/services/ranking-consent.service.spec.ts
+  ● RankingConsentService.sendDueReminders › serializes simultaneous reminder runs before sending
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+      313 |     ]);
+      314 |
+    > 315 |     expect(sends[0] + sends[1]).toBe(1);
+          |                                 ^
+      316 |     expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+      317 |   });
+      318 | });
+
+      at Object.<anonymous> (modules/tournaments/services/ranking-consent.service.spec.ts:315:33)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 13 skipped, 14 total
+Snapshots:   0 total
+Time:        0.642 s, estimated 1 s
+Ran all test suites matching src/modules/tournaments/services/ranking-consent.service.spec.ts with tests matching "serializes simultaneous reminder runs".
+
+
+Wall time: 1.05 seconds
+
+Command exited with code 1
+
+### region 29 (read, ~1355 tok)
+
+[backend/src/database/schema/users.schema.ts#52C0]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  boolean,
+7:  timestamp,
+8:  date,
+9:  integer,
+10:  unique,
+11:  uniqueIndex,
+12:} from 'drizzle-orm/pg-core';
+13:import { provinces } from './regions.schema';
+14:import { tournaments } from './tournaments.schema';
+15:
+16:
+17:export const users = pgTable('users', {
+18:  id: uuid('id').primaryKey().defaultRandom(),
+19:  email: varchar('email', { length: 255 }).notNull().unique(),
+20:  passwordHash: text('password_hash'),
+21:  isEmailVerified: boolean('is_email_verified').default(false).notNull(),
+22:  isPhoneVerified: boolean('is_phone_verified').default(false).notNull(),
+23:  isMock: boolean('is_mock').default(false).notNull(),
+24:  acceptedTosAt: timestamp('accepted_tos_at', { withTimezone: true }),
+25:  createdAt: timestamp('created_at', { withTimezone: true })
+26:    .defaultNow()
+27:    .notNull(),
+28:  updatedAt: timestamp('updated_at', { withTimezone: true })
+29:    .defaultNow()
+30:    .notNull(),
+31:  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+32:});
+33:
+34:export const authProviders = pgTable('auth_providers', {
+35:  id: uuid('id').primaryKey().defaultRandom(),
+36:  userId: uuid('user_id')
+37:    .references(() => users.id, { onDelete: 'cascade' })
+38:    .notNull(),
+39:  provider: varchar('provider', { length: 50 }).notNull(),
+40:  providerUserId: varchar('provider_user_id', { length: 255 }).notNull(),
+41:  providerEmail: varchar('provider_email', { length: 255 }),
+42:  providerAvatarUrl: text('provider_avatar_url'),
+43:  providerDisplayName: varchar('provider_display_name', { length: 255 }),
+44:  accessToken: text('access_token'),
+45:  refreshToken: text('refresh_token'),
+46:  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }),
+47:  createdAt: timestamp('created_at', { withTimezone: true })
+48:    .defaultNow()
+49:    .notNull(),
+50:  updatedAt: timestamp('updated_at', { withTimezone: true })
+51:    .defaultNow()
+52:    .notNull(),
+53:}, (table) => ({
+54:  providerUserUnique: unique().on(table.provider, table.providerUserId),
+55:}));
+56:
+57:export const roles = pgTable('roles', {
+58:  id: uuid('id').primaryKey().defaultRandom(),
+59:  name: varchar('name', { length: 100 }).notNull().unique(),
+60:  slug: varchar('slug', { length: 100 }).notNull().unique(),
+61:  description: text('description'),
+62:  createdAt: timestamp('created_at', { withTimezone: true })
+63:    .defaultNow()
+64:    .notNull(),
+65:});
+66:
+67:export const userToRoles = pgTable('user_to_roles', {
+68:  id: uuid('id').primaryKey().defaultRandom(),
+69:  userId: uuid('user_id')
+70:    .references(() => users.id, { onDelete: 'cascade' })
+71:    .notNull(),
+72:  roleId: uuid('role_id')
+73:    .references(() => roles.id, { onDelete: 'cascade' })
+74:    .notNull(),
+75:  assignedAt: timestamp('assigned_at', { withTimezone: true })
+76:    .defaultNow()
+77:    .notNull(),
+78:  assignedBy: uuid('assigned_by').references(() => users.id, {
+79:    onDelete: 'set null',
+80:  }),
+81:}, (table) => ({
+82:  userRoleUnique: uniqueIndex('user_to_roles_user_id_role_id_unique').on(
+83:    table.userId,
+84:    table.roleId,
+85:  ),
+86:}));
+87:
+88:export const profiles = pgTable('profiles', {
+89:  id: uuid('id').primaryKey().defaultRandom(),
+90:  userId: uuid('user_id')
+91:    .references(() => users.id, { onDelete: 'cascade' })
+92:    .notNull()
+93:    .unique(),
+94:  fullName: varchar('full_name', { length: 255 }).notNull(),
+95:  avatarUrl: text('avatar_url'),
+96:  coverUrl: text('cover_url'),
+97:  phoneNumber: varchar('phone_number', { length: 20 }),
+98:  dateOfBirth: date('date_of_birth'),
+99:  gender: varchar('gender', { length: 20 }),
+100:  isGenderLocked: boolean('is_gender_locked').default(false).notNull(),
+101:  address: text('address'),
+102:  bio: text('bio'),
+103:  provinceCode: varchar('province_code', { length: 20 })
+104:    .references(() => provinces.code, { onDelete: 'set null' }),
+105:  isVerified: boolean('is_verified').default(false).notNull(),
+106:  // Quyền riêng tư nhắn tin: false = chặn người lạ nhắn tin; opt-in mới là true.
+107:  allowStrangerMessages: boolean('allow_stranger_messages').default(false).notNull(),
+108:  bankName: varchar('bank_name', { length: 100 }),
+109:  bankAccountNumber: varchar('bank_account_number', { length: 50 }),
+110:  bankAccountName: varchar('bank_account_name', { length: 255 }),
+111:  updatedAt: timestamp('updated_at', { withTimezone: true })
+112:    .defaultNow()
+113:    .notNull(),
+114:});
+115:
+116:export const sessions = pgTable('sessions', {
+117:  id: uuid('id').primaryKey().defaultRandom(),
+118:  userId: uuid('user_id')
+119:    .references(() => users.id, { onDelete: 'cascade' })
+120:    .notNull(),
+121:  refreshToken: text('refresh_token').notNull().unique(),
+122:  userAgent: text('user_agent'),
+123:  ipAddress: varchar('ip_address', { length: 45 }),
+124:  isRevoked: boolean('is_revoked').default(false).notNull(),
+125:  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+126:  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+127:  createdAt: timestamp('created_at', { withTimezone: true })
+128:    .defaultNow()
+129:    .notNull(),
+130:});
+131:
+132:export const organizerReviews = pgTable('organizer_reviews', {
+133:  id: uuid('id').primaryKey().defaultRandom(),
+…
+140:});
+
+[Showing lines 1-133 of 159. Use :134 to continue]
+
+### region 30 (read, ~707 tok)
+
+[backend/src/modules/tournaments/utils/tournament-participant-status.ts#4B3D]
+1:import { resolveFootballTeamConfig } from './football-team-config';
+2:import { isDoublesMatchType } from './tournament-input-policy';
+3:
+4:export type DoublesPairingMode = 'ORGANIZER' | 'SELF';
+5:export type DoublesParticipantTransition =
+6:  | {
+7:      event: 'REGISTER';
+8:      registrationMode: unknown;
+9:      waitlisted: boolean;
+10:      isLite?: boolean;
+11:      pairingMode?: DoublesPairingMode;
+12:      rosterCount?: number;
+13:      hasPartnerInvite?: boolean;
+14:    }
+15:  | {
+16:      event: 'APPROVE';
+17:      registrationMode: unknown;
+18:      isDoubles: boolean;
+19:      rosterCount: number;
+20:      isLite?: boolean;
+21:      pairingMode?: DoublesPairingMode;
+22:      hasPartnerInvite?: boolean;
+23:    }
+24:  | { event: 'PAIR' };
+25:
+26:export type DoublesParticipantStatus =
+27:  | 'WAITLISTED'
+28:  | 'PENDING_APPROVAL'
+29:  | 'PENDING_PARTNER'
+30:  | 'COMPLETE';
+31:
+32:export function resolveDoublesParticipantStatus(
+33:  transition: DoublesParticipantTransition,
+34:): DoublesParticipantStatus {
+35:  switch (transition.event) {
+36:    case 'REGISTER': {
+37:      if (transition.waitlisted) return 'WAITLISTED';
+38:      const pairingMode = transition.pairingMode ?? 'ORGANIZER';
+39:      const rosterCount = transition.rosterCount ?? 1;
+40:      const hasPartnerInvite = transition.hasPartnerInvite ?? false;
+41:
+42:      if (transition.registrationMode === 'APPROVAL') {
+43:        if (rosterCount >= 2) return 'PENDING_APPROVAL';
+44:        if (pairingMode === 'ORGANIZER' || !hasPartnerInvite) {
+45:          return 'PENDING_APPROVAL';
+46:        }
+47:      }
+48:      return rosterCount >= 2 ? 'COMPLETE' : 'PENDING_PARTNER';
+49:    }
+50:    case 'APPROVE':
+51:      return transition.registrationMode === 'APPROVAL' &&
+52:        transition.isDoubles &&
+53:        transition.rosterCount === 1
+54:        ? 'PENDING_PARTNER'
+55:        : 'COMPLETE';
+56:    case 'PAIR':
+57:      return 'COMPLETE';
+58:  }
+59:}
+60:
+61:export type NonDoublesParticipantStatus =
+62:  | 'WAITLISTED'
+63:  | 'PENDING'
+64:  | 'PENDING_APPROVAL'
+65:  | 'COMPLETE';
+66:
+67:export function resolveNonDoublesParticipantStatus(input: {
+68:  registrationMode: unknown;
+69:  waitlisted: boolean;
+70:  incompleteRoster: boolean;
+71:}): NonDoublesParticipantStatus {
+72:  if (input.waitlisted) return 'WAITLISTED';
+73:  if (input.incompleteRoster) return 'PENDING';
+74:  return input.registrationMode === 'APPROVAL'
+75:    ? 'PENDING_APPROVAL'
+76:    : 'COMPLETE';
+77:}
+78:export function isDoublesParticipantPairable(
+79:  teamStatus: string | null | undefined,
+80:  teamInviteToken?: string | null,
+81:): boolean {
+82:  return teamStatus === 'PENDING_PARTNER' && !teamInviteToken;
+83:}
+
+[Showing lines 1-83 of 226. Use :84 to continue]
+
+### region 31 (read, ~1715 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#29A1]
+1:import {
+2:  pgTable,
+3:  uuid,
+4:  varchar,
+5:  text,
+6:  jsonb,
+7:  numeric,
+8:  boolean,
+9:  timestamp,
+10:  integer,
+11:  check,
+12:  date,
+13:  index,
+14:  uniqueIndex,
+15:} from 'drizzle-orm/pg-core';
+16:import { sql } from 'drizzle-orm';
+17:import { users } from './users.schema';
+18:import { communities } from './communities.schema';
+19:import { categories } from './categories.schema';
+20:import { tournamentVenues } from './venues.schema';
+21:import { tournamentDivisions } from './tournament_divisions.schema';
+22:
+23:export const parentTournaments = pgTable('parent_tournaments', {
+24:  id: uuid('id').primaryKey().defaultRandom(),
+25:  name: varchar('name', { length: 255 }).notNull(),
+26:  description: text('description'),
+27:  bannerUrl: text('banner_url'),
+28:  logoUrl: text('logo_url'),
+29:  sports: jsonb('sports').$type<string[]>().default([]).notNull(),
+30:  createdBy: uuid('created_by')
+31:    .references(() => users.id, { onDelete: 'restrict' })
+32:    .notNull(),
+33:  createdAt: timestamp('created_at', { withTimezone: true })
+34:    .defaultNow()
+35:    .notNull(),
+36:  updatedAt: timestamp('updated_at', { withTimezone: true })
+37:    .defaultNow()
+38:    .notNull(),
+39:  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+40:});
+41:
+42:export const tournaments = pgTable(
+43:  'tournaments',
+44:  {
+45:    id: uuid('id').primaryKey().defaultRandom(),
+46:    parentId: uuid('parent_id').references(() => parentTournaments.id, {
+47:      onDelete: 'cascade',
+48:    }),
+49:    communityId: uuid('community_id').references(() => communities.id, {
+50:      onDelete: 'set null',
+51:    }),
+52:    categoryId: uuid('category_id')
+53:      .references(() => categories.id)
+54:      .notNull(),
+55:    createdBy: uuid('created_by')
+56:      .references(() => users.id, { onDelete: 'restrict' })
+57:      .notNull(),
+58:    name: varchar('name', { length: 255 }).notNull(),
+59:    description: text('description'),
+60:    status: varchar('status', { length: 50 }).default('DRAFT').notNull(),
+61:    matchType: varchar('match_type', { length: 50 }).default('DOUBLES').notNull(),
+62:    sportRules: jsonb('sport_rules').notNull(),
+63:    tournamentConfig: jsonb('tournament_config').notNull(),
+64:    entryFee: numeric('entry_fee', { precision: 12, scale: 2 })
+65:      .default('0.00')
+66:      .notNull(),
+67:    platformFeePercentage: numeric('platform_fee_percentage', {
+68:      precision: 5,
+69:      scale: 2,
+70:    })
+71:      .default('5.00')
+72:      .notNull(),
+73:    platformFeeThreshold: numeric('platform_fee_threshold', {
+74:      precision: 12,
+75:      scale: 2,
+76:    })
+77:      .default('100000.00')
+78:      .notNull(),
+79:    platformFeeFixedAmount: numeric('platform_fee_fixed_amount', {
+80:      precision: 12,
+81:      scale: 2,
+82:    })
+83:      .default('5000.00')
+84:      .notNull(),
+85:    registrationStartDate: timestamp('registration_start_date', { withTimezone: true }),
+86:    registrationEndDate: timestamp('registration_end_date', { withTimezone: true }),
+87:    maxParticipants: integer('max_participants'),
+88:    startDate: timestamp('start_date', { withTimezone: true }),
+89:    endDate: timestamp('end_date', { withTimezone: true }),
+90:    venueId: uuid('venue_id').references(() => tournamentVenues.id, {
+…
+92:    }),
+…
+119:  },
+…
+145:);
+…
+172:export const tournamentGroups = pgTable('tournament_groups', {
+…
+180:}, (table) => ({
+181:  idxGroupsStageId: index('idx_groups_stage_id').on(table.stageId),
+182:}));
+183:
+184:export const tournamentParticipants = pgTable('tournament_participants', {
+185:  id: uuid('id').primaryKey().defaultRandom(),
+186:  tournamentId: uuid('tournament_id')
+187:    .references(() => tournaments.id, { onDelete: 'cascade' })
+188:    .notNull(),
+189:  tournamentDivisionId: uuid('tournament_division_id').references(
+190:    () => tournamentDivisions.id,
+191:    { onDelete: 'cascade' },
+192:  ),
+193:  groupId: uuid('group_id').references(() => tournamentGroups.id, {
+194:    onDelete: 'set null',
+195:  }),
+196:  registeredBy: uuid('registered_by')
+197:    .references(() => users.id, { onDelete: 'restrict' })
+198:    .notNull(),
+199:  teamName: varchar('team_name', { length: 255 }).notNull(),
+200:  // FK is applied by the standalone migration to avoid a runtime schema import cycle.
+201:  footballTeamId: uuid('football_team_id'),
+202:  footballTeamLogoUrl: varchar('football_team_logo_url', { length: 1000 }),
+203:  seed: integer('seed'),
+204:  points: integer('points').default(0).notNull(),
+205:  rankingConsent: boolean('ranking_consent').default(false).notNull(),
+206:  customResponses: jsonb('custom_responses'),
+207:  organizerNote: varchar('organizer_note', { length: 280 }),
+208:  isPaid: boolean('is_paid').default(false).notNull(),
+209:  // Organizer's own day-of-event mark. Carries no meaning anywhere else: it does
+210:  // not gate roster approval, does not affect ELO, and does not block playing.
+211:  isPresent: boolean('is_present').default(false).notNull(),
+212:  // Effective registration fee captured when this participant is created.
+213:  // This is distinct from isPaid: zero means free at registration, while
+214:  // isPaid=true after a paid flow means the payment was captured.
+215:  entryFeeAtRegistration: numeric('entry_fee_at_registration', {
+216:    precision: 12,
+217:    scale: 2,
+218:  }).default('0.00').notNull(),
+219:  teamInviteToken: varchar('team_invite_token', { length: 50 }).unique(),
+220:  teamStatus: varchar('team_status', { length: 50 }).default('PENDING').notNull(),
+221:  partnerUserId: uuid('partner_user_id').references(() => users.id, { onDelete: 'restrict' }),
+222:  partnerInviteExpiresAt: timestamp('partner_invite_expires_at', { withTimezone: true }),
+223:  isMock: boolean('is_mock').default(false).notNull(),
+224:  isWildcard: boolean('is_wildcard').default(false).notNull(),
+225:  registeredAt: timestamp('registered_at', { withTimezone: true })
+226:    .defaultNow()
+227:    .notNull(),
+228:  rosterLockedAt: timestamp('roster_locked_at', { withTimezone: true }),
+229:}, (table) => ({
+230:  idxParticipantsTournamentStatus: index('idx_participants_tournament_status').on(
+231:    table.tournamentId,
+232:    table.teamStatus,
+233:  ),
+234:  idxParticipantsTournamentId: index('idx_participants_tournament_id').on(
+235:    table.tournamentId,
+236:  ),
+237:  idxParticipantsDivisionStatus: index(
+238:    'idx_participants_division_status',
+239:  ).on(table.tournamentDivisionId, table.teamStatus),
+240:}));
+241:
+242:export const tournamentRosters = pgTable('tournament_rosters', {
+243:  id: uuid('id').primaryKey().defaultRandom(),
+244:  participantId: uuid('participant_id')
+245:    .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+246:    .notNull(),
+…
+276:}, (table) => ({
+…
+280:}));
+
+### region 32 (read, ~603 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#8232]
+30:
+31:  private get frontendUrl(): string {
+32:    return (
+33:      process.env.FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3001'
+34:    );
+35:  }
+36:
+37:  /** Gửi ngay cho một roster row cụ thể (dùng khi vừa thêm người). */
+38:  async sendConfirmationRequest(rosterId: string): Promise<boolean> {
+39:    return this.dispatch(rosterId, 'Xác nhận tham gia giải đấu');
+40:  }
+41:
+42:  /** Nhắc lại cho những ai đã quá hạn mà chưa xác nhận. */
+43:  async sendDueReminders(): Promise<number> {
+44:    const now = Date.now();
+45:
+46:    // Rows whose notifiedAt is still NULL are included on purpose. dispatch stamps
+47:    // that column only after a successful send, so filtering NULLs out would mean a
+48:    // single temporary mail outage silently ends all reminders — the player never
+49:    // hears again and never learns their matches go unscored. That is exactly the
+50:    // silent-exclusion failure this feature exists to prevent.
+51:    const due = await this.db
+52:      .select({
+53:        id: schema.tournamentRosters.id,
+54:        attempts: schema.tournamentRosters.consentNotifiedCount,
+55:        notifiedAt: schema.tournamentRosters.consentNotifiedAt,
+56:        joinedAt: schema.tournamentRosters.joinedAt,
+57:      })
+58:      .from(schema.tournamentRosters)
+59:      .innerJoin(
+60:        schema.tournamentParticipants,
+61:        eq(
+62:          schema.tournamentParticipants.id,
+63:          schema.tournamentRosters.participantId,
+64:        ),
+65:      )
+66:      .innerJoin(
+67:        schema.tournaments,
+68:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+69:      )
+70:      .where(
+71:        and(
+72:          isNull(schema.tournamentRosters.rankingConsentAt),
+73:          // A tournament that does not rank scores nothing, so asking its players to
+74:          // consent would be noise.
+75:          eq(schema.tournaments.isRanked, true),
+76:        ),
+77:      );
+78:
+79:    let sent = 0;
+80:    for (const row of due) {
+81:      // Three sends in total: the one at add time plus two reminders. Past the cap
+82:      // the row is left alone — nobody gets nagged forever.
+83:      if (row.attempts >= CONSENT_MAX_NOTIFICATIONS) continue;
+…
+108:    }
+…
+110:  }
+
+[Showing lines 30-83 of 224. Use :84 to continue]
+
+### region 33 (read, ~704 tok)
+
+[backend/src/database/schema/tournaments.schema.ts#29A1]
+241:
+242:export const tournamentRosters = pgTable('tournament_rosters', {
+243:  id: uuid('id').primaryKey().defaultRandom(),
+244:  participantId: uuid('participant_id')
+245:    .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+246:    .notNull(),
+247:  userId: uuid('user_id')
+248:    .references(() => users.id, { onDelete: 'restrict' })
+249:    .notNull(),
+250:  role: varchar('role', { length: 50 }).default('MAIN').notNull(),
+251:  // Team sport: status mời — INVITED (chưa accept) / ACTIVE / REMOVED
+252:  status: varchar('status', { length: 20 }).default('ACTIVE').notNull(),
+253:  // When THIS user agreed to have their results ranked in THIS tournament.
+254:  //
+255:  // Lives here, not on tournament_participants, because ELO is applied per
+256:  // tournament_rosters.userId: a team participant can carry several users
+257:  // (MAIN + RESERVE), so a single per-participant timestamp cannot tell whose
+258:  // consent it is — one user confirming would hand every team-mate their score.
+259:  //
+260:  // NULL means not confirmed. Distinct from tournament_participants.ranking_consent,
+261:  // which is only a copy of the tournament's isRanked flag.
+262:  //
+263:  // Business rule: a match counts only when matches.completedAt >= this instant.
+264:  // Matches played before confirming stay permanently unscored, so nobody can be
+265:  // force-enrolled and then have old results land against them.
+266:  rankingConsentAt: timestamp('ranking_consent_at', { withTimezone: true }),
+267:  joinedAt: timestamp('joined_at', { withTimezone: true })
+268:    .defaultNow()
+269:    .notNull(),
+270:  // When the confirmation mail was last queued, and how many times it has been
+271:  // sent. Self-reminders (1-3, then stop) are scheduled from these — without them
+272:  // the scheduler cannot tell "never notified" from "notified and ignored", and
+273:  // the organizer's "awaiting confirmation" view becomes unverifiable.
+274:  consentNotifiedAt: timestamp('consent_notified_at', { withTimezone: true }),
+275:  consentNotifiedCount: integer('consent_notified_count').default(0).notNull(),
+276:}, (table) => ({
+277:  idxRostersParticipantUserUnique: uniqueIndex(
+278:    'tournament_rosters_participant_user_unique_idx',
+279:  ).on(table.participantId, table.userId),
+280:}));
+281:export const tournamentGuestRosters = pgTable(
+282:  'tournament_guest_rosters',
+283:  {
+284:    id: uuid('id').primaryKey().defaultRandom(),
+285:    participantId: uuid('participant_id')
+286:      .references(() => tournamentParticipants.id, { onDelete: 'cascade' })
+287:      .notNull(),
+288:    displayName: varchar('display_name', { length: 255 }).notNull(),
+…
+298:  },
+…
+307:);
+
+[Showing lines 241-288 of 343. Use :289 to continue]
+
+### region 34 (read, ~612 tok)
+
+[backend/src/modules/tournaments/utils/tournament-participant-status.ts#4B3D]
+152:export function calculateOccupiedCapacity(
+…
+156:): OccupiedCapacity {
+…
+160:  for (const entry of entries) {
+…
+167:    if (unit === 'TEAM') {
+…
+169:      memberSlots += 1;
+170:      continue;
+171:    }
+172:
+173:    const members = Math.max(
+174:      normalizedMemberCount(entry.rosterMemberCount),
+175:      normalizedMemberCount(entry.importedMemberCount),
+176:    );
+177:    teamSlots += members / 2;
+178:    memberSlots += members;
+179:  }
+180:
+181:  return { teamSlots, memberSlots };
+182:}
+183:
+184:/** Team slots occupied by the given rows. */
+185:export function calculateOccupiedTeamSlots(
+186:  matchType: string | null | undefined,
+187:  entries: readonly CapacityEntry[],
+188:  options?: { tournamentConfig?: unknown },
+189:): number {
+190:  return calculateOccupiedCapacity(matchType, entries, options).teamSlots;
+191:}
+192:
+193:/**
+194: * Team slots a single new claim will consume.
+195: *
+196: * Doubles pairing adds one member slot per requested athlete (so a single
+197: * unpaired athlete takes half a team); every other unit adds one whole team
+198: * for the new registration row. A non-positive request adds nothing, which is
+199: * how paths that only append athletes to an already-counted team row (a
+200: * football squad joining through an open invite link) stay out of the check.
+201: */
+202:export function calculateRequestedTeamSlots(
+203:  matchType: string | null | undefined,
+204:  requestedMemberCount: number,
+205:  options?: { tournamentConfig?: unknown },
+206:): number {
+207:  const requestedMembers = normalizedMemberCount(requestedMemberCount);
+208:  if (requestedMembers <= 0) return 0;
+209:
+210:  const unit = resolveCapacityUnit(matchType, options?.tournamentConfig);
+211:  return unit === 'MEMBER' ? requestedMembers / 2 : 1;
+212:}
+213:
+214:/**
+215: * Whether appending another athlete to a participant row changes occupancy.
+216: *
+217: * A doubles pairing row grows from half a team to a whole one, so the partner
+218: * must clear capacity. A team-sport row is already counted as one whole team,
+219: * so another squad member adds nothing and must never be rejected by capacity.
+220: */
+221:export function isRosterWeightedCapacity(
+222:  matchType: string | null | undefined,
+223:  tournamentConfig?: unknown,
+224:): boolean {
+225:  return resolveCapacityUnit(matchType, tournamentConfig) === 'MEMBER';
+226:}
+
+### region 35 (read, ~1261 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.ts#8232]
+22:@Injectable()
+23:export class RankingConsentService {
+…
+43:  async sendDueReminders(): Promise<number> {
+…
+109:    return sent;
+110:  }
+111:
+112:  /**
+113:   * Gửi 1 mail và ghi nhận số lần đã gửi.
+114:   *
+115:   * Chỉ tăng bộ đếm khi gửi THÀNH CÔNG — nếu không, một hệ thống mail hỏng sẽ đốt
+116:   * hết 3 lượt nhắc rồi im lặng, biến "chưa gửi được" thành "đã bỏ qua".
+117:   */
+118:  private async dispatch(rosterId: string, subject: string): Promise<boolean> {
+119:    if (!this.mailService) return false;
+120:
+121:    const rows = await this.db
+122:      .select({
+123:        userEmail: schema.users.email,
+124:        participantName: schema.tournamentParticipants.teamName,
+125:        tournamentName: schema.tournaments.name,
+126:        tournamentId: schema.tournaments.id,
+127:        attempts: schema.tournamentRosters.consentNotifiedCount,
+128:        consentedAt: schema.tournamentRosters.rankingConsentAt,
+129:      })
+130:      .from(schema.tournamentRosters)
+131:      .innerJoin(
+132:        schema.users,
+133:        eq(schema.users.id, schema.tournamentRosters.userId),
+134:      )
+135:      .innerJoin(
+136:        schema.tournamentParticipants,
+137:        eq(schema.tournamentParticipants.id, schema.tournamentRosters.participantId),
+138:      )
+139:      .innerJoin(
+140:        schema.tournaments,
+141:        eq(schema.tournaments.id, schema.tournamentParticipants.tournamentId),
+142:      )
+143:      .where(eq(schema.tournamentRosters.id, rosterId))
+144:      .limit(1);
+145:
+146:    const row = rows[0];
+147:    if (!row?.userEmail || row.consentedAt) return false;
+148:
+149:    const link = `${this.frontendUrl}/tournaments/${row.tournamentId}`;
+150:    const isReminder = row.attempts > 0;
+151:
+152:    try {
+153:      const ok = await this.mailService.sendMail(
+154:        row.userEmail,
+155:        `[Sporto] ${subject}: ${row.tournamentName}`,
+156:        this.buildHtml({
+157:          participantName: row.participantName,
+158:          tournamentName: row.tournamentName,
+159:          link,
+160:          isReminder,
+161:        }),
+162:      );
+163:      if (!ok) return false;
+164:    } catch (err) {
+165:      this.logger.warn(
+166:        `Gửi mail xác nhận thất bại cho roster ${rosterId}: ${
+167:          err instanceof Error ? err.message : String(err)
+168:        }`,
+169:      );
+170:      return false;
+171:    }
+172:
+173:    await this.db
+174:      .update(schema.tournamentRosters)
+175:      .set({
+176:        consentNotifiedAt: new Date(),
+177:        consentNotifiedCount: row.attempts + 1,
+178:      })
+179:      .where(eq(schema.tournamentRosters.id, rosterId));
+180:
+181:    return true;
+182:  }
+183:
+184:  private buildHtml(args: {
+185:    participantName: string | null;
+186:    tournamentName: string;
+187:    link: string;
+188:    isReminder: boolean;
+189:  }): string {
+190:    const heading = args.isReminder
+191:      ? 'Bạn chưa xác nhận tham gia'
+192:      : 'Bạn được thêm vào một giải đấu';
+193:    return `
+194:      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 560px;">
+195:        <div style="background-color: #0f172a; padding: 20px; border-radius: 8px 8px 0 0;">
+196:          <h1 style="color: #ffffff; font-size: 18px; margin: 0;">${heading}</h1>
+197:        </div>
+198:        <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e2e8f0; border-top: none;">
+199:          <p style="font-size: 14px; color: #0f172a; margin: 0 0 16px;">
+200:            Xin chào ${args.participantName ?? 'bạn'},
+201:          </p>
+202:          <p style="font-size: 14px; color: #334155; margin: 0 0 16px;">
+203:            Ban tổ chức đã thêm bạn vào giải
+204:            <strong>${args.tournamentName}</strong>.
+205:          </p>
+206:          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 20px;">
+207:            <p style="font-size: 14px; color: #78350f; margin: 0;">
+208:              Muốn được tính Elo và lưu lịch sử trận đấu, bạn cần bấm xác nhận.
+209:              <br />
+210:              Chỉ những trận <strong>hoàn thành từ lúc bạn xác nhận</strong> mới được
+211:              tính — các trận đã đấu trước đó không tính.
+212:            </p>
+213:          </div>
+214:          <a href="${args.link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+215:            Đăng nhập để xác nhận
+216:          </a>
+217:          <p style="font-size: 13px; color: #64748b; margin: 20px 0 0;">
+218:            Không xác nhận? Bạn vẫn thi đấu bình thường, chỉ là không có Elo.
+219:          </p>
+220:        </div>
+221:      </div>
+222:    `;
+223:  }
+224:}
+
+### region 36 (read, ~702 tok)
+
+[backend/src/modules/tournaments/utils/tournament-participant-status.ts#4B3D]
+78:export function isDoublesParticipantPairable(
+…
+81:): boolean {
+…
+83:}
+84:
+85:export const CAPACITY_RESERVING_TEAM_STATUSES = [
+86:  'PENDING',
+87:  'PENDING_APPROVAL',
+88:  'PENDING_PARTNER',
+89:  'COMPLETE',
+90:] as const;
+91:
+92:const capacityReservingTeamStatuses = new Set<string>(
+93:  CAPACITY_RESERVING_TEAM_STATUSES,
+94:);
+95:
+96:export interface CapacityEntry {
+97:  teamStatus: string | null | undefined;
+98:  rosterMemberCount: number;
+99:  importedMemberCount?: number;
+100:  /**
+101:   * Format of the division this row belongs to. A tournament-wide read spans
+102:   * divisions, so every row carries its own; a row with no division (or a
+103:   * division-scoped read) leaves it unset and uses the scope's format.
+104:   */
+105:  matchType?: string | null;
+106:}
+107:
+108:function normalizedMemberCount(value: number | undefined): number {
+109:  return Number.isFinite(value) ? Math.max(0, Math.trunc(value ?? 0)) : 0;
+110:}
+111:
+112:/**
+113: * Capacity unit of a division/tournament.
+114: *
+115: * `MEMBER` is the roster-weighted doubles pairing unit: every active roster
+116: * athlete holds half a team. `TEAM` is the legacy whole-row unit used by
+117: * singles and by team sports (a football squad of eleven is still one team
+118: * record, not five and a half teams).
+119: */
+120:export type CapacityUnit = 'TEAM' | 'MEMBER';
+121:
+122:export function resolveCapacityUnit(
+123:  matchType: string | null | undefined,
+124:  tournamentConfig?: unknown,
+125:): CapacityUnit {
+126:  if (!isDoublesMatchType(matchType)) return 'TEAM';
+127:  return resolveFootballTeamConfig(tournamentConfig).isTeamSport
+128:    ? 'TEAM'
+129:    : 'MEMBER';
+130:}
+131:
+132:/**
+133: * Occupancy of a scope in both units the projections expose.
+134: *
+135: * `teamSlots` is what `maxParticipants` limits; `memberSlots` is the same
+136: * occupancy expressed as athletes, so a mixed-format scope never reports a
+137: * member count that contradicts the slot count it derived it from.
+138: */
+139:export interface OccupiedCapacity {
+140:  teamSlots: number;
+141:  memberSlots: number;
+142:}
+143:
+144:/**
+145: * Resolve occupied slots from persisted registration rows.
+146: *
+147: * Doubles roster members consume half a team each; other formats remain
+148: * one participant/team row per capacity slot. Each row is weighed by the
+149: * format of its own division, so a singles athlete inside a doubles tournament
+150: * still owns a whole team; rows without a division use the scope's format.
+151: */
+152:export function calculateOccupiedCapacity(
+153:  matchType: string | null | undefined,
+154:  entries: readonly CapacityEntry[],
+…
+156:): OccupiedCapacity {
+…
+182:}
+
+[Showing lines 83-154 of 226. Use :155 to continue]
+
+### region 37 (read, ~998 tok)
+
+[backend/src/modules/tournaments/services/ranking-consent.service.spec.ts#9AC4]
+28:const detailRow = (
+…
+30:): ReminderDetail => ({
+…
+47:});
+48:
+49:describe('RankingConsentService.sendDueReminders', () => {
+50:  const hoursAgo = (h: number) => new Date(NOW.getTime() - h * HOUR);
+51:
+52:  /**
+53:   * Resolves by call order: the first select is the candidate scan, every later
+54:   * select is a dispatch looking up its own roster detail row.
+55:   */
+56:  const createDb = (
+57:    candidates: unknown[],
+58:    details: ReminderDetail = detailRow(),
+59:  ) => {
+60:    let call = 0;
+61:    const chain: Record<string, unknown> = {};
+62:    const self = () => chain;
+63:    chain.select = jest.fn(self);
+64:    chain.from = jest.fn(self);
+65:    chain.innerJoin = jest.fn(self);
+66:    chain.where = jest.fn(self);
+67:    chain.limit = jest.fn(self);
+68:    chain.update = jest.fn(self);
+69:    chain.set = jest.fn(self);
+70:    chain.then = (resolve: (value: unknown) => unknown) =>
+71:      Promise.resolve().then(() => {
+72:        const value = call === 0 ? candidates : [details];
+73:        call += 1;
+74:        resolve(value);
+75:      });
+76:    return chain;
+77:  };
+78:
+79:  const build = (
+80:    candidates: unknown[],
+81:    sendOk = true,
+82:    details: ReminderDetail = detailRow(),
+83:  ) => {
+84:    const db = createDb(candidates, details);
+85:    const mailService = { sendMail: jest.fn().mockResolvedValue(sendOk) };
+86:    const service = new RankingConsentService(
+87:      db as never,
+88:      mailService as never,
+89:    );
+90:    return { service, mailService };
+91:  };
+92:
+93:
+94:  beforeEach(() => {
+95:    jest.useFakeTimers().setSystemTime(NOW);
+96:  });
+97:
+98:  afterEach(() => {
+99:    jest.useRealTimers();
+100:  });
+…
+182:  it('does not count a failed send as a delivered one', async () => {
+…
+188:    await expect(service.sendDueReminders()).resolves.toBe(0);
+189:  });
+190:  it.each([
+191:    ['unverified email', { userEmailVerified: false }],
+192:    ['removed roster row', { rosterStatus: 'REMOVED' }],
+193:    ['completed tournament', { tournamentStatus: 'COMPLETED' }],
+194:    ['ended tournament', { tournamentEndDate: NOW }],
+195:  ])('does not notify a player with %s', async (_reason, overrides) => {
+196:    const { service, mailService } = build([detailRow(overrides)]);
+197:
+198:    await service.sendConfirmationRequest('r1');
+199:
+200:    expect(mailService.sendMail).not.toHaveBeenCalled();
+201:  });
+202:
+203:  it('escapes user-controlled names in the email body', async () => {
+204:    const { service, mailService } = build([
+205:      detailRow({
+206:        participantName: '<img src=x onerror="alert(1)">',
+207:        tournamentName: 'Cup <script>alert(1)</script>',
+208:      }),
+209:    ]);
+210:
+211:    await service.sendConfirmationRequest('r1');
+212:
+213:    const html = mailService.sendMail.mock.calls[0][2];
+214:    expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+215:    expect(html).toContain('Cup &lt;script&gt;alert(1)&lt;/script&gt;');
+216:    expect(html).not.toContain('<script>');
+217:  });
+218:
+219:  it('rejects unsafe frontend URL schemes before sending', async () => {
+220:    const previousFrontendUrl = process.env.FRONTEND_URL;
+221:    process.env.FRONTEND_URL = 'javascript:alert(1)';
+222:    try {
+223:      const { service, mailService } = build([detailRow()]);
+224:
+225:      await service.sendConfirmationRequest('r1');
+226:
+227:      expect(mailService.sendMail).not.toHaveBeenCalled();
+228:    } finally {
+229:      if (previousFrontendUrl === undefined) {
+230:        delete process.env.FRONTEND_URL;
+231:      } else {
+232:        process.env.FRONTEND_URL = previousFrontendUrl;
+233:      }
+234:    }
+235:  });
+236:  it('serializes simultaneous reminder runs before sending', async () => {
+237:    let attempts = 1;
+238:    let notifiedAt: Date | null = hoursAgo(30);
+239:    let transactionTail: Promise<void> = Promise.resolve();
+240:
+…
+317:  });
+318:});

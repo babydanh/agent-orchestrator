@@ -1,0 +1,24 @@
+FAIL src/modules/tournaments/services/tournament-participant-admin.service.spec.ts
+  ● TournamentParticipantAdminService › rejects candidate lookup for a cancelled tournament division
+
+    expect(received).rejects.toBeInstanceOf()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"nextCursor": null, "rows": []}
+
+      755 |     accessMock.isManager.mockResolvedValue(true);
+      756 |
+    > 757 |     await expect(
+          |           ^
+      758 |       admin.listAddAthleteCandidates('tournament-1', 'organizer-1', [], {
+      759 |         source: 'FRIENDS',
+      760 |         divisionId: 'division-1',
+
+      at expect (../node_modules/.pnpm/expect@30.4.1/node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (modules/tournaments/services/tournament-participant-admin.service.spec.ts:757:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 21 skipped, 22 total
+Snapshots:   0 total
+Time:        1.03 s
+Ran all test suites matching src/modules/tournaments/services/tournament-participant-admin.service.spec.ts with tests matching "cancelled tournament division".
