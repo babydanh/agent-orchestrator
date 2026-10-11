@@ -14,8 +14,6 @@ on:
           - 'web'
           - 'backend'
           - 'app'
-          - 'aicheckvar'
-          - 'auto25d'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -42,22 +40,17 @@ jobs:
         with:
           node-version: 22
 
-      # CACHE 1: PNPM Global Store (Không tải lại packages)
-      - name: 2. Get PNPM Store Directory
-        id: pnpm-store
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
-
-      - name: 3. Setup PNPM Cache
+      # CACHE 1: PNPM Global Store
+      - name: 2. Setup PNPM Cache
         uses: actions/cache@v4
         with:
-          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-v1
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
       # CACHE 2: Playwright Chromium Browser Cache
-      - name: 4. Setup Playwright Browser Cache
+      - name: 3. Setup Playwright Browser Cache
         uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -66,31 +59,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      # CACHE 3: Next.js Build Cache (Tăng tốc Next build từ 2 phút còn 15 giây)
-      - name: 5. Setup Next.js Build Cache
-        uses: actions/cache@v4
-        with:
-          path: web/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('web/pnpm-lock.yaml') }}-${{ hashFiles('web/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('web/pnpm-lock.yaml') }}-
-            ${{ runner.os }}-nextjs-
-
-      - name: 6. Clone Backend Repo & Start Mock/Dev Service
+      # CLONE BACKEND & START SERVICE
+      - name: 4. Clone Backend Repo & Start NestJS Service
         run: |
           mkdir -p workspace
           cd workspace
-          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          TARGET_BRANCH="${{ github.event.inputs.custom_branch || 'main' }}"
+          git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend || git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
           cd backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
           PORT=3000 pnpm start:prod &
           cd ../..
 
-      - name: 7. Clone Web Repo & Install Dependencies
+      # CLONE WEB REPO
+      - name: 5. Clone Web Repo & Install Dependencies
         run: |
           cd workspace
-          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          TARGET_BRANCH="${{ github.event.inputs.custom_branch || 'main' }}"
+          git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web || git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
           cd web
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
@@ -98,18 +85,31 @@ jobs:
           fi
           cd ../..
 
-      - name: 8. Build Web & Run Playwright E2E UI Tests
+      # CACHE 3: Next.js Build Cache (Đặt sau khi đã clone web)
+      - name: 6. Setup Next.js Build Cache
+        uses: actions/cache@v4
+        with:
+          path: workspace/web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('workspace/web/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-
+
+      # CHỜ CẢ 2 CỔNG SẴN SÀNG VÀ CHẠY PLAYWRIGHT E2E
+      - name: 7. Wait for Backend & Run Playwright E2E UI Tests
         env:
           FRONTEND_URL: http://localhost:3001
           CI: true
         run: |
+          # Đảm bảo Backend PORT 3000 đã boot xong trước khi test
+          npx wait-on http://localhost:3000 --timeout 60000
+          
           cd workspace/web
           PORT=3001 pnpm build
           PORT=3001 pnpm start &
           npx wait-on http://localhost:3001 --timeout 60000
           pnpm test:e2e
 
-      - name: 9. Upload Playwright Report on Failure
+      - name: 8. Upload Playwright Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -216,11 +216,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-backend-
 
-      - name: 4. Install & Test
+      - name: 4. Install & Test (Báo lỗi thật, không nuốt lỗi)
         run: |
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
-          pnpm test || echo "Backend test finished"
+          pnpm test
 
   # ==========================================
   # JOB 4: TEST FLUTTER APP (ANALYZE & TEST)
@@ -247,8 +247,8 @@ jobs:
           cache: true
           cache-key: 'flutter-:os:-:channel:-:version:'
 
-      - name: 3. Run Flutter Analyze & Tests
+      - name: 3. Run Flutter Analyze & Tests (Báo lỗi thật, không nuốt lỗi)
         run: |
           flutter pub get
-          flutter analyze || true
-          flutter test || true
+          flutter analyze
+          flutter test
