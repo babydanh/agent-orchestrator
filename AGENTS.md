@@ -233,3 +233,29 @@ OMP operates with a perpetual shared memory layer via OpenViking (`openviking` M
   - Khi gặp thao tác thủ công người dùng phải làm (nhập secret key, OAuth, dashboard third-party, migration): Không xả tài liệu dài dòng, hãy tự sinh script `template.ps1` (cho Windows) hoặc `template.sh` để dẫn đường từng bước tương tác.
 - **Quy chuẩn Reset & Tái diễn giải (`wait-what`)**:
   - Khi người dùng phản hồi *"khoan đã"*, *"chưa hiểu"*, *"nói lại xem"*: Lập tức dừng cãi/giải thích kỹ thuật rườm rà; hạ tông kỹ thuật, lược bỏ jargon, giải thích lại bằng ngôn ngữ đời thường và chốt 2 lựa chọn A/B.
+
+
+---
+
+---
+
+## 16. Regression-Guard & Pre-Test Awareness Protocol (Quy Chuẩn Đọc Test Cũ Trước Khi Code)
+Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng cấp giao diện, AI **BẮT BUỘC** tuân thủ chu trình 4 bước để không bao giờ phá vỡ hệ thống cũ:
+
+1. **BƯỚC 1: Đọc & Khảo Sát Test Cũ (Pre-Test Inspection - BẮT BUỘC TRƯỚC KHI ĐỤNG CODE)**:
+   - Trước khi sửa bất kỳ file logic hay component nào: Phải quét thư mục test liên quan (`test/e2e/*.spec.ts`, `tests/`, `*_test.dart`, hoặc `docs/testcases.xlsx`).
+   - Đọc kỹ các ca test hiện có đang assert cái gì (tên selector UI, HTTP status, schema dữ liệu, luồng điều hướng).
+   - Nắm rõ: *Tính năng này đã có bài test nào bảo vệ chưa? Nếu sửa file này thì bài test nào sẽ bị ảnh hưởng?*
+
+2. **BƯỚC 2: Kiểm Định Phạm Vi Ảnh Hưởng (Blast Radius & Regression Check)**:
+   - Dùng `ripwire` (`impact`, `uses`) hoặc `ast-grep` để xem hàm/component này đang được ai gọi.
+   - Tuyệt đối KHÔNG sửa code kiểu phá vỡ hợp đồng cũ (Breaking changes) trừ khi người dùng yêu cầu thay đổi nghiệp vụ.
+
+3. **BƯỚC 3: Test-Driven & Viết Test Mới Cho Tính Năng Mới (New Coverage)**:
+   - Nếu là tính năng mới: Viết thêm kịch bản test (hoặc test case mới) bao phủ luồng mới, gắn thẻ ID rõ ràng (ví dụ: `TC-FEAT-01`).
+   - Cập nhật mục lục danh mục test: Giữ nguyên các test cũ, chỉ nối tiếp thêm (append) tính năng mới vào hệ thống.
+
+4. **BƯỚC 4: Chạy Verify Thực Tế (Allure & Playwright Verification)**:
+   - Chạy lệnh test thực tế (`pnpm test:e2e` hoặc `flutter test`).
+   - BẮT BUỘC kiểm tra: **Toàn bộ các test cũ vẫn phải PASS 100% (Không bị regression)** + **Test mới viết phải PASS**.
+   - Sinh báo cáo Allure (`pnpm allure:generate` hoặc upload Artifact trên Cloud) để có bằng chứng trực quan chứng minh không có tính năng cũ nào bị hỏng!
