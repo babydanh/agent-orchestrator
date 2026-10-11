@@ -7,7 +7,7 @@ description: Use when the user wants to read external web documentation cleanly 
 
 Tận dụng server Botkeep 24/7 để cào tài liệu sạch cho OMP mà không tốn token rác.
 
-## Danh Sách 9 Siêu Công Cụ Cloud (Qua Gateway `https://comagent1.bot-keep.xyz/mcp`):
+## Các công cụ Cloud qua Gateway `https://comagent1.bot-keep.xyz/mcp`:
 
 ### 1. Cào Web & Tài Liệu Markdown Sạch 100%:
 - **MCP Tool**: `web_markdown_reader(url: "<link>")`
@@ -25,25 +25,25 @@ Tận dụng server Botkeep 24/7 để cào tài liệu sạch cho OMP mà khôn
 - **MCP Tool**: `package_size_checker(pkg: "tên_package")`
 - Bắt kịp thư viện nặng >100KB gzip trước khi gõ `npm install`.
 
-### 5. Universal Database Schema Lens (Hiểu Mọi Database):
+### 5. Schema Lens (Drizzle tĩnh, SQL/Prisma cơ bản):
 - **MCP Tool**: `drizzle_schema_lens(schemaCode: "<mã_nguồn>")`
-- Tự động bóc tách Drizzle ORM, Raw SQL DDL (`CREATE TABLE`), hoặc Prisma schema thành bảng tóm tắt quan hệ (~300 tokens) chống ảo giác tên cột 100%.
+- Drizzle TypeScript dùng TypeScript AST; Raw SQL DDL và Prisma dùng parser cơ bản. Không thực thi schema; không bảo đảm phân tích đầy đủ mọi syntax.
 
-### 6. Recursive Quicktype Model Generator:
+### 6. Quicktype Model Generator:
 - **MCP Tool**: `quicktype_generator(json: "{...}", className: "Tournament", target: "dart" | "typescript")`
-- Tự động sinh ra các Class Model lồng nhau (Nested Classes) kèm `fromJson` và `toJson` chuẩn xác 100%.
+- Dùng `quicktype-core` để sinh mã từ mẫu JSON; chất lượng kiểu phụ thuộc dữ liệu mẫu, không bảo đảm 100%.
 
-### 7. SQL Database Sandbox (RAM & Disk Persistent):
+### 7. SQLite trên tệp DB bền vững (có giới hạn):
 - **MCP Tool**: `sqlite_query(sql: "SELECT * FROM tournaments")`
-- Chạy thử nghiệm SQL trên RAM & lưu trữ đĩa 2GB trên Cloud mà không cần bật PostgreSQL nặng nề ở PC.
+- Dùng `node:sqlite`, quota mặc định 64 MiB và kết quả tối đa 500 hàng/1 MiB. DDL/DML thay đổi DB dùng chung và lưu trên file. Node 24.14 local phát `ExperimentalWarning`; quota/runtime Cloud cần kiểm chứng riêng.
 
-### 8. AST Security & Code Review:
-- **MCP Tool**: `semgrep_code_review(code: "<đoạn_mã>")`
-- Bắt lỗi Flutter `setState` thiếu mounted check, Next.js hardcode localhost, lộ secret.
+### 8. Rà mã nguồn:
+- **MCP Tool**: `code_security_review(code: "<mã>", language: "typescript" | "javascript" | "dart")`
+- JS/TS dùng ESLint AST + security rules; Dart chỉ heuristic, không phải Semgrep hoặc Dart Analyzer. Ngôn ngữ mặc định là TypeScript.
 
 ### 9. Chặn Conflict & Lộ Bí Mật Git:
 - **MCP Tool**: `diff_validator(diff: "<git diff>")`
-- Quét conflict markers (`<<<<<<<`) và file nhạy cảm (`.env`, `private key`) trước khi commit.
+- Chỉ kiểm tra conflict markers và đường dẫn tệp nhạy cảm; không dò secret trong nội dung diff và không thay thế Git.
 
 ### 10. StackOverflow Accepted Bug Solver:
 - **MCP Tool**: `stackoverflow_solver(q: "<thông_báo_lỗi>", tag: "flutter" | "next.js")`
@@ -53,6 +53,6 @@ Tận dụng server Botkeep 24/7 để cào tài liệu sạch cho OMP mà khôn
 - **MCP Tool**: `github_issue_solver(q: "<lỗi_framework>", repo: "vercel/next.js")`
 - Quét các Issue đã Closed để lấy cách fix chính thức từ chính tác giả thư viện.
 
-### 12. Mock API Client 24/7 (Flutter & Web):
+### 12. Mock API Client (Flutter & Web):
 - **MCP Tool**: `mock_api_client(collection: "tournaments", method: "GET" | "POST", data: {...})`
-- Truy vấn, thêm, sửa, xóa dữ liệu test thể thao trên Cloud lưu trữ đĩa 2GB mà không cần bật Backend ở PC.
+- Quản lý dữ liệu test thể thao qua API; dung lượng lưu trữ của instance Cloud chưa được xác minh.

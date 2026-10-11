@@ -43,3 +43,10 @@ Whenever inspecting, searching, or refactoring source code in supported language
 - **Pure `build()`**: Never perform computation, instantiate controllers, or make HTTP/DB calls inside `build()`.
 - **Controller Lifecycle**: Always properly dispose controllers and stream subscriptions in `dispose()`.
 - **Null Safety**: Clean use of `?.` and `??`. Never use bang (`!`) unless non-nullness is mathematically guaranteed.
+
+
+---
+
+## 5. Web Server & Prompt Cache Standards
+- **Next.js Turbopack**: Always use `--turbo` (`next dev --turbo`). Never run raw Webpack dev servers. Terminate test servers immediately after use.
+- **OpenViking Retrieval**: Retrieve project history on-demand via `openviking` tool calls in message flow to preserve static prefix cache. Keep root project context files static.
