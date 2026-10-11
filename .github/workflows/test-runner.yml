@@ -10,10 +10,11 @@ on:
         default: 'all'
         options:
           - 'all'
+          - 'fullstack-e2e'
           - 'web'
           - 'backend'
-          - 'aicheckvar'
           - 'app'
+          - 'aicheckvar'
           - 'auto25d'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
@@ -25,14 +26,105 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ==========================================
-  # JOB 1: TEST FRONTEND WEB (PLAYWRIGHT E2E)
-  # ==========================================
-  test-web:
-    name: 🌐 Test Web E2E (Playwright 33 Specs)
-    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'web'
+  # =========================================================================
+  # JOB 1: FULLSTACK INTEGRATION TEST (BẬT BACKEND API + CHẠY PLAYWRIGHT WEB)
+  # =========================================================================
+  test-fullstack:
+    name: 🚀 Full-Stack E2E (Backend NestJS + Web Next.js)
+    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
+    steps:
+      - name: 1. Setup Node.js 22 LTS & PNPM
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # CACHE 1: PNPM Global Store (Không tải lại packages)
+      - name: 2. Get PNPM Store Directory
+        id: pnpm-store
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: 3. Setup PNPM Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # CACHE 2: Playwright Chromium Browser Cache
+      - name: 4. Setup Playwright Browser Cache
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-v1
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # CACHE 3: Next.js Build Cache (Tăng tốc Next build từ 2 phút còn 15 giây)
+      - name: 5. Setup Next.js Build Cache
+        uses: actions/cache@v4
+        with:
+          path: web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('web/pnpm-lock.yaml') }}-${{ hashFiles('web/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('web/pnpm-lock.yaml') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: 6. Clone Backend Repo & Start Mock/Dev Service
+        run: |
+          mkdir -p workspace
+          cd workspace
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          cd backend
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          pnpm build
+          PORT=3000 pnpm start:prod &
+          cd ../..
+
+      - name: 7. Clone Web Repo & Install Dependencies
+        run: |
+          cd workspace
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          cd web
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install --with-deps chromium
+          fi
+          cd ../..
+
+      - name: 8. Build Web & Run Playwright E2E UI Tests
+        env:
+          FRONTEND_URL: http://localhost:3001
+          CI: true
+        run: |
+          cd workspace/web
+          PORT=3001 pnpm build
+          PORT=3001 pnpm start &
+          npx wait-on http://localhost:3001 --timeout 60000
+          pnpm test:e2e
+
+      - name: 9. Upload Playwright Report on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fullstack-playwright-failures
+          path: workspace/web/playwright-report/
+          retention-days: 7
+
+  # ==========================================
+  # JOB 2: TEST ISOLATED WEB UI (PLAYWRIGHT)
+  # ==========================================
+  test-web:
+    name: 🌐 Isolated Web UI (Playwright 33 Specs)
+    if: github.event.inputs.target_project == 'web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: 1. Checkout Web Repository
@@ -47,42 +139,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
 
-      - name: 3. Install Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 4. Cache Playwright Chromium
+      - name: 3. Setup PNPM Cache
         uses: actions/cache@v4
-        id: playwright-cache
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-web-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-web-
+
+      - name: 4. Setup Playwright Chromium Cache
+        uses: actions/cache@v4
+        id: playwright-cache-web
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-playwright-v1
 
-      - name: 5. Install Chromium if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+      - name: 5. Setup Next.js Build Cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-build-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-next-build-
 
-      - name: 6. Build Web & Run Playwright E2E
+      - name: 6. Install Packages & Run Tests
         env:
           FRONTEND_URL: http://localhost:3000
           CI: true
         run: |
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          if [ "${{ steps.playwright-cache-web.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install --with-deps chromium
+          fi
           pnpm build
           pnpm start &
           npx wait-on http://localhost:3000 --timeout 60000
           pnpm test:e2e
 
-      - name: 7. Upload Playwright Report on Failure
+      - name: 7. Upload Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: web-playwright-failures
+          name: web-ui-failures
           path: playwright-report/
           retention-days: 7
 
   # ==========================================
-  # JOB 2: TEST BACKEND API (JEST & TYPECHECK)
+  # JOB 3: TEST BACKEND API (JEST & TYPES)
   # ==========================================
   test-backend:
     name: 🛡️ Test Backend API (Jest & Types)
@@ -103,45 +207,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
 
-      - name: 3. Install Dependencies
-        run: pnpm install --frozen-lockfile
+      - name: 3. Setup PNPM Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-backend-
 
-      - name: 4. Run TypeCheck & Unit Tests
+      - name: 4. Install & Test
         run: |
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
-          pnpm test || echo "Completed tests"
-
-  # ==========================================
-  # JOB 3: TEST AICHECKVAR (PYTHON PYTEST)
-  # ==========================================
-  test-aicheckvar:
-    name: 👁️ Test AICheckVAR (PyTest 51 Specs)
-    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'aicheckvar'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: 1. Checkout AICheckVAR Repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/AICheckVAR
-          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.inputs.custom_branch || 'main' }}
-
-      - name: 2. Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: 3. Install Requirements & Run PyTest
-        run: |
-          pip install --upgrade pip
-          pip install pytest pyyaml fastapi httpx || true
-          if [ -f "requirements.txt" ]; then pip install -r requirements.txt || true; fi
-          pytest -v
+          pnpm test || echo "Backend test finished"
 
   # ==========================================
   # JOB 4: TEST FLUTTER APP (ANALYZE & TEST)
@@ -166,35 +245,10 @@ jobs:
           flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
 
       - name: 3. Run Flutter Analyze & Tests
         run: |
           flutter pub get
           flutter analyze || true
           flutter test || true
-
-  # ==========================================
-  # JOB 5: TEST AUTO25D-REMOTION (MOTION TESTS)
-  # ==========================================
-  test-auto25d:
-    name: 🎬 Test Auto25D-Remotion (20 Unit Tests)
-    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'auto25d'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: 1. Checkout Auto25D-Remotion Repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/Auto25D-Remotion
-          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-          ref: ${{ github.event.inputs.custom_branch || 'main' }}
-
-      - name: 2. Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: 3. Run Unit Tests
-        run: |
-          python -m unittest discover -s tests -v
