@@ -314,12 +314,13 @@ jobs:
           - Thư mục 'auto3dvideo/': Dự án Auto 3D Video Tauri / Python.
           - Thư mục 'auto25d-remotion/': Dự án Remotion Video Motion Design (kiểm tra bằng 'python -m unittest discover -s tests').
 
-          Quy trình bắt buộc:
+          Quy trình bắt buộc (Tuân thủ nghiêm ngặt Điều luật 16 Regression-Guard):
           1. Di chuyển vào đúng thư mục dự án liên quan (backend, app hoặc web).
           2. Tạo hoặc chuyển sang branch '$BRANCH_NAME' bằng lệnh: git checkout -B $BRANCH_NAME
-          3. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên và hoàn thành toàn bộ.
-          4. Chạy test / build trong thư mục dự án tương ứng để đảm bảo code hoạt động 100%.
-          5. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
+          3. ĐỌC TEST CŨ TRƯỚC: Mở và khảo sát toàn bộ các file test cũ (trong test/e2e/, tests/, *_test.dart) để nắm rõ UI selector và assertions, đảm bảo không phá vỡ logic cũ.
+          4. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên và hoàn thành toàn bộ.
+          5. CHẠY TEST THẬT & ALLURE: Chạy test thực tế (ví dụ: 'pnpm test:allure' hoặc 'pnpm test:e2e') để đảm bảo test cũ vẫn pass 100% và tính năng mới hoạt động chuẩn.
+          6. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
           SESSION_ID=$(echo "$ISSUE_BODY" | grep -oP 'Session-ID\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
@@ -391,6 +392,26 @@ jobs:
           done
 
           echo "PUSHED_REPOS=$PUSHED_REPOS" >> $GITHUB_ENV
+
+      - name: 7.5 Xuất Báo Cáo Allure Report nếu có kiểm thử Web
+        if: always()
+        run: |
+          cd workspace
+          if [ -d "web/allure-results" ] && [ "$(ls -A web/allure-results 2>/dev/null)" ]; then
+            cd web
+            npx allure generate allure-results --clean -o allure-report || echo "Allure generation finished"
+            cd ..
+          fi
+
+      - name: 7.6 Tải lên Artifact Báo Cáo Allure & Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-agent-allure-dashboard
+          path: |
+            workspace/web/allure-report/
+            workspace/web/playwright-report/
+          retention-days: 7
 
       - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
         if: github.event_name == 'issues'
