@@ -88,6 +88,15 @@ jobs:
           echo "Cloning Frontend Web repo..."
           git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web || echo "Web repo not accessible or already cloned"
 
+          echo "Cloning AICheckVAR repo..."
+          git clone https://${GH_PAT}@github.com/$OWNER/AICheckVAR.git aicheckvar || echo "AICheckVAR repo not accessible or already cloned"
+
+          echo "Cloning Auto3Dvideo repo..."
+          git clone https://${GH_PAT}@github.com/$OWNER/Auto3Dvideo.git auto3dvideo || echo "Auto3Dvideo repo not accessible or already cloned"
+
+          echo "Cloning Auto25D-Remotion repo..."
+          git clone https://${GH_PAT}@github.com/$OWNER/Auto25D-Remotion.git auto25d-remotion || echo "Auto25D-Remotion repo not accessible or already cloned"
+
           ls -la
 
       - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + Jev + 70+ Skills)
@@ -303,6 +312,9 @@ jobs:
           - Thư mục 'backend/': Dự án NestJS TypeScript (sử dụng pnpm, test bằng 'pnpm test').
           - Thư mục 'app/': Dự án Flutter Dart (kiểm tra bằng 'flutter test').
           - Thư mục 'web/': Dự án Next.js React TypeScript (sử dụng pnpm, test bằng 'pnpm test:e2e' hoặc 'pnpm build').
+          - Thư mục 'aicheckvar/': Dự án Python Computer Vision AI (kiểm tra bằng 'pytest').
+          - Thư mục 'auto3dvideo/': Dự án Auto 3D Video Tauri / Python.
+          - Thư mục 'auto25d-remotion/': Dự án Remotion Video Motion Design (kiểm tra bằng 'python -m unittest discover -s tests').
 
           Quy trình bắt buộc:
           1. Di chuyển vào đúng thư mục dự án liên quan (backend, app hoặc web).
@@ -323,6 +335,12 @@ jobs:
             EXEC_DIR="app"
           elif [ "$TARGET_REPO" = "HethongFrontEndWeb_QLgiaidau" ] && [ -d "web" ]; then
             EXEC_DIR="web"
+          elif [ "$TARGET_REPO" = "AICheckVAR" ] && [ -d "aicheckvar" ]; then
+            EXEC_DIR="aicheckvar"
+          elif [ "$TARGET_REPO" = "Auto3Dvideo" ] && [ -d "auto3dvideo" ]; then
+            EXEC_DIR="auto3dvideo"
+          elif [ "$TARGET_REPO" = "Auto25D-Remotion" ] && [ -d "auto25d-remotion" ]; then
+            EXEC_DIR="auto25d-remotion"
           fi
           echo "Thư mục thực thi chính: $EXEC_DIR"
 
@@ -405,6 +423,54 @@ jobs:
                            --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
                            --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
               PR_LINKS="$PR_LINKS\n- Frontend Web PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          # Kiểm tra và đẩy AICheckVAR
+          if [ -d "aicheckvar" ]; then
+            cd aicheckvar
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for aicheckvar..."
+              git push -u https://$GH_PAT@github.com/$OWNER/AICheckVAR.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/AICheckVAR" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- AICheckVAR PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          # Kiểm tra và đẩy Auto3Dvideo
+          if [ -d "auto3dvideo" ]; then
+            cd auto3dvideo
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for auto3dvideo..."
+              git push -u https://$GH_PAT@github.com/$OWNER/Auto3Dvideo.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/Auto3Dvideo" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- Auto3Dvideo PR: $PR_URL"
+            fi
+            cd ..
+          fi
+
+          # Kiểm tra và đẩy Auto25D-Remotion
+          if [ -d "auto25d-remotion" ]; then
+            cd auto25d-remotion
+            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              echo "Pushing branch for auto25d-remotion..."
+              git push -u https://$GH_PAT@github.com/$OWNER/Auto25D-Remotion.git "$BRANCH_NAME"
+              PR_URL=$(gh pr create --repo "$OWNER/Auto25D-Remotion" \
+                           --head "$BRANCH_NAME" \
+                           --base "main" \
+                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
+                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
+              PR_LINKS="$PR_LINKS\n- Auto25D-Remotion PR: $PR_URL"
             fi
             cd ..
           fi
