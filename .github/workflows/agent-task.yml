@@ -361,7 +361,7 @@ jobs:
             printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/inclusionai/ling-3.1-flash" -p
           fi
           cd - >/dev/null
-      - name: 7. Đẩy branch và tạo Pull Request cho các Repo có thay đổi
+      - name: 7. Tự động đẩy code thẳng vào nhánh thực thi & Kích hoạt Test
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
@@ -375,105 +375,22 @@ jobs:
           if [ -n "$HANDOFF_BRANCH" ]; then
             BRANCH_NAME="$HANDOFF_BRANCH"
           fi
-          PR_LINKS=""
+          PUSHED_REPOS=""
 
-          # Kiểm tra và đẩy Backend
-          if [ -d "backend" ]; then
-            cd backend
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for backend..."
-              git push -u https://$GH_PAT@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/HethongBackendApi_QuanlyGiaiDau" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- Backend PR: $PR_URL"
+          # Danh sách 6 repo cần kiểm tra và push thẳng
+          for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
+            if [ -d "$repo_dir" ]; then
+              cd "$repo_dir"
+              if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+                echo ">>> PUSH THẲNG CODE CHO $repo_dir LÊN BRANCH $BRANCH_NAME..."
+                git push -u "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$BRANCH_NAME"
+                PUSHED_REPOS="$PUSHED_REPOS\n- $repo_dir: branch \`$BRANCH_NAME\`"
+              fi
+              cd ..
             fi
-            cd ..
-          fi
+          done
 
-          # Kiểm tra và đẩy Frontend App
-          if [ -d "app" ]; then
-            cd app
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for app..."
-              git push -u https://$GH_PAT@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndApp_QLgiaidau" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- Frontend App PR: $PR_URL"
-            fi
-            cd ..
-          fi
-
-          # Kiểm tra và đẩy Frontend Web
-          if [ -d "web" ]; then
-            cd web
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for web..."
-              git push -u https://$GH_PAT@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/HethongFrontEndWeb_QLgiaidau" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- Frontend Web PR: $PR_URL"
-            fi
-            cd ..
-          fi
-
-          # Kiểm tra và đẩy AICheckVAR
-          if [ -d "aicheckvar" ]; then
-            cd aicheckvar
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for aicheckvar..."
-              git push -u https://$GH_PAT@github.com/$OWNER/AICheckVAR.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/AICheckVAR" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- AICheckVAR PR: $PR_URL"
-            fi
-            cd ..
-          fi
-
-          # Kiểm tra và đẩy Auto3Dvideo
-          if [ -d "auto3dvideo" ]; then
-            cd auto3dvideo
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for auto3dvideo..."
-              git push -u https://$GH_PAT@github.com/$OWNER/Auto3Dvideo.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/Auto3Dvideo" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- Auto3Dvideo PR: $PR_URL"
-            fi
-            cd ..
-          fi
-
-          # Kiểm tra và đẩy Auto25D-Remotion
-          if [ -d "auto25d-remotion" ]; then
-            cd auto25d-remotion
-            if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              echo "Pushing branch for auto25d-remotion..."
-              git push -u https://$GH_PAT@github.com/$OWNER/Auto25D-Remotion.git "$BRANCH_NAME"
-              PR_URL=$(gh pr create --repo "$OWNER/Auto25D-Remotion" \
-                           --head "$BRANCH_NAME" \
-                           --base "main" \
-                           --title "[OMP] $ISSUE_TITLE (Run #$ISSUE_NUMBER)" \
-                           --body "Pull Request được tạo tự động bởi OMP Orchestrator từ Issue/Run #$ISSUE_NUMBER." || true)
-              PR_LINKS="$PR_LINKS\n- Auto25D-Remotion PR: $PR_URL"
-            fi
-            cd ..
-          fi
-
-          echo "PR_LINKS=$PR_LINKS" >> $GITHUB_ENV
+          echo "PUSHED_REPOS=$PUSHED_REPOS" >> $GITHUB_ENV
 
       - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
         if: github.event_name == 'issues'
