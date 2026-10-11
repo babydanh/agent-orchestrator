@@ -291,16 +291,14 @@ jobs:
           HANDOFF_BRANCH=$(echo "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
           if [ -n "$HANDOFF_BRANCH" ]; then
             echo "Phát hiện Handoff Branch: $HANDOFF_BRANCH"
-            if [ -d "backend" ]; then
-              cd backend
-              git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" || true
-              cd ..
-            fi
-            if [ -d "app" ]; then
-              cd app
-              git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" || true
-              cd ..
-            fi
+            for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
+              if [ -d "$repo_dir" ]; then
+                cd "$repo_dir"
+                echo "Đang đồng bộ branch $HANDOFF_BRANCH cho $repo_dir..."
+                git fetch origin "$HANDOFF_BRANCH":"$HANDOFF_BRANCH" 2>/dev/null && git checkout "$HANDOFF_BRANCH" && git pull origin "$HANDOFF_BRANCH" 2>/dev/null || true
+                cd ..
+              fi
+            done
             BRANCH_NAME="$HANDOFF_BRANCH"
           fi
 
