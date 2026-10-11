@@ -1,29 +1,26 @@
 # GLOBAL AGENT RULES & ENGINEERING STANDARDS
 
-## 1. MANDATORY COMPLETION DELIVERY REPORT (PROMPT-ALIGNED)
-Whenever concluding or completing ANY task, answering a request, or reporting back to the user, you MUST ALWAYS format your response following this exact structure:
+## 1. CLINE ADAPTIVE COMMUNICATION & DIRECT-DELIVERY PROTOCOL (CHUẨN TRỌNG TÂM)
+AI BẮT BUỘC tuân thủ phong cách giao tiếp linh hoạt, đi thẳng vào bản chất và tuyệt đối KHÔNG dùng form mẫu quan liêu rườm rà:
 
-### 📋 1. Yêu cầu ban đầu (User Goals):
-- [Trích xuất chính xác từng gạch đầu dòng mục tiêu từ prompt của người dùng]
+### 1. KHI HỎI ĐÁP, GIẢI THÍCH, KHẢO SÁT, TƯ VẤN (Conversation / Q&A / Research):
+- **CẤM FORM MẪU BÁO CÁO HÀNH CHÍNH**: Tuyệt đối KHÔNG in các đề mục cứng nhắc ("Yêu cầu ban đầu", "Trạng thái hiện tại", "Checklist", "Phạm vi ảnh hưởng", "Kết quả verify").
+- **ÁP DỤNG NGUYÊN LÝ 3 TẦNG (CLINE 3-LAYER EXPLANATION)**:
+  1. 🎯 **Kết luận trực tiếp (Bottom Line Up Front)**: Trả lời thẳng vào câu hỏi trong 1-2 câu đầu tiên. Có hay không, được hay không, bản chất là gì.
+  2. 💡 **Bản chất cốt lõi (Giải thích dễ hiểu)**: Cung cấp đầy đủ nguyên nhân sâu xa từ gốc rễ, nhưng dùng ngôn ngữ đời thường, hình tượng hóa thực tế (analogies) thay vì xả thuật ngữ tiếng Anh khó hiểu (jargon).
+  3. 🚀 **Tác động & Lời khuyên hành động**: Tác động thực tế là gì (ảnh hưởng hiệu năng, rủi ro) và người dùng cần làm gì tiếp theo (tối đa 1-2 phương án rõ ràng).
 
-### 🚀 TRẠNG THÁI HIỆN TẠI (Execution Status):
-> **[ĐÃ CODE THẬT XONG 100%]** hoặc **[MỚI LẬP KẾ HOẠCH / ĐANG KHẢO SÁT, CHƯA ĐỤNG CODE]**
-*(BẮT BUỘC ghi rõ ràng 1 trong 2 trạng thái trên để người dùng biết ngay lập tức).*
+### 2. CHỈ KHI CODE THẬT / SỬA BUG / LÀM TÍNH NĂNG (Code Changes & Bugfixes):
+- Sau khi viết code hoặc sửa xong các file, bàn giao kết quả CÔ ĐỌNG trong 3 gạch đầu dòng:
+  - ✅ **Đã hoàn thành**: Tóm tắt 1 câu việc đã làm xong thật (kèm trạng thái: **[ĐÃ CODE THẬT XONG 100%]**).
+  - 📍 **Vị trí sửa cụ thể**: File và dòng cụ thể đã sửa (`path/to/file:line`).
+  - 🧪 **Kiểm tra thực tế**: Lệnh test/linter đã chạy và kết quả xác minh pass.
 
-### ✅ 2. Những gì đã thực hiện (Execution Checklist - Viết Thật Đơn Giản, Dễ Hiểu):
-- **Tóm tắt ngắn gọn**: Đã làm đúng cái gì cho tính năng người dùng yêu cầu (nói thẳng kết quả, không viết văn vở kỹ thuật hoa mỹ).
-- **Vị trí sửa cụ thể**: File và dòng cụ thể đã sửa thật (`path/to/file:line`).
-
-### 🔗 3. Những gì liên quan & Phạm vi ảnh hưởng (Side-effects & Related Changes):
-- Các file bắt buộc phải sửa ké theo (nếu có). Nếu KHÔNG có file nào khác bị ảnh hưởng, ghi rõ: *"Không ảnh hưởng file khác"*.
-
-### 🧪 4. Kết quả kiểm tra (Verification Evidence):
-- Lệnh verify đã chạy (`npm test`, `flutter analyze`, v.v.) kèm kết quả chứng minh chạy được.
-
-### 💡 5. Lưu ý từ Advisor (nếu có):
-- Nếu thấy code cũ ở chỗ khác xấu/lỗi nhưng KHÔNG được phép sửa, ghi chú ngắn tại đây để người dùng biết.
-
-> **BẮT BUỘC TUÂN THỦ**: Không được bỏ qua form này khi kết thúc lượt trả lời. Đây là quy chuẩn cao nhất của hệ thống.
+### 3. QUY TẮC ĐÍNH KÈM GÓC NHÌN ADVISOR (ADVISOR INSIGHT PROTOCOL):
+- Hệ thống có model Advisor chạy ngầm liên tục phản biện và soi rọi các góc khuất kỹ thuật:
+  - **Khi không có gì đặc biệt hoặc chỉ là nhắc nhở hiển nhiên**: **Im lặng 100%**, tuyệt đối không viết câu sáo rỗng kiểu "không có lưu ý gì".
+  - **Khi Advisor phát hiện Insight đáng giá** (bẫy ngầm tương lai, nghẽn hiệu năng, giải pháp gọn hơn, hoặc rủi ro vỡ cấu trúc): Tự động đính kèm duy nhất 1 khối ở cuối:
+    > 💡 **Góc nhìn Advisor**: [1-2 câu cô đọng chỉ thẳng bẫy ngầm hoặc mẹo tối ưu thực chiến từ góc nhìn Senior].
 ---
 
 ## 1.5. Cloud Handoff Fast-Track (Bàn Giao Siêu Tốc Trong 15 Giây)
@@ -41,16 +38,49 @@ Khi người dùng nói: *"hủy cloud kéo về", "hủy github kéo về", "k�
   1. Chạy ngay: `powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1`
   2. Báo cáo xác nhận đã hủy workflow trên GitHub Actions và đã kéo code + session về máy, nhắc user gõ `omp --resume` là xong ngay!
 ---
+---
 
-## 2. Git Fast-Track (Tối ưu hóa thao tác Git & Push)
+## 1.7. Visual QA Fast-Track (Lệnh Tự Nhiên: "test cho tôi flow này...")
+Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test flow này"`, `"test màn này"`, `"test"`, `"kiểm tra flow..."`:
+- **KHÔNG giải thích dài dòng, KHÔNG in hàng trăm dòng log test làm loãng chat.**
+- **THỰC HIỆN TỰ ĐỘNG BẰNG SUBAGENT NGẦM**:
+  1. Chạy ngầm bằng subagent miễn phí (hoặc lệnh nền `flutter test` / `bun test`).
+  2. **Bảo tồn Dữ Liệu & Chống Rác (Strict Test Data Retention)**:
+     - **Test code cũ (`test/`)**: GIỮ NGUYÊN 100%, tích lũy làm tài sản dự án trong Git, tuyệt đối không tự ý xóa.
+     - **Lịch sử test (Trend JSON)**: Kế thừa và nối tiếp để vẽ biểu đồ so sánh chất lượng giữa các lần chạy.
+     - **Ảnh / Video Proof tạm**: Ghi đè theo lượt chạy mới nhất vào `build/reports/` (không commit vào Git, tự hủy video khi PASS) để chống đầy ổ cứng.
+  3. Chỉ trả về kết quả cô đọng đúng **3 dòng**:
+     - 📊 **Kết quả**: X/Y ca test PASS (thời gian: Z giây).
+     - 🖼️ **Ảnh proof / Báo cáo**: Đường dẫn mở file HTML/PNG (nếu có).
+     - 🔴 **Lỗi (nếu có)**: Tên test case bị hỏng kèm vị trí file/dòng.
+---
 
+## 1.8. Lavish Visual Plan & Architecture Review Protocol (Tự Động Kích Hoạt Không Cần Nhắc)
+Khi nhận bất kỳ yêu cầu tính năng, khảo sát, sửa đổi lớn hay giải thích hệ thống (**kể cả khi người dùng KHÔNG hề dùng từ 'lập kế hoạch' hay 'plan'**):
+- **Bất cứ khi nào AI tự quét codebase, phân tích bài toán, đề xuất giải pháp kỹ thuật hoặc chia bước thực hiện**:
+  - **TUYỆT ĐỐI KHÔNG xả cả nghìn dòng chữ Markdown dài dằng dặc vào terminal gây mỏi mắt.**
+  - **BẮT BUỘC TỰ ĐỘNG DÙNG LAVISH-AXI**:
+    1. Tạo file kế hoạch / báo cáo khảo sát tại `.lavish/plan.html` (chứa các Card tóm tắt phát hiện, bảng đối chiếu phương án, và sơ đồ luồng Mermaid / SVG).
+    2. Kích hoạt mở ngay trên trình duyệt: `lavish-axi .lavish/plan.html`.
+    3. Người dùng có thể click chuột vào từng phần tử, bôi đen văn bản để ghi chú hoặc sửa trực tiếp sơ đồ trên trình duyệt.
+    4. Nhận feedback từ Lavish để chốt phương án trước khi bắt tay vào viết mã thật.
+## 2. Git Fast-Track & Kỷ Luật Một Nhánh (Anti-Branch Bloat)
+- **CẤM TỰ TIỆN TẠO WORKTREE / NHÁNH RÁC**:
+  - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/`.
+  - Mọi thao tác sửa lỗi, code tính năng, refactor **BẮT BUỘC thực hiện trực tiếp trên nhánh hiện tại (hoặc `main`)**.
+- **Quy trình kết thúc công việc (One-Shot Clean Cutover)**:
+  - Làm xong: `git add . && git commit -m "..." && git push origin <current_branch>`.
+  - Nếu có tạo nhánh tạm để test: Bắt buộc merge ngay về nhánh chính (`git merge --ff-only` hoặc `git merge <temp_branch>`), sau đó xóa ngay nhánh tạm (`git branch -D <temp_branch>`) và dọn sạch worktree thừa, không để lại rác trên đĩa.
+- **Chống Lạc File & Bảo Toàn Code**:
+  - Không bao giờ commit code dở dang vào worktree rồi bỏ rơi đó khiến người dùng tìm không thấy file trên `main`.
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
 Để tìm kiếm chính xác, nhanh nhất và không bao giờ nuốt RAM:
 
-1. **Khi nào BẮT BUỘC dùng `ripwire` (Kiến trúc & Đồ thị quan hệ)**:
-   - **Chỉ dùng khi**: Cần hiểu luồng dữ liệu lớn, tính toán phạm vi ảnh hưởng (*blast radius*), xem ai đang gọi hàm này (*impact*, *uses*), hoặc khám phá kiến trúc dự án mới (*explore*).
-   - Cực kỳ mạnh vì nó cắt giảm 75% token rác so với đọc chay cả file.
-
+1. **Khi nào BẮT BUỘC dùng `ripwire` & Quy tắc tối ưu chống nghẽn CPU**:
+   - **Chỉ dùng khi**: Cần hiểu luồng dữ liệu lớn, tính toán phạm vi ảnh hưởng (*blast radius* - `impact`), xem ai đang gọi hàm này (*uses*), hoặc định vị kiến trúc (*explore*).
+   - **QUY TẮC BẢO VỆ CPU 0%**:
+     + **TUYỆT ĐỐI CẤM** quét thư mục cha (`Duancanhan`, `D:/`). Bắt buộc truyền đường dẫn dự án con cụ thể (`Duancanhan/AICheckVAR` hoặc `Duancanhan/Project_QuanLyGiaiDau`).
+     + Luôn đặt giới hạn token vừa phải (`budget_tokens: 1500` đến `3000`) để máy chủ trả lời trong < 1 giây, tuyệt đối không để CPU bị vắt kiệt.
 2. **Khi nào BẮT BUỘC dùng `ast-grep` (Tìm kiếm cấu trúc cú pháp cụ thể)**:
    - Khi tìm class, function, widget tree, decorator trong TypeScript, Dart, Python, Go, Rust:
      `ast-grep run -p 'function $FN($$$ARGS) { $$$ }'`
@@ -73,12 +103,16 @@ Khi người dùng nói: *"hủy cloud kéo về", "hủy github kéo về", "k�
 
 ---
 
-## 6. Flutter & Dart Idioms
+## 6. Flutter & Dart Idioms & Live Device Testing (scrcpy)
 - **Aggressive `const`**: Prefix immutable widgets with `const`.
 - **Pure `build()`**: Never perform computation, instantiate controllers, or make HTTP/DB calls inside `build()`.
 - **Controller Lifecycle**: Always properly dispose controllers and stream subscriptions in `dispose()`.
 - **Null Safety**: Clean use of `?.` and `??`. Never use bang (`!`) unless non-nullness is mathematically guaranteed.
-
+- **Live Device Mirroring & Headless Testing (scrcpy & adb)**:
+  - **Khi test tự động / CI / Headless**: Chạy trực tiếp trên thiết bị hoặc Dart VM, **hoàn toàn KHÔNG cần mở cửa sổ `scrcpy`** để tiết kiệm tài nguyên. Nếu cần ảnh bằng chứng (Visual QA), chụp ngầm qua ADB: `adb exec-out screencap -p > proof.png`.
+  - **Khi cần xem/điều khiển trực tiếp qua scrcpy**: Khởi chạy với cờ **`--turn-screen-off`** để tắt hẳn màn hình điện thoại (tiết kiệm pin, chống nóng máy, chỉ hiển thị cửa sổ điều khiển 420px trên Windows):
+    `scrcpy --no-audio --stay-awake --turn-screen-off --window-title "Flutter Live Device" --window-width 420`
+  - **Nếu chưa có thiết bị kết nối (`adb devices` rỗng)**: AI **bắt buộc chủ động nhắc người dùng ngay**: *"Bạn hãy cắm cáp điện thoại hoặc bật Wi-Fi debug để mình kết nối nhé!"*. Tuyệt đối không âm thầm bỏ qua hoặc tự ý đòi cài máy ảo/giả lập ngốn RAM.
 ---
 
 ## 7. Tool Schema Compliance (Strict Validation Guard)
@@ -115,23 +149,22 @@ OMP operates with a perpetual shared memory layer via OpenViking (`openviking` M
 
 ---
 
-## 9. Low-RAM Web Server & Dev/Test Protocol
+## 9. High-Performance 32GB RAM & Multi-Worker Dev/Test Protocol
 - **Runtime Preference (Bun > Node)**:
   - Luôn ưu tiên dùng `bun` thay vì `node`/`npm`/`yarn` khi chạy script, API mock, testing runner hoặc dev server (ví dụ: `bun run dev`, `bun test`, `bun run build`).
-  - Runtime của `bun` ngốn cực ít RAM (~30MB–60MB) so với Node (~200MB–600MB+).
+  - Runtime của `bun` khởi động siêu tốc và tốn rất ít RAM tĩnh (~30MB–60MB).
 - **Turbopack Bắt Buộc (Next.js)**:
   - CẤM chạy Webpack (`next dev --webpack` hoặc Next.js mặc định không cờ khi dự án hỗ trợ Turbo).
   - Luôn chạy với cờ `--turbo` (ví dụ: `pnpm dev --turbo` hoặc `bun run dev -- --turbo`).
-  - Nếu phải dùng Node cho Next.js, luôn giới hạn heap size:
-    `NODE_OPTIONS="--max-old-space-size=512"` (PowerShell: `$env:NODE_OPTIONS="--max-old-space-size=512"`).
-- **Quy trình Test Web Tiết Kiệm RAM**:
+  - Nâng trần bộ nhớ cho Node.js / TypeScript Compiler phục vụ các dự án lớn:
+    `NODE_OPTIONS="--max-old-space-size=4096"` (PowerShell: `$env:NODE_OPTIONS="--max-old-space-size=4096"`). Đảm bảo `tsc --noEmit` và `next build` chạy mượt mà, không bao giờ bị lỗi `JavaScript heap out of memory`.
+- **Quy trình Test Web & Khai Thác Đa Nhân**:
   1. **Tái sử dụng server có sẵn**: Kiểm tra cổng trước (ví dụ cổng `3101` hoặc `3000`). Nếu đã có server chạy sẵn, tuyệt đối KHÔNG khởi tạo thêm instance mới.
   2. **Headless & Direct HTTP Verification**: Khi test API hoặc render trang, ưu tiên dùng `curl`, `fetch`, hoặc test script dạng console thay vì bật trình duyệt Chrome/Puppeteer ngốn hàng GB RAM.
   3. **Tắt Server Ngay Khi Xong Test**:
      - Dev server phục vụ test KHÔNG được để chạy ngầm vĩnh viễn.
      - Sau khi verify xong endpoint / UI, phải tắt ngay tiến trình (PowerShell: `Stop-Process -Id <PID> -Force` hoặc `taskkill /F /PID <PID>`).
-  4. **Giới hạn số worker**: Khi build hoặc test với Jest/Vitest/Playwright, luôn truyền `--maxWorkers=1` hoặc `--concurrency=1` để tránh fork nhiều process Node song song làm tràn RAM.
-
+  4. **Khai thác đa nhân song song (Multi-Worker Concurrency)**: Với 32GB RAM và CPU 6 nhân 12 luồng, cho phép chạy `--maxWorkers=4` hoặc `--concurrency=4` khi test (Vitest, Jest, Playwright, Flutter test) để tăng tốc độ kiểm thử gấp 3–4 lần mà không lo tràn RAM.
 ---
 
 ## 10. UI Wireframe & Mockup Handover Protocol (Skill: `wireframe-handover`)
@@ -173,3 +206,30 @@ OMP operates with a perpetual shared memory layer via OpenViking (`openviking` M
   - Khi làm tính năng người dùng yêu cầu, AI **ĐƯỢC PHÉP VÀ NÊN chủ động sửa trọn gói** các thành phần liên quan (route, model, database schema, state, UI, API service) để tính năng chạy được từ A-Z.
   - Chỉ cần nhớ nguyên tắc cốt lõi: **Mọi file sửa đều phải phục vụ trực tiếp cho tính năng chính**, không đi sửa lung tung ngoài lề.
   - Báo cáo rõ ràng: Đã sửa những file nào, tính năng đã code thật xong chưa.
+
+---
+
+## 14. 60FPS Fluid Animation & Micro-Interaction Protocol (Skill: `fluid-animations`)
+- **Quy chuẩn bắt buộc cho mọi dòng code Animation (Web & Flutter)**:
+  - **CẤM Duration rùa bò (`> 350ms`) & Curves đơ cứng (`linear`, `easeInOut`)**:
+    - Micro-interaction phản hồi bấm nút: Bắt buộc từ **`100ms – 160ms`** (ngay lập tức).
+    - Dialog, Popup, BottomSheet: Bắt buộc từ **`200ms – 260ms`**.
+  - **Phản hồi vật lý Spring (Physics-Based Feel)**:
+    - Web (`framer-motion`): Nút bấm, Card phải có `whileTap={{ scale: 0.96 }}` và `whileHover` với lò xo `stiffness: 450, damping: 25`.
+    - Flutter (`flutter_animate`): Dùng `Curves.easeOutBack` (độ nảy nhẹ tự nhiên) hoặc `Curves.easeOutCubic` (vào nhanh, phanh êm).
+  - **Hiệu ứng thác nước so le (Staggered Flow)**:
+    - Danh sách List / Grid tuyệt đối không được xuất hiện đồng loạt thô cứng; bắt buộc có độ trễ so le **`30ms – 50ms`** giữa các phần tử để mắt thấy lướt như dòng nước.
+
+---
+
+## 15. Real Engineering Protocols (Domain Modeling, Deep Modules & Wizard)
+- **Quy chuẩn Domain Modeling (`domain-modeling`)**:
+  - Khi thiết kế tính năng hoặc schema, kiểm tra và duy trì `GLOSSARY.md` với danh sách `_Avoid_` để thống nhất 100% thuật ngữ nghiệp vụ giữa Database, API và UI.
+  - Chỉ tạo ADR trong `docs/adr/` khi thỏa đủ 3 điều kiện: Khó đảo ngược, Gây bất ngờ nếu không giải thích, và Có sự đánh đổi thực sự.
+- **Quy chuẩn Deep Module & Design-It-Twice (`codebase-design`)**:
+  - Luôn thiết kế **Deep Module**: Interface tối giản, ít hàm, ít tham số nhưng giấu logic sâu bên trong. Bài trừ các Shallow Module / Wrapper pass-through mỏng dính làm rác code.
+  - Khi thiết kế hệ thống lớn: Áp dụng Design-It-Twice (chạy subagent song song thiết kế 3 phương án Interface đối nghịch) để chọn ra thiết kế tối ưu nhất.
+- **Quy chuẩn Wizard Script (`wizard`)**:
+  - Khi gặp thao tác thủ công người dùng phải làm (nhập secret key, OAuth, dashboard third-party, migration): Không xả tài liệu dài dòng, hãy tự sinh script `template.ps1` (cho Windows) hoặc `template.sh` để dẫn đường từng bước tương tác.
+- **Quy chuẩn Reset & Tái diễn giải (`wait-what`)**:
+  - Khi người dùng phản hồi *"khoan đã"*, *"chưa hiểu"*, *"nói lại xem"*: Lập tức dừng cãi/giải thích kỹ thuật rườm rà; hạ tông kỹ thuật, lược bỏ jargon, giải thích lại bằng ngôn ngữ đời thường và chốt 2 lựa chọn A/B.

@@ -18,7 +18,7 @@ Khi nhận bất kỳ tác vụ nào, AI PHẢI TỰ ĐỘNG nhận diện ngữ
 
 ### 1. Ý tưởng, Lập kế hoạch & Tổ chức thực thi
 - **Trước khi bắt tay làm tính năng mới**: Tự động kích hoạt `brainstorming` (khảo sát yêu cầu, làm rõ ý đồ thiết kế).
-- **Lập kế hoạch tổng thể**: Tự động dùng `writing-plans` để chia nhỏ milestone.
+- **Tự động khảo sát, Lập kế hoạch & Báo cáo trực quan (Dù người dùng KHÔNG nhắc từ 'plan')**: Bất cứ khi nào AI tự quét codebase, phân tích bài toán phức tạp, hoặc đề xuất phương án kỹ thuật trước khi code -> Tự động dùng skill `lavish` (xuất phát hiện & sơ đồ sang `.lavish/plan.html`, mở browser qua `lavish-axi` để người dùng click review/góp ý trực quan, cấm xả tường chữ markdown dài).
 - **Thực thi tác vụ lớn, nhiều pha**: Tự động dùng `planning-with-files` (ghi `task_plan.md`, `findings.md`, `progress.md` ra đĩa để sống sót qua compact/reset context).
 - **Phân tách không gian làm việc**: Tự động dùng `using-git-worktrees` khi làm tính năng cần cô lập branch.
 - **Điều phối công việc độc lập**: Tự động dùng `subagent-driven-development` để giao việc cho subagent.
@@ -30,6 +30,7 @@ Khi nhận bất kỳ tác vụ nào, AI PHẢI TỰ ĐỘNG nhận diện ngữ
 - **Viết & Chạy Test thực tế**:
   - Web E2E / UI testing: Tự động áp dụng `playwright-skill` (chạy headless với cờ siêu tiết kiệm RAM `--single-process`).
   - Unit / Integration Test TypeScript & JS: Tự động áp dụng `vitest-skill` (mocking chuẩn, in-source testing).
+  - Kiểm thử trực quan & Proof (Test flow): Khi người dùng yêu cầu `"test cho tôi flow này..."`, test màn hình hay visual QA: Tự động dùng skill `visual-qa-reporting` (chạy ngầm, chụp ảnh proof / video lỗi, xuất visual report HTML, bảo toàn 100% test code cũ).
 - **Trước khi tuyên bố hoàn thành / merge**: BẮT BUỘC tự chạy `verification-before-completion` (chạy build, test, linter thực tế để có bằng chứng pass 100%).
 
 ### 3. Thiết kế & Lập trình Giao diện (UI/UX)
