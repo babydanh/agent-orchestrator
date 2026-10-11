@@ -27,13 +27,39 @@ concurrency:
 
 jobs:
   # =========================================================================
-  # JOB 1: FULLSTACK INTEGRATION TEST (BẬT BACKEND API + CHẠY PLAYWRIGHT WEB)
+  # JOB 1: FULLSTACK INTEGRATION TEST (BẬT POSTGRES + BACKEND API + CHẠY WEB)
   # =========================================================================
   test-fullstack:
-    name: 🚀 Full-Stack E2E (Backend NestJS + Web Next.js)
+    name: 🚀 Full-Stack E2E (Postgres + Backend NestJS + Web Next.js)
     if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
+    # CUNG CẤP DATABASE POSTGRESQL & REDIS THỰC TẾ TRÊN RUNNER
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: your_password
+          POSTGRES_DB: tournament_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: 1. Setup Node.js 22 LTS & PNPM
@@ -61,8 +87,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      # CLONE BACKEND & START SERVICE
-      - name: 4. Clone Backend Repo & Start NestJS Service
+      # CLONE BACKEND & START SERVICE KÈM DB SEEDING
+      - name: 4. Clone Backend, Migrate & Start NestJS Service
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: your_password
+          DB_DATABASE: tournament_db
+          DB_SSL: false
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
         run: |
           mkdir -p workspace
           cd workspace
@@ -75,6 +112,12 @@ jobs:
           cd backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
+          
+          # Đẩy Drizzle Schema và Seed Data mẫu vào Postgres Container
+          pnpm db:push || echo "DB push executed or already synchronized"
+          pnpm seed:prod || echo "Seed execution finished"
+          
+          # Khởi động Backend API
           PORT=3000 pnpm start:prod &
           cd ../..
 
