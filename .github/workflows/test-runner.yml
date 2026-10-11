@@ -113,9 +113,9 @@ jobs:
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
           
-          # Đẩy Drizzle Schema và Seed Data mẫu vào Postgres Container
-          pnpm db:push || echo "DB push executed or already synchronized"
-          pnpm seed:prod || echo "Seed execution finished"
+          # Đẩy Drizzle Schema và Seed Data mẫu vào Postgres Container (Báo lỗi thật nếu schema/seed hỏng)
+          pnpm db:push
+          pnpm seed:prod
           
           # Khởi động Backend API
           PORT=3000 pnpm start:prod &
