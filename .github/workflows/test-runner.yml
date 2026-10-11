@@ -14,6 +14,8 @@ on:
           - 'web'
           - 'backend'
           - 'app'
+          - 'aicheckvar'
+          - 'auto25d'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -64,8 +66,12 @@ jobs:
         run: |
           mkdir -p workspace
           cd workspace
-          TARGET_BRANCH="${{ github.event.inputs.custom_branch || 'main' }}"
-          git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend || git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          TARGET_BRANCH="${{ github.event.inputs.custom_branch }}"
+          if [ -n "$TARGET_BRANCH" ]; then
+            git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          else
+            git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          fi
           cd backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
@@ -76,8 +82,12 @@ jobs:
       - name: 5. Clone Web Repo & Install Dependencies
         run: |
           cd workspace
-          TARGET_BRANCH="${{ github.event.inputs.custom_branch || 'main' }}"
-          git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web || git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          TARGET_BRANCH="${{ github.event.inputs.custom_branch }}"
+          if [ -n "$TARGET_BRANCH" ]; then
+            git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          else
+            git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          fi
           cd web
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
@@ -252,3 +262,61 @@ jobs:
           flutter pub get
           flutter analyze
           flutter test
+
+  # ==========================================
+  # JOB 5: TEST AICHECKVAR (PYTHON PYTEST)
+  # ==========================================
+  test-aicheckvar:
+    name: 👁️ Test AICheckVAR (PyTest 51 Specs)
+    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'aicheckvar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 1. Checkout AICheckVAR Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/AICheckVAR
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+        continue-on-error: true
+
+      - name: 2. Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 3. Install Requirements & Run PyTest
+        run: |
+          pip install --upgrade pip
+          pip install pytest pyyaml fastapi httpx || true
+          if [ -f "requirements.txt" ]; then pip install -r requirements.txt || true; fi
+          pytest -v
+
+  # ==========================================
+  # JOB 6: TEST AUTO25D-REMOTION (MOTION TESTS)
+  # ==========================================
+  test-auto25d:
+    name: 🎬 Test Auto25D-Remotion (20 Unit Tests)
+    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'auto25d'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 1. Checkout Auto25D-Remotion Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/Auto25D-Remotion
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+        continue-on-error: true
+
+      - name: 2. Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 3. Run Unit Tests
+        run: |
+          python -m unittest discover -s tests -v
