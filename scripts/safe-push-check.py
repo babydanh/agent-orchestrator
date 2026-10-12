@@ -25,6 +25,9 @@ def git(repo, *args, raw=False):
     return r.returncode, (out if raw else out.strip()), (r.stderr or "").strip()
 
 
+class GateError(Exception):
+    """Git that bai: cong an toan phai DONG (exit 2), tuyet doi khong coi la 'sach'."""
+
 def status_paths(repo):
     """Moi file dang thay doi trong cay lam viec: sua, da stage, FILE MOI CHUA ADD, doi ten.
 
@@ -35,6 +38,8 @@ def status_paths(repo):
         ["git", "-C", repo, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
         capture_output=True, timeout=60,
     )
+    if r.returncode != 0:
+        raise GateError((r.stderr or b"").decode("utf-8", errors="replace").strip() or f"git status exit {r.returncode}")
     recs = r.stdout.decode("utf-8", errors="replace").split("\0")
     paths = set()
     i = 0
@@ -67,12 +72,18 @@ def main():
     if rc != 0:
         print(f"KHONG doc duoc repo: {err}")
         return 2
-    git(repo, "fetch", "-q", "origin")
+    rc, _, err = git(repo, "fetch", "-q", "origin")
+    if rc != 0:
+        level = 2
+        notes.append(f"`git fetch origin` that bai: {err or 'git loi'}. Khong biet origin co gi moi, coi nhu KHONG an toan.")
 
     # 1. Ahead / behind so voi upstream
-    rc, lr, _ = git(repo, "rev-list", "--left-right", "--count", "HEAD...@{u}")
+    rc, lr, err = git(repo, "rev-list", "--left-right", "--count", "HEAD...@{u}")
     ahead = behind = 0
-    if rc == 0 and lr:
+    if rc != 0 or len(lr.split()) != 2:
+        level = 2
+        notes.append(f"KHONG so sanh duoc voi upstream (chua dat upstream hoac loi): {err or lr!r}. Coi nhu KHONG an toan.")
+    else:
         ahead, behind = (int(x) for x in lr.split())
     print(f"Nhanh: {branch} | ahead {ahead} / behind {behind} so voi origin")
     if behind:
@@ -80,7 +91,12 @@ def main():
         notes.append(f"Origin da co {behind} commit moi. Phai fetch + rebase truoc khi push.")
 
     # 2. File dang sua do trong cay lam viec nay
-    wip = status_paths(repo)
+    try:
+        wip = status_paths(repo)
+    except GateError as e:
+        print(f"KHONG doc duoc trang thai cay lam viec: {e}")
+        print("KET QUA: KHONG NEN PUSH (cong dong khi khong chac chan)")
+        return 2
     others_wip = wip - mine if mine else wip
     print(f"File sua do trong thu muc nay: {len(wip)}")
     if mine and others_wip:
@@ -94,14 +110,22 @@ def main():
 
     # 3. File minh sua co bi nguoi khac doi tren origin khong (nguy co conflict)
     if mine and behind:
-        _, changed, _ = git(repo, "diff", "--name-only", "HEAD...@{u}")
+        rc, changed, err = git(repo, "diff", "--name-only", "HEAD...@{u}")
+        if rc != 0:
+            level = 2
+            notes.append(f"KHONG so sanh duoc file voi origin: {err or 'git loi'}. Coi nhu KHONG an toan.")
+            changed = ""
         clash = mine & {c.strip() for c in lines(changed)}
         if clash:
             level = max(level, 2)
             notes.append("CONFLICT NHIEU KHA NANG: file ban sua cung bi doi tren origin: " + ", ".join(sorted(clash)))
 
     # 4. Worktree khac cung sua cung file
-    _, wts, _ = git(repo, "worktree", "list", "--porcelain")
+    rc, wts, err = git(repo, "worktree", "list", "--porcelain")
+    if rc != 0:
+        level = 2
+        notes.append(f"KHONG liet ke duoc worktree: {err or 'git loi'}. Coi nhu KHONG an toan.")
+        wts = ""
     cur = None
     for blk in wts.split("\n\n"):
         d = {}
@@ -115,7 +139,12 @@ def main():
             cur = p  # muc dau tien la cay chinh
             continue
         if mine:
-            there = status_paths(p)
+            try:
+                there = status_paths(p)
+            except GateError as e:
+                level = 2
+                notes.append(f"KHONG doc duoc trang thai worktree {p}: {e}. Coi nhu KHONG an toan.")
+                continue
             both = mine & there
             if both:
                 level = max(level, 2)
