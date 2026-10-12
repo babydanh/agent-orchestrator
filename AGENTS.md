@@ -269,7 +269,10 @@ Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng c
    - Cập nhật mục lục danh mục test: Giữ nguyên các test cũ, chỉ nối tiếp thêm (append) tính năng mới vào hệ thống.
 
 4. **BƯỚC 4: Chạy Verify Thực Tế - Test chạy ở ĐÂU thì theo session đang chạy ở đó**:
-   - **Session chạy trên MÁY NGƯỜI DÙNG (local)**: test chạy **tại máy người dùng** (`pnpm test`, `pnpm test:e2e`, `flutter test`). KHÔNG tự đẩy E2E lên GitHub Actions, KHÔNG tự dispatch `test-runner.yml`. Người dùng quyết định máy mình chịu được gì.
+   - **Session chạy trên MÁY NGƯỜI DÙNG (local)**: test chạy **tại máy người dùng**, KHÔNG tự đẩy E2E lên GitHub Actions, KHÔNG tự dispatch `test-runner.yml`. Test UI/UX được **mở đủ dụng cụ cùng lúc** trên máy này:
+     + Máy này có Docker (v29.5.3) nhưng **không có** `psql`/`redis-server` cài sẵn: Postgres (`postgis/postgis`) + Redis chạy bằng **Docker**. Docker Desktop thường **đang tắt** — kiểm tra `docker info` trước, nếu chưa chạy thì bật rồi chờ sẵn sàng, KHÔNG bỏ qua âm thầm.
+     + Backend + Web chạy trực tiếp (Web dùng `--turbo`), Playwright chạy **headless** (`headless: true` đã có trong `playwright.config.ts`), tất cả trong cùng một lượt.
+     + Chạy xong **tắt hết** dev server và container đã bật (`docker compose down`, kill tiến trình) để không ngốn RAM.
    - **Session chạy trên CLOUD (GitHub Actions, `agent-task.yml`)**: test chạy **ngay trên cloud**, trong chính runner đó (Postgres, Redis, Backend, Web đã dựng sẵn ở workflow).
    - `test-runner.yml` chỉ chạy khi **người dùng yêu cầu rõ** (dispatch tay), không tự kích hoạt từ session local.
    - Báo kết quả thật: số pass/fail gộp theo test duy nhất (retry không đếm nhiều lần), nói rõ phần chưa chạy.
