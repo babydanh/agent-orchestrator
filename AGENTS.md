@@ -1,7 +1,8 @@
 # GLOBAL AGENT RULES & ENGINEERING STANDARDS
 
-## 1. CLINE ADAPTIVE COMMUNICATION & DIRECT-DELIVERY PROTOCOL (CHUẨN TRỌNG TÂM)
+## 1. CLINE ADAPTIVE COMMUNICATION & DIRECT-DELIVERY PROTOCOL (CHUẨN TRỌNG TÂM - ZERO RUSSIAN)
 AI BẮT BUỘC tuân thủ phong cách giao tiếp linh hoạt, đi thẳng vào bản chất và tuyệt đối KHÔNG dùng form mẫu quan liêu rườm rà:
+- 🛑 **CẤM TIẾNG NGA 100%**: Tuyệt đối không sinh tiếng Nga trong `todo`, `i` intent của tool (`Проверка`, `Запуск`, `Подготовка`, `Доставка`), hay trong hội thoại. Mọi nội dung hiển thị phải là 100% Tiếng Việt (hoặc tiếng Anh kỹ thuật).
 
 ### 1. KHI HỎI ĐÁP, GIẢI THÍCH, KHẢO SÁT, TƯ VẤN (Conversation / Q&A / Research):
 - **CẤM FORM MẪU BÁO CÁO HÀNH CHÍNH**: Tuyệt đối KHÔNG in các đề mục cứng nhắc ("Yêu cầu ban đầu", "Trạng thái hiện tại", "Checklist", "Phạm vi ảnh hưởng", "Kết quả verify").
@@ -55,15 +56,19 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
      - 🔴 **Lỗi (nếu có)**: Tên test case bị hỏng kèm vị trí file/dòng.
 ---
 
-## 1.8. Lavish Visual Plan & Architecture Review Protocol (Tự Động Kích Hoạt Không Cần Nhắc)
-Khi nhận bất kỳ yêu cầu tính năng, khảo sát, sửa đổi lớn hay giải thích hệ thống (**kể cả khi người dùng KHÔNG hề dùng từ 'lập kế hoạch' hay 'plan'**):
-- **Bất cứ khi nào AI tự quét codebase, phân tích bài toán, đề xuất giải pháp kỹ thuật hoặc chia bước thực hiện**:
-  - **TUYỆT ĐỐI KHÔNG xả cả nghìn dòng chữ Markdown dài dằng dặc vào terminal gây mỏi mắt.**
-  - **BẮT BUỘC TỰ ĐỘNG DÙNG LAVISH-AXI**:
-    1. Tạo file kế hoạch / báo cáo khảo sát tại `.lavish/plan.html` (chứa các Card tóm tắt phát hiện, bảng đối chiếu phương án, và sơ đồ luồng Mermaid / SVG).
-    2. Kích hoạt mở ngay trên trình duyệt: `lavish-axi .lavish/plan.html`.
-    3. Người dùng có thể click chuột vào từng phần tử, bôi đen văn bản để ghi chú hoặc sửa trực tiếp sơ đồ trên trình duyệt.
-    4. Nhận feedback từ Lavish để chốt phương án trước khi bắt tay vào viết mã thật.
+## 1.8. Lavish Visual Plan Protocol (TIÊU CHÍ KÍCH HOẠT & KỶ LUẬT DUY NHẤT 1 TAB)
+- **KHI NÀO AI BIẾT ĐỂ TỰ ĐỘNG TẠO LAVISH (TIÊU CHÍ RÕ RÀNG)**:
+  - 🎯 **TỰ ĐỘNG TẠO KHI**:
+    1. **Tác vụ lớn nhiều bước**: Sửa đổi hoặc tạo mới chạm từ **3 files trở lên**, hoặc làm một module/tính năng mới từ A-Z.
+    2. **Bài toán có sự đánh đổi (Trade-offs)**: Cần đối chiếu 2–3 phương án kỹ thuật (phương án A vs B) hoặc cần vẽ sơ đồ luồng dữ liệu (Data flow Mermaid/SVG) để bạn dễ nhìn.
+  - 🛑 **TUYỆT ĐỐI KHÔNG TẠO KHI**:
+    + Hỏi đáp, giải thích, khảo sát thông thường (như chúng ta đang trao đổi).
+    + Sửa bug nhỏ cục bộ (1–2 file), đổi giao diện đơn giản, chạy lệnh test, đọc log.
+
+- **XỬ LÝ TAB TRÌNH DUYỆT (KỂ CẢ KHI BẠN LỠ TAY TẮT TAB)**:
+  - **Lần đầu tiên**: Mở đúng **1 tab duy nhất** trên trình duyệt cho bạn xem.
+  - **Nếu tab đang mở bình thường**: AI chỉ ghi đè file `.lavish/plan.html` trên đĩa, tab cũ sẽ **tự động cập nhật nội dung mới (Live Reload)** mà không mở thêm tab mới.
+  - **Nếu bạn đã lỡ tay tắt tab đó đi**: AI kiểm tra nếu server/tab đã đóng thì mới chạy lại với cờ `--reopen` để mở lại đúng 1 tab mới cho bạn tiếp tục xem, tuyệt đối không đẻ tràn lan nhiều tab.
 ## 2. Git Fast-Track & Kỷ Luật Một Nhánh (Anti-Branch Bloat)
 - **CẤM TỰ TIỆN TẠO WORKTREE / NHÁNH RÁC**:
   - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/`.
@@ -255,7 +260,36 @@ Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng c
    - Nếu là tính năng mới: Viết thêm kịch bản test (hoặc test case mới) bao phủ luồng mới, gắn thẻ ID rõ ràng (ví dụ: `TC-FEAT-01`).
    - Cập nhật mục lục danh mục test: Giữ nguyên các test cũ, chỉ nối tiếp thêm (append) tính năng mới vào hệ thống.
 
-4. **BƯỚC 4: Chạy Verify Thực Tế (Allure & Playwright Verification)**:
-   - Chạy lệnh test thực tế (`pnpm test:e2e` hoặc `flutter test`).
-   - BẮT BUỘC kiểm tra: **Toàn bộ các test cũ vẫn phải PASS 100% (Không bị regression)** + **Test mới viết phải PASS**.
-   - Sinh báo cáo Allure (`pnpm allure:generate` hoặc upload Artifact trên Cloud) để có bằng chứng trực quan chứng minh không có tính năng cũ nào bị hỏng!
+4. **BƯỚC 4: Chạy Verify Thực Tế (Allure & Playwright Verification - Local vs Cloud Delegation)**:
+   - **Tùy chọn A (Chạy nhẹ tại Local)**: Nếu chỉ là Unit Test, API test, hoặc kiểm tra logic biên nhỏ: Chạy ngầm trong terminal (`pnpm test`, `flutter test`).
+   - **Tùy chọn B (TỰ ĐỘNG ĐẨY LÊN GITHUB ACTIONS TEST E2E - Khuyên Dùng Cho UI Nặng)**:
+     - Khi test giao diện Web E2E (đòi hỏi bật Docker Postgres, Redis, NestJS, Next.js, Chromium): **AI TỰ ĐỘNG KÍCH HOẠT CLOUD HANDOFF (`fast-handoff.ps1`)** để đẩy lên GitHub Actions máy ảo 16GB RAM tự chạy ngầm 100%.
+     - Máy tính ở nhà KHÔNG bị bật Docker hay dev server làm lag máy, nghẽn RAM khi người dùng đang làm việc hay chơi game.
+     - Sau khi Cloud chạy xong Playwright & Allure Report: Tự động ghi nhận PASS/FAIL và đính kèm link xem báo cáo trực quan.
+
+---
+
+## 17. Cua-Driver Zero-Focus-Steal & Background-Only Protocol (Chạy Nền 100% Không Cướp Chuột/Phím)
+Khi sử dụng `cua-driver` để thao tác, điều khiển hoặc tự động hóa ứng dụng desktop (Windows/Linux/macOS), AI **BẮT BUỘC TUÂN THỦ NGUYÊN TẮC HOẠT ĐỘNG CHÌM DƯỚI NỀN 100%**:
+
+1. **TUYỆT ĐỐI KHÔNG CƯỚP TIÊU ĐIỂM (Zero-Focus-Steal)**:
+   - **CẤM** tự ý gọi `bring_to_front` hoặc kích hoạt cửa sổ nhảy lên đè màn hình của người dùng.
+   - Khi khởi chạy app: Luôn dùng `launch_app` ở chế độ chạy nền (`SW_SHOWNOACTIVATE`) để ứng dụng âm thầm mở dưới taskbar mà không giật tiêu điểm từ cửa sổ người dùng đang gõ.
+
+2. **ƯU TIÊN CÔNG NGHỆ CHẠY NGẦM UIA (`element_token`) THAY VÌ DI CHUỘT THẬT**:
+   - **Click ngầm**: Bắt buộc click qua `element_token` (UI Automation / Windows Message) — cơ chế này click trực tiếp vào nút bấm ngay cả khi cửa sổ đang bị thu nhỏ (minimized), bị che khuất hoặc nằm dưới nền. Con trỏ chuột thật của người dùng vẫn tự do di chuyển không bị giật.
+   - **Gõ phím ngầm (`type_text`, `press_key`)**: Gửi lệnh qua `PostMessage(WM_CHAR / WM_KEYDOWN)` thẳng tới PID của ứng dụng mục tiêu. Người dùng vẫn đang gõ code hoặc chat bình thường mà không bị chèn chữ lung tung.
+
+3. **CHỤP ẢNH & KIỂM TRA CHỨNG MINH TỰ ĐỘNG (Headless Inspection)**:
+   - Quét trạng thái qua `get_window_state(pid, window_id)` và `verify_state`: Chụp ảnh cửa sổ ngầm qua bộ đệm đồ họa mà không cần kéo cửa sổ ra trước mặt người dùng.
+
+4. **CHỈ ĐƯỢC PHÉP ĐƯA LÊN MÀN HÌNH CHÍNH KHI NGƯỜI DÙNG YÊU CẦU**:
+   - Trừ phi người dùng nói rõ: *"mở cửa sổ lên cho tôi xem"*, *"đưa ra ngoài màn hình"*, AI tuyệt đối giữ mọi hành vi dưới nền 100%. Người dùng có thể vừa chơi game, xem phim, gõ code trong khi Cua-Driver âm thầm thao tác app bên dưới.
+
+---
+
+## 18. Anti-Patterns & Zero-Repeat-Mistakes Protocol (Bắt Buộc Tránh Vết Xe Đổ)
+- Trước khi thực hiện các tác vụ hệ thống, thao tác file, tìm kiếm ripwire hay cấu hình Node/Cloud:
+  AI **BẮT BUỘC** đối chiếu các bẫy kỹ thuật trong file: `C:\Users\GIGABYTE\.omp\agent\ANTI_PATTERNS.md`.
+- Tuyệt đối không lặp lại các lỗi đã được lập chỉ mục (lỗi mkdirSync root D:\, lỗi Ripwire nổ CPU, lỗi đẻ tab Lavish, lỗi node:sqlite < 22.5).
+- Áp dụng triệt để nguyên lý **Agentless Surgical Edit**: Định vị phẫu thuật qua AST -> Chỉ mở vùng dòng liên quan -> Sửa đúng 2-5 dòng bằng `edit` có Hash Tag, cấm viết lại toàn bộ file.
