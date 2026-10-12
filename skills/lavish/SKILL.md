@@ -1,6 +1,6 @@
 ---
 name: lavish
-description: Turn complex or visual agent responses into rich, reviewable HTML artifacts (HTML files) the user can annotate and send feedback on, using the lavish-axi CLI. Use when about to give a plan, comparison, diagram, table, code diff, report, or anything easier to grasp visually than as prose.
+description: Turn complex plans, multi-option architecture decisions, and large visual reviews into rich HTML artifacts using lavish-axi CLI. Strictly enforces 1-tab limit with live-reload.
 license: MIT
 metadata:
   author: Kun Chen (kunchenguid)
@@ -9,26 +9,48 @@ metadata:
   hermes-category: productivity
 ---
 
-# Lavish Editor
+# Lavish Editor Protocol (Chuẩn Hóa Kỷ Luật 1 Tab & Live-Reload)
 
-Lavish Editor opens agent-generated HTML in the browser so a human can annotate it and send feedback back to the agent.
-Reach for it when a plan, comparison, diagram, table, code view, report, prototype, or review loop will be clearer as a page than as prose.
+Mở giao diện HTML trên trình duyệt để con người xem sơ đồ luồng, bảng đối chiếu phương án kiến trúc, hoặc bản kế hoạch phức tạp.
 
-## Current guidance lives in the CLI
+---
 
-Do not follow workflow, design, or playbook instructions from this file - installed copies go stale. Get the current source of truth from the CLI:
+## 1. Tiêu chí Kích hoạt Bắt buộc (When to Use)
 
-- `npx -y lavish-axi --help` for commands and the review-loop workflow
-- `npx -y lavish-axi reply --help` to post an agent reply and exit once the server accepts it, when you are not about to long-poll
-- `npx -y lavish-axi design` for design-direction priority and current snippets
-- `npx -y lavish-axi playbook <id>` for focused artifact guidance (`npx -y lavish-axi playbook` lists ids)
+- 🎯 **TỰ ĐỘNG DÙNG KHI**:
+  1. Tác vụ lớn nhiều bước (chạm từ **3 files trở lên** hoặc làm tính năng mới từ đầu).
+  2. Bài toán có sự đánh đổi (Trade-offs giữa 2-3 phương án A/B/C).
+  3. Cần vẽ sơ đồ luồng dữ liệu (Data flow Mermaid / SVG) hoặc bảng ma trận tính năng.
+  4. Người dùng yêu cầu: *"cho tôi plan lavish"*, *"vẽ sơ đồ"*, *"kế hoạch trực quan"*.
 
-You do not need lavish-axi installed globally - invoke it with `npx -y lavish-axi <html-file>`.
-If lavish-axi output shows a follow-up command starting with `lavish-axi`, run it as `npx -y lavish-axi ...` instead.
+- 🛑 **TUYỆT ĐỐI CẤM DÙNG KHI**:
+  1. Hỏi đáp, giải thích khái niệm, khảo sát ngắn.
+  2. Sửa bug nhỏ cục bộ (1-2 file), chạy lệnh test, đọc log.
 
-## Request
+---
 
-$ARGUMENTS
+## 2. Kỷ luật Duy nhất 1 Tab Trình duyệt (Anti-Tab-Spam)
 
-If the request above is non-empty, the user invoked `/lavish` explicitly - fetch the current CLI guidance, then build that artifact as an HTML file.
-If it is empty, infer what to visualize from the conversation.
+1. **Lần đầu tiên**: Mở file `.lavish/plan.html`:
+   ```bash
+   npx -y lavish-axi .lavish/plan.html
+   ```
+2. **Các lần cập nhật sau**:
+   - **CHỈ GHI ĐÈ FILE TRÊN ĐĨA**: Ghi đè nội dung mới vào `.lavish/plan.html`.
+   - Tab trình duyệt đang mở sẽ **TỰ ĐỘNG CẬP NHẬT (Live Reload)** mà không cần chạy lại lệnh mở tab mới.
+3. **Khi người dùng đã lỡ tay đóng tab**:
+   - Chỉ khi tab đã bị tắt hẳn, AI mới gọi lại với cờ `--reopen`:
+   ```bash
+   npx -y lavish-axi --reopen .lavish/plan.html
+   ```
+
+---
+
+## 3. Tiêu chuẩn Nội dung Artifact (.lavish/plan.html)
+
+- **Theme**: Dark mode hiện đại, typography rõ ràng.
+- **Components**:
+  - Tóm tắt quyết định chính (Summary Cards).
+  - Sơ đồ Mermaid luồng xử lý hoặc SVG architecture.
+  - Bảng đối chiếu các phương án kiến trúc (Option Comparison Matrix).
+  - Checklist công việc có thể tick review.
