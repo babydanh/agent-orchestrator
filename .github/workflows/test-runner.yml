@@ -167,13 +167,14 @@ jobs:
           FRONTEND_URL: http://localhost:3001
           CI: true
         run: |
-          # Đảm bảo Backend PORT 3000 đã boot xong trước khi test
-          npx wait-on http://localhost:3000 --timeout 60000
+          # Backend có globalPrefix /api/v1 và không có route "/" nên GET / luôn 404 -> wait-on http:// không bao giờ xong.
+          # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
+          npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 60000
           
           cd workspace/web
           PORT=3001 pnpm build
           PORT=3001 pnpm start &
-          npx wait-on http://localhost:3001 --timeout 60000
+          npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
           pnpm test:e2e
 
       - name: 8. Generate Allure Report Dashboard
