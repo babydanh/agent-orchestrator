@@ -268,12 +268,11 @@ Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng c
    - Nếu là tính năng mới: Viết thêm kịch bản test (hoặc test case mới) bao phủ luồng mới, gắn thẻ ID rõ ràng (ví dụ: `TC-FEAT-01`).
    - Cập nhật mục lục danh mục test: Giữ nguyên các test cũ, chỉ nối tiếp thêm (append) tính năng mới vào hệ thống.
 
-4. **BƯỚC 4: Chạy Verify Thực Tế (Allure & Playwright Verification - Local vs Cloud Delegation)**:
-   - **Tùy chọn A (Chạy nhẹ tại Local)**: Nếu chỉ là Unit Test, API test, hoặc kiểm tra logic biên nhỏ: Chạy ngầm trong terminal (`pnpm test`, `flutter test`).
-   - **Tùy chọn B (TỰ ĐỘNG ĐẨY LÊN GITHUB ACTIONS TEST E2E - Khuyên Dùng Cho UI Nặng)**:
-     - Khi test giao diện Web E2E (đòi hỏi bật Docker Postgres, Redis, NestJS, Next.js, Chromium): **AI TỰ ĐỘNG KÍCH HOẠT CLOUD HANDOFF (`fast-handoff.ps1`)** để đẩy lên GitHub Actions máy ảo 16GB RAM tự chạy ngầm 100%.
-     - Máy tính ở nhà KHÔNG bị bật Docker hay dev server làm lag máy, nghẽn RAM khi người dùng đang làm việc hay chơi game.
-     - Sau khi Cloud chạy xong Playwright & Allure Report: Tự động ghi nhận PASS/FAIL và đính kèm link xem báo cáo trực quan.
+4. **BƯỚC 4: Chạy Verify Thực Tế - Test chạy ở ĐÂU thì theo session đang chạy ở đó**:
+   - **Session chạy trên MÁY NGƯỜI DÙNG (local)**: test chạy **tại máy người dùng** (`pnpm test`, `pnpm test:e2e`, `flutter test`). KHÔNG tự đẩy E2E lên GitHub Actions, KHÔNG tự dispatch `test-runner.yml`. Người dùng quyết định máy mình chịu được gì.
+   - **Session chạy trên CLOUD (GitHub Actions, `agent-task.yml`)**: test chạy **ngay trên cloud**, trong chính runner đó (Postgres, Redis, Backend, Web đã dựng sẵn ở workflow).
+   - `test-runner.yml` chỉ chạy khi **người dùng yêu cầu rõ** (dispatch tay), không tự kích hoạt từ session local.
+   - Báo kết quả thật: số pass/fail gộp theo test duy nhất (retry không đếm nhiều lần), nói rõ phần chưa chạy.
 
 ---
 
