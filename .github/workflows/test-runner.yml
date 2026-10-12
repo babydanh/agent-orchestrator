@@ -6,9 +6,6 @@ permissions:
   actions: read
 
 on:
-  # Chạy đêm: 19:00 UTC = 02:00 giờ Việt Nam. Cron chỉ chạy trên nhánh mặc định (main), clone main của Backend và Web.
-  schedule:
-    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       target_project:
