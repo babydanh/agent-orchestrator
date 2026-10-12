@@ -73,9 +73,12 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
   - **Nếu bạn đã lỡ tay tắt tab đó đi**: AI kiểm tra nếu server/tab đã đóng thì mới chạy lại với cờ `--reopen` để mở lại đúng 1 tab mới cho bạn tiếp tục xem, tuyệt đối không đẻ tràn lan nhiều tab.
 ## 2. Git Fast-Track & Kỷ Luật Đa Session Thông Minh (Concurrent Multi-Session Auto-Rebase)
 - **THỨ TỰ ƯU TIÊN (một quy tắc duy nhất, KHÔNG mâu thuẫn)**: kiểm tra va chạm TRƯỚC, tự động SAU.
-  - Không có va chạm thật (cổng `safe-push-check.py` exit `0` hoặc `1`) → **tự động hoàn toàn, không hỏi menu**: `git fetch origin` → `git rebase origin/<nhánh>` → `git push origin <nhánh>`. Không để detached HEAD, không dừng chờ lựa chọn.
-  - Có va chạm thật (exit `2`, hoặc `git rebase` báo conflict) → **DỪNG và báo người dùng** file nào, session/worktree nào. TUYỆT ĐỐI KHÔNG tự chọn bên thắng, KHÔNG tự `merge --no-edit` để nuốt conflict, KHÔNG `rebase --skip` hay `--abort` rồi push đè. Tự resolve conflict giữa hai session là cách mất code âm thầm.
-  - Rebase đang dở thì để nguyên cho người dùng quyết, không `reset --hard` hay `checkout .`.
+  - Không va chạm (cổng exit `0` hoặc `1`) → **tự động hoàn toàn, không hỏi menu**: `git fetch origin` → `git rebase origin/<nhánh>` → `git push origin <nhánh>`. Không để detached HEAD.
+  - **Cổng báo `exit 2` hoặc `git rebase` báo conflict → PHÂN LOẠI từng file conflict rồi xử lý, KHÔNG từ chối cả lô**:
+    + **Cơ học, hai bên tương thích** (hai bên thêm dòng/key KHÁC nhau ở cùng vùng, import/export, key i18n khác nhau, chỉ khác khoảng trắng/thứ tự): **TỰ GIẢI** bằng cách giữ cả hai thay đổi (`git add <file>` rồi `git rebase --continue`). Sau đó BẮT BUỘC chạy test/build liên quan; **chỉ push khi pass**. Ghi rõ vào báo cáo: file nào, giữ cả hai bên thế nào.
+    + **Ngữ nghĩa hoặc mơ hồ** (hai bên sửa CÙNG một dòng logic, một bên xóa một bên sửa, đổi chữ ký hàm, schema/migration, file cấu hình, secret, lockfile): **DỪNG, báo đúng file + bên nào đã sửa** để người dùng quyết. KHÔNG tự chọn bên thắng, KHÔNG `merge --no-edit` để nuốt conflict.
+    + **Test/build FAIL sau khi giải**: `git rebase --abort` (chỉ trên rebase do session này bắt đầu), KHÔNG push, báo kết quả. KHÔNG `rebase --skip`.
+  - Rebase do session KHÁC bắt đầu mà đang dở thì để nguyên, không `reset --hard`, không `checkout .`.
 - **CẤM TỰ TIỆN TẠO WORKTREE / NHÁNH RÁC**:
   - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/` hay `D:/tmp/`.
   - Mọi thao tác sửa lỗi, code tính năng, refactor **BẮT BUỘC thực hiện trực tiếp trên nhánh hiện tại (hoặc `main`)**.
@@ -83,9 +86,9 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
   - **Nhiều session cùng làm một repo (cùng một thư mục, cùng nhánh)**: trước khi commit/push BẮT BUỘC chạy cổng kiểm tra va chạm (chỉ đọc, không sửa repo):
     `python C:\Users\GIGABYTE\.omp\scripts\safe-push-check.py <thư-mục-repo> <file1> <file2> ...` (liệt kê đúng các file MÀ SESSION NÀY sửa).
     + Exit `0` = an toàn. Exit `1` = có cảnh báo (origin có commit mới, có file của session khác đang sửa dở, hoặc push `main` sẽ kích hoạt deploy): đọc rồi xử lý.
-    + Exit `2` = KHÔNG push: file mình sửa cũng đang bị đổi trên origin hoặc ở worktree khác. Dừng, báo người dùng, KHÔNG tự ép.
+    + Exit `2` = có va chạm file hoặc cổng không chắc chắn: KHÔNG push ngay. Đọc danh sách file, rồi `fetch + rebase` để git cho thấy conflict thật; xử lý từng file theo phân loại cơ học / ngữ nghĩa. Nếu cổng exit 2 vì LỖI git (fetch/upstream/worktree hỏng) thì sửa nguyên nhân hoặc báo, không bỏ qua.
   - **Commit hẹp**: `git add <đúng-tên-file-của-session-này>`. CẤM `git add .` và `git add -A` khi cây làm việc còn file sửa dở không phải của mình (xem danh sách `[session khác?]` do script in ra). KHÔNG `stash`, `checkout .`, `reset --hard` lên file của session khác.
-  - Sau khi qua cổng: `git fetch origin && git rebase origin/<nhánh>` rồi `git push origin <nhánh>`. Gặp conflict thật: dừng và báo, không tự chọn bên thắng.
+  - Sau khi qua cổng: `git fetch origin && git rebase origin/<nhánh>` rồi `git push origin <nhánh>`. Conflict xử lý theo phân loại ở trên (cơ học tự giải + test pass; ngữ nghĩa/mơ hồ thì dừng báo).
   - **Push `main` của repo có workflow deploy (Web, Backend) = deploy production**: phải nói rõ với người dùng trước khi push.
   - KHÔNG tự xóa nhánh hay worktree không do session này tạo. Worktree sẵn có của các session khác để nguyên.
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
