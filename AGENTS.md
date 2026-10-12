@@ -270,9 +270,10 @@ Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng c
 
 4. **BƯỚC 4: Chạy Verify Thực Tế - Test chạy ở ĐÂU thì theo session đang chạy ở đó**:
    - **Session chạy trên MÁY NGƯỜI DÙNG (local)**: test chạy **tại máy người dùng**, KHÔNG tự đẩy E2E lên GitHub Actions, KHÔNG tự dispatch `test-runner.yml`. Test UI/UX được **mở đủ dụng cụ cùng lúc** trên máy này:
-     + Máy này có Docker (v29.5.3) nhưng **không có** `psql`/`redis-server` cài sẵn: Postgres (`postgis/postgis`) + Redis chạy bằng **Docker**. Docker Desktop thường **đang tắt** — kiểm tra `docker info` trước, nếu chưa chạy thì bật rồi chờ sẵn sàng, KHÔNG bỏ qua âm thầm.
-     + Backend + Web chạy trực tiếp (Web dùng `--turbo`), Playwright chạy **headless** (`headless: true` đã có trong `playwright.config.ts`), tất cả trong cùng một lượt.
-     + Chạy xong **tắt hết** dev server và container đã bật (`docker compose down`, kill tiến trình) để không ngốn RAM.
+     + Postgres (`postgis/postgis`) + Redis chạy bằng **Docker** (máy này có Docker CLI nhưng **không có** `psql`/`redis-server` cài sẵn). **Chỉ coi Docker là sẵn sàng khi `docker info` trả exit code 0.** Lần đo gần nhất: exit code 1, daemon không chạy → phải bật Docker Desktop và chờ `docker info` thành công rồi mới dựng container, KHÔNG bỏ qua âm thầm.
+     + **Reuse trước, dựng sau**: chạy `docker ps` xem Postgres/Redis đã có sẵn chưa. Có rồi thì dùng lại, KHÔNG dựng bản thứ hai. Chỉ dựng đúng service flow cần, không "bật hết mọi container".
+     + Backend + Web chạy trực tiếp (Web dùng `--turbo`), Playwright chạy **headless** (`headless: true` đã có trong `playwright.config.ts`).
+     + **Dọn dẹp hẹp**: chỉ dừng container/tiến trình do CHÍNH session này tạo (ghi lại tên/PID lúc tạo). KHÔNG `docker compose down` mù, KHÔNG xóa volume/dữ liệu của người dùng. `docker compose down` chỉ dùng khi chính session đã dựng compose stack riêng.
    - **Session chạy trên CLOUD (GitHub Actions, `agent-task.yml`)**: test chạy **ngay trên cloud**, trong chính runner đó (Postgres, Redis, Backend, Web đã dựng sẵn ở workflow).
    - `test-runner.yml` chỉ chạy khi **người dùng yêu cầu rõ** (dispatch tay), không tự kích hoạt từ session local.
    - Báo kết quả thật: số pass/fail gộp theo test duy nhất (retry không đếm nhiều lần), nói rõ phần chưa chạy.
