@@ -1,6 +1,14 @@
 name: Cloud Multi-Project Test Runner
+# Quyền tường minh: step báo cáo cần ghi Issue. Không dựa vào mặc định của repo (chưa đọc được).
+permissions:
+  contents: read
+  issues: write
+  actions: read
 
 on:
+  # Chạy đêm: 19:00 UTC = 02:00 giờ Việt Nam. Cron chỉ chạy trên nhánh mặc định (main), clone main của Backend và Web.
+  schedule:
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       target_project:
@@ -39,7 +47,8 @@ jobs:
   # =========================================================================
   test-fullstack:
     name: 🚀 Full-Stack E2E (Postgres + Backend NestJS + Web Next.js)
-    if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
+    # schedule không có inputs => phải cho phép riêng, nếu không job bị skip và cron báo xanh giả.
+    if: github.event_name == 'schedule' || github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -201,6 +210,45 @@ jobs:
             workspace/web/allure-report/
             workspace/web/playwright-report/
           retention-days: 7
+
+      - name: 10. Báo kết quả vào Issue cố định
+        if: always() && (github.event_name == 'schedule' || github.event.inputs.target_project == 'fullstack-e2e')
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, collections, urllib.request
+          # Gộp theo historyId để retry không bị đếm nhiều lần; lấy lần chạy cuối của mỗi test.
+          by = {}
+          for f in glob.glob('workspace/web/allure-report/data/test-cases/*.json'):
+              d = json.load(open(f, encoding='utf-8'))
+              key = d.get('historyId') or d.get('fullName') or d.get('name')
+              start = (d.get('time') or {}).get('start') or 0
+              if key not in by or start > by[key][0]:
+                  by[key] = (start, d)
+          st = collections.Counter(v[1].get('status') for v in by.values())
+          total = len(by)
+          if total == 0:
+              summary = 'KHÔNG có kết quả test nào (suite không chạy tới Playwright hoặc report rỗng).'
+          else:
+              summary = f"{total} test: pass {st.get('passed',0)}, fail {st.get('failed',0)}, broken {st.get('broken',0)}, skipped {st.get('skipped',0)}"
+          body = f"**E2E đêm** | job: `{os.environ['JOB_STATUS']}`\n\n{summary}\n\nRun: {os.environ['RUN_URL']}"
+          repo = os.environ['REPO']
+          H = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'nightly'}
+          def call(path, data=None):
+              req = urllib.request.Request(f'https://api.github.com/repos/{repo}{path}', headers=H, data=json.dumps(data).encode() if data else None, method='POST' if data else 'GET')
+              return json.loads(urllib.request.urlopen(req).read().decode())
+          TITLE = '[Nightly] Kết quả E2E hằng đêm'
+          issues = call('/issues?state=open&per_page=100')
+          num = next((i['number'] for i in issues if i['title'] == TITLE and 'pull_request' not in i), None)
+          if num is None:
+              num = call('/issues', {'title': TITLE, 'body': 'Issue cố định: mỗi đêm workflow tự thêm một comment kết quả.'})['number']
+          call(f'/issues/{num}/comments', {'body': body})
+          print('Đã ghi kết quả vào issue #', num)
+          PY
 
   # ==========================================
   # JOB 2: TEST ISOLATED WEB UI (PLAYWRIGHT)
