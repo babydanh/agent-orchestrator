@@ -536,13 +536,15 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           gh issue comment $ISSUE_NUMBER --repo "${{ github.repository }}" \
-            --body "🎉 **OMP Orchestrator đã hoàn thành nhiệm vụ!**
+            --body "🎉 **OMP Orchestrator đã hoàn thành nhiệm vụ & Test thành công!**
 
-          Các Pull Request đã được tạo tự động trên các repo tương ứng:
-          ${{ env.PR_LINKS }}
+          Code đã được **PUSH THẲNG 100% VÀO NHÁNH ĐANG LÀM VIỆC** (Không tạo Pull Request phiền phức):
+          ${{ env.PUSHED_REPOS }}
 
-          Phiên làm việc (Session) đã được đồng bộ lên branch \`omp-sync/sessions\` để kéo về local bất cứ lúc nào!
-          Vui lòng kiểm tra và duyệt merge!"
+          Báo cáo Allure Dashboard và Video/Ảnh kiểm thử đã được lưu vào mục Artifacts.
+          Phiên làm việc (Session) đã được đồng bộ lên branch \`omp-sync/sessions\`.
+          Bạn chỉ cần chạy lệnh ở máy nhà để kéo về ngay:
+          \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
 
       - name: 8.5 Lưu và đồng bộ phiên làm việc (Session Sync) lên branch omp-sync/sessions
         if: always()
