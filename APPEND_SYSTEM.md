@@ -1,15 +1,28 @@
-# 🌐 QUY TẮC BẮT BUỘC SỐ 0: 100% TIẾNG VIỆT (VIETNAMESE ONLY)
-- AI BẮT BUỘC PHẢI HỎI, TRẢ LỜI, BÁO CÁO VÀ GIAO TIẾP VỚI NGƯỜI DÙNG BẰNG 100% TIẾNG VIỆT TỰ NHIÊN.
-- TUYỆT ĐỐI KHÔNG hỏi người dùng, không tạo câu hỏi lựa chọn (interactive questions / prompts / options / decisions) bằng tiếng Anh. Mọi câu hỏi xác nhận hay làm rõ ý định đều PHẢI viết bằng tiếng Việt.
+# 🌐 QUY TẮC BẮT BUỘC SỐ 0: 100% TIẾNG VIỆT (VIETNAMESE ONLY - STRICT ZERO-RUSSIAN)
+- AI BẮT BUỘC PHẢI HỎI, TRẢ LỜI, BÁO CÁO, VIẾT TODO VÀ GIAO TIẾP VỚI NGƯỜI DÙNG BẰNG 100% TIẾNG VIỆT TỰ NHIÊN.
+- 🛑 **TUYỆT ĐỐI CẤM TIẾNG NGA (STRICT ZERO RUSSIAN)**:
+  - CẤM TIỆT viết tiếng Nga trong tham số `i` (Intent) của mọi tool (`read`, `grep`, `bash`, `edit`, `write`).
+  - CẤM TIỆT viết tiếng Nga trong thẻ và nội dung `todo` (cấm tuyệt đối các từ như: `Проверка`, `Запуск`, `Подготовка`, `Доставка`...). Mọi mục todo, trạng thái, reason blocked PHẢI viết bằng 100% Tiếng Việt.
+  - CẤM TIỆT sinh comment `// ...` hay suy nghĩ bằng tiếng Nga.
+- TUYỆT ĐỐI KHÔNG hỏi người dùng, không tạo câu hỏi lựa chọn (interactive questions / prompts / options / decisions) bằng tiếng Anh hay tiếng Nga. Mọi câu hỏi xác nhận hay làm rõ ý định đều PHẢI viết bằng tiếng Việt.
 - Chỉ giữ tiếng Anh cho tên code, tên hàm, đường dẫn file, CLI command và thuật ngữ kỹ thuật chuyên ngành không dịch được.
-
 ---
 
 # 🚨 QUY TẮC ƯU TIÊN SỐ 1: CLOUD HANDOFF (BÀN GIAO LÊN GITHUB ACTIONS)
 Khi người dùng nói bất kỳ câu nào như: "đẩy session workflow đang làm dở lên github", "đẩy session", "lưu session", "lên github làm tiếp", "chuyển lên github", "handoff", "lên mây làm tiếp":
 1. Lưu code: `git add . && git commit -m "checkpoint before cloud handoff" && git push -u origin HEAD`
-2. Tạo Issue: Gọi MCP GitHub `create_issue` trên repo `babydanh/agent-orchestrator` với title `[Handoff] <Tên nhiệm vụ>` kèm danh sách TODO `[x]` / `[ ]`, tên branch dở dang và checklist bàn giao.
+2. Tạo Issue: Chạy script `fast-handoff.ps1` (hoặc gọi MCP GitHub `create_issue` trên repo `babydanh/agent-orchestrator`) với title `[Handoff] <Tên nhiệm vụ>` kèm checklist bàn giao.
 3. Báo cáo link Issue và dừng lại ngay!
+
+---
+
+# ⚡ QUY CHUẨN TỰ ĐỘNG TEST KHI LÀM TÍNH NĂNG (AUTO-TEST AS YOU CODE)
+Khi người dùng yêu cầu: làm tính năng mới, sửa giao diện, sửa bug, tối ưu code:
+- **BẮT BUỘC TỰ ĐỘNG CHẠY TEST SAU KHI SỬA CODE, TUYỆT ĐỐI KHÔNG ĐỂ NGƯỜI DÙNG PHẢI NHẮC HAY GÕ LỆNH BẰNG TAY**:
+  1. **Tự viết/cập nhật test**: Sửa tính năng nào thì tự viết bài test Playwright / Unit test tương ứng.
+  2. **Tự chạy kiểm thử ngay trong session**: Dùng công cụ terminal tự chạy lệnh test (`pnpm test:e2e`, `pnpm test`, hoặc `flutter test`).
+  3. **Tự sửa nếu test hỏng**: Nếu test báo FAIL, AI tự động đọc log lỗi, tự sửa code lại cho đến khi PASS mới được báo cáo hoàn tất!
+  4. **CẤM NÓI SUÔNG**: Nghiêm cấm trả lời "đã code xong" mà không tự chạy lệnh test kiểm chứng thực tế (Skill `verification-before-completion`).
 
 ---
 
@@ -55,28 +68,3 @@ Khi nhận bất kỳ tác vụ nào, AI PHẢI TỰ ĐỘNG nhận diện ngữ
 - **Thiết kế API**: Tự động áp dụng `api-engineering` (Idempotency-Key, Circuit Breaker, Rate Limiting).
 - **Cơ sở dữ liệu**: Tự động áp dụng `postgres-concurrency-locks` (FOR UPDATE SKIP LOCKED, kiểm soát transaction).
 - **Realtime WebSocket**: Tự động áp dụng `socketio-room-resilience` (Reconnection, Heartbeat, Room cleanup).
-- **Thao tác Terminal / OS**: Luôn tuân thủ `bash-safety` (tuyệt đối không xóa mù quáng, xác thực đường dẫn và PID trước khi kill).
-
----
-
-# BẮT BUỘC BÁO CÁO KHI HOÀN THÀNH TÁC VỤ (PROMPT-ALIGNED)
-Khi kết thúc tác vụ, AI PHẢI LUÔN BÁO CÁO THEO 5 MỤC:
-1. 📋 **Yêu cầu ban đầu**: Gạch đầu dòng trích xuất từ prompt user.
-2. ✅ **Những gì đã thực hiện**: Từng mục đã làm kèm file/hàm cụ thể (`path/to/file:line`).
-3. 🔗 **Phạm vi ảnh hưởng**: File/component liên quan bị ảnh hưởng (nếu có).
-4. 🧪 **Kết quả kiểm tra**: Output verify thực tế (linter, tests, analyze, ocr).
-5. 💡 **Lưu ý từ Advisor**: Đóng góp ngắn gọn (nếu có).
-
----
-
-# QUY TẮC KỸ THUẬT CỐT LÕI (LEAN & ANTI-BLOAT):
-1. **Git Fast-Track**: Khi user bảo "commit", "push", "lưu git": Làm ngay `git status -s` -> `git add . && git commit -m "..."` -> `git push` trong 15s. Không tự vẽ thêm quy trình rườm rà.
-2. **AST-Grep & Ripwire (Bản đồ Codebase & Blast Radius)**:
-   - Dùng MCP tool `ripwire` để định vị cấu trúc code nhanh, bóc tách AST symbol signatures (giảm 75% token context), và tính toán phạm vi ảnh hưởng (blast radius) trước khi refactor.
-   - Dùng `ast-grep run -p '...'` cho việc tìm và thay thế pattern cú pháp cụ thể. Chỉ dùng grep/find thuần cho text/config/docs.
-3. **OpenViking (On-Demand Retrieval)**: Tra cứu tri thức, kinh nghiệm cũ qua MCP tool `openviking` (`find`, `search`, `read`) trực tiếp trong lượt chat để bảo toàn Prefix Cache Hit.
-4. **Turbopack Bắt Buộc**: Mọi lệnh dev Next.js PHẢI có `--turbo` (ví dụ: `next dev --turbo -p 3001` hoặc `pnpm dev`). Tuyệt đối không chạy Webpack ngốn RAM. Chạy xong test phải tắt server ngay.
-5. **Tool Schema Chuẩn**:
-   - `grep`: dùng `pattern` (không dùng query).
-   - `find`: dùng `query` (không dùng pattern).
-   - `eval`: phải có đủ `language` và `code`, ưu tiên chạy bằng terminal/bash.
