@@ -46,7 +46,7 @@ jobs:
     # CUNG CẤP DATABASE POSTGRESQL & REDIS THỰC TẾ TRÊN RUNNER
     services:
       postgres:
-        image: postgis/postgis:15-3.3-alpine
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: your_password
@@ -123,18 +123,11 @@ jobs:
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
           
-          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
-          # Bật PostGIS (schema dùng kiểu geography). Thiếu bước này drizzle-kit push lỗi nhưng thoát mã 0.
-          PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 \
-            -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-
-          # Đẩy Drizzle Schema và Seed Data mẫu vào Postgres Container
-          pnpm db:push
-
-          # drizzle-kit có thể thoát mã 0 dù lỗi: xác nhận bảng thật sự được tạo trước khi seed
-          PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -tA \
-            -c "SELECT to_regclass('public.system_configs');" | grep -q system_configs \
-            || { echo "::error::db:push không tạo bảng system_configs"; exit 1; }
+          # Dùng đúng đường migration của Backend deploy.yml (đã kiểm chứng), KHÔNG dùng drizzle-kit push.
+          node run-prod-migration.js
+          # Chạy lần hai để xác nhận migration idempotent (như deploy.yml)
+          node run-prod-migration.js
+          pnpm verify:football-schema
 
           pnpm seed:prod
           
