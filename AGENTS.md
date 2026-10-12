@@ -84,8 +84,14 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
   - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/` hay `D:/tmp/`.
   - Mọi thao tác sửa lỗi, code tính năng, refactor **BẮT BUỘC thực hiện trực tiếp trên nhánh hiện tại (hoặc `main`)**.
 - **Quy trình kết thúc công việc (One-Shot Clean Cutover)**:
-  - Làm xong: `git add . && git commit -m "..." && git push origin <current_branch>`.
-  - Dọn sạch ngay mọi nhánh tạm và worktree trong 1 giây (`git worktree prune`).
+  - **Nhiều session cùng làm một repo (cùng một thư mục, cùng nhánh)**: trước khi commit/push BẮT BUỘC chạy cổng kiểm tra va chạm (chỉ đọc, không sửa repo):
+    `python C:\Users\GIGABYTE\.omp\scripts\safe-push-check.py <thư-mục-repo> <file1> <file2> ...` (liệt kê đúng các file MÀ SESSION NÀY sửa).
+    + Exit `0` = an toàn. Exit `1` = có cảnh báo (origin có commit mới, có file của session khác đang sửa dở, hoặc push `main` sẽ kích hoạt deploy): đọc rồi xử lý.
+    + Exit `2` = KHÔNG push: file mình sửa cũng đang bị đổi trên origin hoặc ở worktree khác. Dừng, báo người dùng, KHÔNG tự ép.
+  - **Commit hẹp**: `git add <đúng-tên-file-của-session-này>`. CẤM `git add .` và `git add -A` khi cây làm việc còn file sửa dở không phải của mình (xem danh sách `[session khác?]` do script in ra). KHÔNG `stash`, `checkout .`, `reset --hard` lên file của session khác.
+  - Sau khi qua cổng: `git fetch origin && git rebase origin/<nhánh>` rồi `git push origin <nhánh>`. Gặp conflict thật: dừng và báo, không tự chọn bên thắng.
+  - **Push `main` của repo có workflow deploy (Web, Backend) = deploy production**: phải nói rõ với người dùng trước khi push.
+  - KHÔNG tự xóa nhánh hay worktree không do session này tạo. Worktree sẵn có của các session khác để nguyên.
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
 Để tìm kiếm chính xác, nhanh nhất và không bao giờ nuốt RAM:
 
