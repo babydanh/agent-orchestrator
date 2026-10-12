@@ -72,6 +72,8 @@ jobs:
     steps:
       - name: 1. Setup Node.js 22 LTS & PNPM
         uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -206,6 +208,8 @@ jobs:
 
       - name: 2. Setup Node.js & PNPM
         uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -281,6 +285,8 @@ jobs:
 
       - name: 2. Setup Node.js & PNPM
         uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -346,7 +352,6 @@ jobs:
           repository: ${{ github.repository_owner }}/AICheckVAR
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.inputs.custom_branch || 'main' }}
-        continue-on-error: true
 
       - name: 2. Setup Python 3.12
         uses: actions/setup-python@v5
@@ -377,7 +382,6 @@ jobs:
           repository: ${{ github.repository_owner }}/Auto25D-Remotion
           token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.inputs.custom_branch || 'main' }}
-        continue-on-error: true
 
       - name: 2. Setup Python 3.12
         uses: actions/setup-python@v5
