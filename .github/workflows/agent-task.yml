@@ -485,27 +485,27 @@ jobs:
             echo ">>> KHỞI ĐỘNG DATABASE & BACKEND CHO CHUỖI E2E..."
             cd backend
             pnpm install --prefer-offline || pnpm install
-            pnpm build || true
-            pnpm db:push || echo "DB push already in sync"
-            pnpm seed:prod || echo "Seed execution finished"
+            pnpm build
+            pnpm db:push
+            pnpm seed:prod
             PORT=3000 pnpm start:prod &
-            npx wait-on http://localhost:3000 --timeout 60000 || echo "Backend wait timeout"
+            npx wait-on http://localhost:3000 --timeout 60000
             cd ../web
             pnpm install --prefer-offline || pnpm install
-            PORT=3001 pnpm build || true
+            PORT=3001 pnpm build
             PORT=3001 pnpm start &
-            npx wait-on http://localhost:3001 --timeout 60000 || echo "Web wait timeout"
+            npx wait-on http://localhost:3001 --timeout 60000
             echo ">>> BẮT ĐẦU CHẠY PLAYWRIGHT E2E & XUẤT ALLURE DATA..."
-            pnpm test:e2e || echo "Playwright E2E executed"
+            pnpm test:e2e
             cd ../..
           elif [ -d "web" ]; then
             echo ">>> CHẠY ISOLATED PLAYWRIGHT E2E CHO WEB..."
             cd web
             pnpm install --prefer-offline || pnpm install
-            PORT=3000 pnpm build || true
+            PORT=3000 pnpm build
             PORT=3000 pnpm start &
-            npx wait-on http://localhost:3000 --timeout 60000 || echo "Web wait timeout"
-            pnpm test:e2e || echo "Playwright E2E executed"
+            npx wait-on http://localhost:3000 --timeout 60000
+            pnpm test:e2e
             cd ..
           fi
 
@@ -530,21 +530,27 @@ jobs:
           retention-days: 7
 
       - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
-        if: github.event_name == 'issues'
+        if: always() && github.event_name == 'issues'
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment $ISSUE_NUMBER --repo "${{ github.repository }}" \
-            --body "🎉 **OMP Orchestrator đã hoàn thành nhiệm vụ & Test thành công!**
+          if [ "$JOB_STATUS" = "success" ]; then
+            HEADLINE="Run hoàn tất, các step đều xanh."
+          else
+            HEADLINE="Run KẾT THÚC VỚI TRẠNG THÁI: $JOB_STATUS. Có step bị lỗi, xem log trước khi dùng code."
+          fi
+          gh issue comment "$ISSUE_NUMBER" --repo "${{ github.repository }}" \
+            --body "**OMP Orchestrator:** $HEADLINE
 
-          Code đã được **PUSH THẲNG 100% VÀO NHÁNH ĐANG LÀM VIỆC** (Không tạo Pull Request phiền phức):
+          Nhánh đã push (nếu có):
           ${{ env.PUSHED_REPOS }}
 
-          Báo cáo Allure Dashboard và Video/Ảnh kiểm thử đã được lưu vào mục Artifacts.
-          Phiên làm việc (Session) đã được đồng bộ lên branch \`omp-sync/sessions\`.
-          Bạn chỉ cần chạy lệnh ở máy nhà để kéo về ngay:
-          \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
+          Log và artifact (Allure/Playwright): $RUN_URL
+
+          Để kéo code và session về máy: \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
 
       - name: 8.5 Lưu và đồng bộ phiên làm việc (Session Sync) lên branch omp-sync/sessions
         if: always()

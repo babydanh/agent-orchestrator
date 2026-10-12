@@ -20,6 +20,14 @@ on:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
         default: ''
+      backend_ref:
+        description: 'Nhánh/SHA của Backend cho fullstack-e2e (để trống = dùng custom_branch, rồi nhánh mặc định)'
+        required: false
+        default: ''
+      web_ref:
+        description: 'Nhánh/SHA của Web cho fullstack-e2e (để trống = dùng custom_branch, rồi nhánh mặc định)'
+        required: false
+        default: ''
 
 concurrency:
   group: test-runner-${{ github.ref }}-${{ github.event.inputs.target_project }}
@@ -103,11 +111,11 @@ jobs:
         run: |
           mkdir -p workspace
           cd workspace
-          TARGET_BRANCH="${{ github.event.inputs.custom_branch }}"
-          if [ -n "$TARGET_BRANCH" ]; then
-            git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
-          else
-            git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          REF="${{ github.event.inputs.backend_ref || github.event.inputs.custom_branch }}"
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          if [ -n "$REF" ]; then
+            git -C backend fetch --depth 1 origin "$REF"
+            git -C backend checkout FETCH_HEAD
           fi
           cd backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
@@ -125,11 +133,11 @@ jobs:
       - name: 5. Clone Web Repo & Install Dependencies
         run: |
           cd workspace
-          TARGET_BRANCH="${{ github.event.inputs.custom_branch }}"
-          if [ -n "$TARGET_BRANCH" ]; then
-            git clone --depth 1 -b "$TARGET_BRANCH" https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
-          else
-            git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          REF="${{ github.event.inputs.web_ref || github.event.inputs.custom_branch }}"
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          if [ -n "$REF" ]; then
+            git -C web fetch --depth 1 origin "$REF"
+            git -C web checkout FETCH_HEAD
           fi
           cd web
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
