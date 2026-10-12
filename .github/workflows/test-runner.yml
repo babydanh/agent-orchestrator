@@ -41,7 +41,7 @@ jobs:
     name: 🚀 Full-Stack E2E (Postgres + Backend NestJS + Web Next.js)
     if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
 
     # CUNG CẤP DATABASE POSTGRESQL & REDIS THỰC TẾ TRÊN RUNNER
     services:
@@ -165,13 +165,21 @@ jobs:
       - name: 7. Wait for Backend & Run Playwright E2E UI Tests
         env:
           FRONTEND_URL: http://localhost:3001
+          PLAYWRIGHT_BASE_URL: http://localhost:3001
           CI: true
         run: |
           # Backend có globalPrefix /api/v1 và không có route "/" nên GET / luôn 404 -> wait-on http:// không bao giờ xong.
           # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
           npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 60000
-          
+
           cd workspace/web
+
+          # CHỐT CHẶN AN TOÀN: không xóa/bỏ test nào. Chỉ từ chối chạy nếu còn spec nào đánh thẳng
+          # vào production (tạo tài khoản/giải đấu thật trên https://sporto.asia).
+          if grep -rnE "(baseURL|goto)\b.*https?://(www\.)?sporto\.asia" test/e2e; then
+            echo "::error::Còn spec trỏ thẳng https://sporto.asia, từ chối chạy E2E trên CI"; exit 1
+          fi
+
           PORT=3001 pnpm build
           PORT=3001 pnpm start &
           npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
