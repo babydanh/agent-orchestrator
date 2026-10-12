@@ -57,8 +57,11 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
 ---
 
 ## 1.8. Lavish Visual Plan Protocol (CHỦ ĐỘNG TRỰC QUAN HÓA & KỶ LUẬT 1 TAB)
-- **KHI NÀO AI CHỦ ĐỘNG DÙNG LAVISH (TỰ NHIÊN & LINH HOẠT)**:
-  - 🎯 **TỰ ĐỘNG MỞ KHI**:
+- **KHI NÀO AI BẮT BUỘC DÙNG LAVISH**:
+  - 🎯 **BẮT BUỘC 100% KHI LẬP KẾ HOẠCH (PLAN REVIEW / PLAN MODE)**:
+    + Bất cứ khi nào Agent bước vào pha **Lập kế hoạch (Plan Review / Plan Mode / Bước 1..N / Assumptions & contingencies)** như trong hình: **CẤM CHỈ IN CHỮ TRONG TERMINAL**.
+    + BẮT BUỘC xuất toàn bộ các bước (Context, Approach, Bước 1..8, Critical Files, Verification, Assumptions) vào `.lavish/plan.html` kèm sơ đồ luồng Mermaid và mở trình duyệt để người dùng xem và duyệt trực quan!
+  - 🎯 **CHỦ ĐỘNG MỞ KHI**:
     1. **Có kế hoạch, kiến trúc hoặc phân tích hệ thống**: Cần sơ đồ Mermaid/SVG, bảng đối chiếu phương án hoặc kế hoạch nhiều bước.
     2. **Có sự so sánh, đánh đổi (Trade-offs)**: Đối chiếu phương án A vs B giúp người dùng dễ chọn.
     3. **Nội dung dài hoặc dạng trực quan**: Xem qua trang web HTML sẽ trực quan và dễ nắm bắt hơn nhiều so với đọc chữ dài trong terminal.
