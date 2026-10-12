@@ -108,26 +108,9 @@ Skip any step = lying, not verifying
 ❌ Trust agent report
 ```
 
-## Mandatory Completion Delivery Report (Prompt-Aligned)
+## Completion Report
 
-BEFORE concluding the turn or declaring ANY task done, you MUST deliver your final response in this exact format:
+Trước khi báo xong, đưa **bằng chứng thật**: lệnh đã chạy và kết quả của nó (số pass/fail, exit code, đường dẫn file đã sửa).
+Không có output thì không nói "đã xong". Phần chưa chạy hoặc chưa kiểm chứng phải nói thẳng.
 
-### 📋 1. Yêu cầu ban đầu (User Goals):
-- [Liệt kê chính xác từng gạch đầu dòng từ prompt gốc của user]
-
-### ✅ 2. Những gì đã thực hiện:
-- **[Mục 1]**: Giải thích ngắn gọn cách làm + file/hàm cụ thể đã sửa (`path/to/file.dart:line`).
-- **[Mục 2]**: Giải thích ngắn gọn cách làm + file/hàm cụ thể đã sửa.
-
-### 🔗 3. Những gì liên quan & Phạm vi ảnh hưởng (Side-effects):
-- Các file/component phụ bắt buộc sửa theo để tránh gãy code (route, import, state).
-- Tác động tới các màn hình khác trong project.
-
-### 🧪 4. Kết quả kiểm tra (Verification Evidence):
-- Lệnh verify đã chạy (`flutter analyze`, `ast-grep`, tests) kèm output: 0 errors, 0 warnings.
-
-### 💡 5. Lưu ý từ Advisor (nếu có):
-- Lưu ý kỹ thuật ngắn gọn (nếu có).
-
-Violating this format is a direct violation of the Iron Law.
-
+Hình thức báo cáo theo `AGENTS.md` (ngắn, theo ngữ cảnh). KHÔNG dùng khuôn đề mục cố định.
