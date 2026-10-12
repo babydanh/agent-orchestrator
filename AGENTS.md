@@ -72,14 +72,10 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
   - **Nếu tab đang mở bình thường**: AI chỉ ghi đè file `.lavish/plan.html` trên đĩa, tab cũ sẽ **tự động cập nhật nội dung mới (Live Reload)** mà không mở thêm tab mới.
   - **Nếu bạn đã lỡ tay tắt tab đó đi**: AI kiểm tra nếu server/tab đã đóng thì mới chạy lại với cờ `--reopen` để mở lại đúng 1 tab mới cho bạn tiếp tục xem, tuyệt đối không đẻ tràn lan nhiều tab.
 ## 2. Git Fast-Track & Kỷ Luật Đa Session Thông Minh (Concurrent Multi-Session Auto-Rebase)
-- **CƠ CHẾ TỰ ĐỘNG KHI CHẠY NHIỀU SESSION CÙNG LÚC (Zero-Pause Multi-Session Flow)**:
-  - Khi bạn chạy nhiều session song song (Session A vừa đẩy code lên `main`, Session B chuẩn bị merge):
-  - **CẤM HOẢNG LOẠN DỪNG CHỜ (Zero Integration Paused)**: AI **TUYỆT ĐỐI KHÔNG** để detached HEAD hay dừng lại hỏi menu lựa chọn.
-  - **TỰ ĐỘNG REBASE THÔNG MINH**:
-    1. AI tự động chạy `git fetch origin main`.
-    2. Tự động `git rebase origin/main` (nối tiếp code của mình lên trên những gì Session A vừa làm).
-    3. Nếu có conflict đơn giản: tự động resolve hoặc `git merge origin/main --no-edit`.
-    4. Gộp thẳng vào `main` và `git push origin main` ngay lập tức!
+- **THỨ TỰ ƯU TIÊN (một quy tắc duy nhất, KHÔNG mâu thuẫn)**: kiểm tra va chạm TRƯỚC, tự động SAU.
+  - Không có va chạm thật (cổng `safe-push-check.py` exit `0` hoặc `1`) → **tự động hoàn toàn, không hỏi menu**: `git fetch origin` → `git rebase origin/<nhánh>` → `git push origin <nhánh>`. Không để detached HEAD, không dừng chờ lựa chọn.
+  - Có va chạm thật (exit `2`, hoặc `git rebase` báo conflict) → **DỪNG và báo người dùng** file nào, session/worktree nào. TUYỆT ĐỐI KHÔNG tự chọn bên thắng, KHÔNG tự `merge --no-edit` để nuốt conflict, KHÔNG `rebase --skip` hay `--abort` rồi push đè. Tự resolve conflict giữa hai session là cách mất code âm thầm.
+  - Rebase đang dở thì để nguyên cho người dùng quyết, không `reset --hard` hay `checkout .`.
 - **CẤM TỰ TIỆN TẠO WORKTREE / NHÁNH RÁC**:
   - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/` hay `D:/tmp/`.
   - Mọi thao tác sửa lỗi, code tính năng, refactor **BẮT BUỘC thực hiện trực tiếp trên nhánh hiện tại (hoặc `main`)**.
