@@ -82,8 +82,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 2.5 Cài đặt Playwright Chromium Browser cho E2E Test
-        run: npx playwright install --with-deps chromium
+      # Chromium sẽ chỉ được tải khi thực sự cần chạy Playwright UI Test
 
       - name: 3. Cài đặt OMP (@oh-my-pi/pi-coding-agent)
         run: |
@@ -422,7 +421,7 @@ jobs:
 
           echo "PUSHED_REPOS=$PUSHED_REPOS" >> $GITHUB_ENV
 
-      - name: 7.2 Tự động kích hoạt chuỗi Full-Stack E2E Playwright & Allure
+      - name: 7.2 Tự động kích hoạt chuỗi Playwright UI E2E (Chỉ chạy khi có yêu cầu Web/UI)
         if: always()
         env:
           DB_HOST: localhost
@@ -439,10 +438,51 @@ jobs:
           CI: true
         run: |
           cd workspace
+          NEED_E2E=false
+          TARGET_REPO=$(echo "$ISSUE_BODY" | grep -oP 'Repo mục tiêu\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+
+          # 1. Kiểm tra nếu Task nhắm vào Frontend Web
+          if [ "$TARGET_REPO" = "HethongFrontEndWeb_QLgiaidau" ]; then
+            echo ">>> Phát hiện Repo mục tiêu là Web -> Kích hoạt E2E!"
+            NEED_E2E=true
+          fi
+
+          # 2. Kiểm tra nếu nội dung hoặc tiêu đề có từ khóa về UI / E2E / Playwright
+          if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -iqE 'e2e|playwright|test web|giao diện|ui test|allure'; then
+            echo ">>> Phát hiện yêu cầu kiểm thử Web/UI qua tiêu đề hoặc checklist -> Kích hoạt E2E!"
+            NEED_E2E=true
+          fi
+
+          # 3. Kiểm tra nếu có thay đổi code trong thư mục web/
+          if [ -d "web" ]; then
+            cd web
+            if [ -n "$BRANCH_NAME" ] && git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+              if ! git diff --quiet main.."$BRANCH_NAME" 2>/dev/null; then
+                echo ">>> Phát hiện có commit thay đổi trong repo Web -> Kích hoạt E2E!"
+                NEED_E2E=true
+              fi
+            fi
+            cd ..
+          fi
+
+          # NẾU KHÔNG CẦN TEST WEB UI: BỎ QUA ĐỂ TIẾT KIỆM THỜI GIAN & TÀI NGUYÊN
+          if [ "$NEED_E2E" != "true" ]; then
+            echo "=========================================================="
+            echo ">>> [SKIP] Nhiệm vụ này KHÔNG liên quan đến Web UI / Playwright."
+            echo ">>> Bỏ qua bước E2E để hoàn thành tác vụ siêu tốc (tiết kiệm thời gian & RAM)!"
+            echo "=========================================================="
+            exit 0
+          fi
+
+          echo "=========================================================="
+          echo ">>> [TRIGGER] BẮT ĐẦU CHUỖI PLAYWRIGHT UI TEST & ALLURE..."
+          echo "=========================================================="
+
+          # Tải Chromium khi thực sự cần chạy UI test
+          npx playwright install --with-deps chromium
+
           if [ -d "backend" ] && [ -d "web" ]; then
-            echo "=========================================================="
-            echo ">>> KÍCH HOẠT CHUỖI TEST TỰ ĐỘNG: POSTGRES + NESTJS + WEB E2E"
-            echo "=========================================================="
+            echo ">>> KHỞI ĐỘNG DATABASE & BACKEND CHO CHUỖI E2E..."
             cd backend
             pnpm install --prefer-offline || pnpm install
             pnpm build || true
