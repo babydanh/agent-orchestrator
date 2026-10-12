@@ -5,10 +5,10 @@ Bộ điều phối để **đẩy việc đang làm dở từ máy local lên c
 
 ## Mục tiêu
 
-Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở dang được lưu và đẩy lên GitHub, cloud chạy
-tiếp **đúng session đó** (resume đầy đủ), xong thì báo kết quả vào Issue. Không hẹn giờ: bạn nói là chạy ngay.
+Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở dang được lưu và đẩy lên GitHub, cloud được cấu hình
+để chạy tiếp **đúng session đó** rồi báo kết quả vào Issue. Không hẹn giờ: bạn nói là chạy ngay.
 
-## Quy trình bàn giao (đã chạy được)
+## Luồng hiện được cấu hình (chưa có bằng chứng chạy trọn vẹn)
 
 1. **Local**: nói "đẩy session lên github làm tiếp". Script `fast-handoff.ps1` sẽ:
    - commit + push nhánh đang làm dở;
@@ -45,6 +45,6 @@ tiếp **đúng session đó** (resume đầy đủ), xong thì báo kết quả
 ## Lưu ý đã biết
 
 - Cloud chỉ thấy code **đã push lên GitHub**. Việc sửa dở chưa commit trên máy thì chưa lên cloud được.
-- Repo này đang **public**: không để dữ liệu nhạy cảm trong nhánh `omp-sync/sessions`.
-- Chưa có bằng chứng các lần handoff trước đã resume và hoàn thành đúng. Cơ chế có trong workflow, nhưng chưa đo
-  tỉ lệ thành công.
+- Repo này đang **public** (đã kiểm tra bằng GitHub API): không để dữ liệu nhạy cảm trong nhánh `omp-sync/sessions`.
+- **Chưa có bằng chứng** các lần handoff trước đã resume và hoàn thành đúng. Các bước trên có trong `fast-handoff.ps1`
+  và `agent-task.yml` (đã đọc code), nhưng chưa ai chạy trọn một vòng và đo kết quả. Không coi đây là tính năng đã kiểm chứng.
