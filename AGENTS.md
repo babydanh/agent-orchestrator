@@ -56,15 +56,14 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
      - 🔴 **Lỗi (nếu có)**: Tên test case bị hỏng kèm vị trí file/dòng.
 ---
 
-## 1.8. Lavish Visual Plan Protocol (TIÊU CHÍ KÍCH HOẠT & KỶ LUẬT DUY NHẤT 1 TAB)
-- **KHI NÀO AI BIẾT ĐỂ TỰ ĐỘNG TẠO LAVISH (TIÊU CHÍ RÕ RÀNG)**:
-  - 🎯 **TỰ ĐỘNG TẠO KHI**:
-    1. **Tác vụ lớn nhiều bước**: Sửa đổi hoặc tạo mới chạm từ **3 files trở lên**, hoặc làm một module/tính năng mới từ A-Z.
-    2. **Bài toán có sự đánh đổi (Trade-offs)**: Cần đối chiếu 2–3 phương án kỹ thuật (phương án A vs B) hoặc cần vẽ sơ đồ luồng dữ liệu (Data flow Mermaid/SVG) để bạn dễ nhìn.
-  - 🛑 **TUYỆT ĐỐI KHÔNG TẠO KHI**:
-    + Hỏi đáp, giải thích, khảo sát thông thường (như chúng ta đang trao đổi).
-    + Sửa bug nhỏ cục bộ (1–2 file), đổi giao diện đơn giản, chạy lệnh test, đọc log.
-
+## 1.8. Lavish Visual Plan Protocol (CHỦ ĐỘNG TRỰC QUAN HÓA & KỶ LUẬT 1 TAB)
+- **KHI NÀO AI CHỦ ĐỘNG DÙNG LAVISH (TỰ NHIÊN & LINH HOẠT)**:
+  - 🎯 **TỰ ĐỘNG MỞ KHI**:
+    1. **Có kế hoạch, kiến trúc hoặc phân tích hệ thống**: Cần sơ đồ Mermaid/SVG, bảng đối chiếu phương án hoặc kế hoạch nhiều bước.
+    2. **Có sự so sánh, đánh đổi (Trade-offs)**: Đối chiếu phương án A vs B giúp người dùng dễ chọn.
+    3. **Nội dung dài hoặc dạng trực quan**: Xem qua trang web HTML sẽ trực quan và dễ nắm bắt hơn nhiều so với đọc chữ dài trong terminal.
+    4. **Khi người dùng có nhắc đến**: *"lavish"*, *"plan"*, *"kế hoạch"*, *"sơ đồ"*, *"trực quan"*, *"so sánh"*, *"báo cáo"*.
+  - 💬 **Chỉ trả lời ngắn bằng chữ khi**: Câu hỏi một dòng ngắn, kiểm tra trạng thái tức thì, hoặc chào hỏi thông thường.
 - **XỬ LÝ TAB TRÌNH DUYỆT (KỂ CẢ KHI BẠN LỠ TAY TẮT TAB)**:
   - **Lần đầu tiên**: Mở đúng **1 tab duy nhất** trên trình duyệt cho bạn xem.
   - **Nếu tab đang mở bình thường**: AI chỉ ghi đè file `.lavish/plan.html` trên đĩa, tab cũ sẽ **tự động cập nhật nội dung mới (Live Reload)** mà không mở thêm tab mới.
