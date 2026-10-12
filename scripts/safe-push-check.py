@@ -26,15 +26,27 @@ def git(repo, *args, raw=False):
 
 
 def status_paths(repo):
-    """File sua do. Porcelain: 2 ky tu trang thai + 1 dau cach + duong dan (khong strip dau dong)."""
-    _, out, _ = git(repo, "status", "--porcelain", "--untracked-files=no", raw=True)
+    """Moi file dang thay doi trong cay lam viec: sua, da stage, FILE MOI CHUA ADD, doi ten.
+
+    Dung `-z` (tach bang NUL) nen ten co dau cach / ky tu dac biet KHONG bi quote hay escape.
+    Moi record: 'XY path'. Voi rename/copy (X hoac Y la R/C) record ke tiep la duong dan CU.
+    """
+    r = subprocess.run(
+        ["git", "-C", repo, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+        capture_output=True, timeout=60,
+    )
+    recs = r.stdout.decode("utf-8", errors="replace").split("\0")
     paths = set()
-    for l in out.splitlines():
-        if len(l) > 3:
-            p = l[3:].strip()
-            if " -> " in p:  # doi ten: lay ten moi (tach truoc, go nhay sau)
-                p = p.split(" -> ", 1)[1].strip()
-            paths.add(p.strip('"'))
+    i = 0
+    while i < len(recs):
+        rec = recs[i]
+        i += 1
+        if len(rec) < 4:
+            continue
+        xy, path = rec[:2], rec[3:]
+        paths.add(path)
+        if "R" in xy or "C" in xy:
+            i += 1  # bo qua record duong dan cu cua rename/copy
     return paths
 
 
