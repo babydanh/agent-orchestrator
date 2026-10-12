@@ -69,15 +69,21 @@ Khi người dùng nói tự nhiên như: `"test cho tôi flow này..."`, `"test
   - **Lần đầu tiên**: Mở đúng **1 tab duy nhất** trên trình duyệt cho bạn xem.
   - **Nếu tab đang mở bình thường**: AI chỉ ghi đè file `.lavish/plan.html` trên đĩa, tab cũ sẽ **tự động cập nhật nội dung mới (Live Reload)** mà không mở thêm tab mới.
   - **Nếu bạn đã lỡ tay tắt tab đó đi**: AI kiểm tra nếu server/tab đã đóng thì mới chạy lại với cờ `--reopen` để mở lại đúng 1 tab mới cho bạn tiếp tục xem, tuyệt đối không đẻ tràn lan nhiều tab.
-## 2. Git Fast-Track & Kỷ Luật Một Nhánh (Anti-Branch Bloat)
+## 2. Git Fast-Track & Kỷ Luật Đa Session Thông Minh (Concurrent Multi-Session Auto-Rebase)
+- **CƠ CHẾ TỰ ĐỘNG KHI CHẠY NHIỀU SESSION CÙNG LÚC (Zero-Pause Multi-Session Flow)**:
+  - Khi bạn chạy nhiều session song song (Session A vừa đẩy code lên `main`, Session B chuẩn bị merge):
+  - **CẤM HOẢNG LOẠN DỪNG CHỜ (Zero Integration Paused)**: AI **TUYỆT ĐỐI KHÔNG** để detached HEAD hay dừng lại hỏi menu lựa chọn.
+  - **TỰ ĐỘNG REBASE THÔNG MINH**:
+    1. AI tự động chạy `git fetch origin main`.
+    2. Tự động `git rebase origin/main` (nối tiếp code của mình lên trên những gì Session A vừa làm).
+    3. Nếu có conflict đơn giản: tự động resolve hoặc `git merge origin/main --no-edit`.
+    4. Gộp thẳng vào `main` và `git push origin main` ngay lập tức!
 - **CẤM TỰ TIỆN TẠO WORKTREE / NHÁNH RÁC**:
-  - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/`.
+  - Trừ khi người dùng nói rõ: *"tạo branch mới / tạo worktree"*, AI **TUYỆT ĐỐI KHÔNG** tự ý chạy `git worktree add`, `git checkout -b <nhanh_moi>` hoặc tự cách ly vào thư mục `.worktrees/` hay `D:/tmp/`.
   - Mọi thao tác sửa lỗi, code tính năng, refactor **BẮT BUỘC thực hiện trực tiếp trên nhánh hiện tại (hoặc `main`)**.
 - **Quy trình kết thúc công việc (One-Shot Clean Cutover)**:
   - Làm xong: `git add . && git commit -m "..." && git push origin <current_branch>`.
-  - Nếu có tạo nhánh tạm để test: Bắt buộc merge ngay về nhánh chính (`git merge --ff-only` hoặc `git merge <temp_branch>`), sau đó xóa ngay nhánh tạm (`git branch -D <temp_branch>`) và dọn sạch worktree thừa, không để lại rác trên đĩa.
-- **Chống Lạc File & Bảo Toàn Code**:
-  - Không bao giờ commit code dở dang vào worktree rồi bỏ rơi đó khiến người dùng tìm không thấy file trên `main`.
+  - Dọn sạch ngay mọi nhánh tạm và worktree trong 1 giây (`git worktree prune`).
 ## 3. Quy Tắc Chọn Công Cụ Tìm Kiếm Code (Smart Code Search & Exploration)
 Để tìm kiếm chính xác, nhanh nhất và không bao giờ nuốt RAM:
 
