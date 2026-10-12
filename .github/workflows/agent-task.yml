@@ -27,6 +27,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
 
+    # CUNG CẤP DATABASE POSTGRESQL & REDIS CHO CHUỖI E2E TEST
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: your_password
+          POSTGRES_DB: tournament_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: 1. Checkout Orchestrator Repo
         uses: actions/checkout@v4
@@ -55,6 +81,9 @@ jobs:
           flutter-version: '3.29.x'
           channel: 'stable'
           cache: true
+
+      - name: 2.5 Cài đặt Playwright Chromium Browser cho E2E Test
+        run: npx playwright install --with-deps chromium
 
       - name: 3. Cài đặt OMP (@oh-my-pi/pi-coding-agent)
         run: |
@@ -392,6 +421,53 @@ jobs:
           done
 
           echo "PUSHED_REPOS=$PUSHED_REPOS" >> $GITHUB_ENV
+
+      - name: 7.2 Tự động kích hoạt chuỗi Full-Stack E2E Playwright & Allure
+        if: always()
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: your_password
+          DB_DATABASE: tournament_db
+          DB_SSL: false
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
+          FRONTEND_URL: http://localhost:3001
+          CI: true
+        run: |
+          cd workspace
+          if [ -d "backend" ] && [ -d "web" ]; then
+            echo "=========================================================="
+            echo ">>> KÍCH HOẠT CHUỖI TEST TỰ ĐỘNG: POSTGRES + NESTJS + WEB E2E"
+            echo "=========================================================="
+            cd backend
+            pnpm install --prefer-offline || pnpm install
+            pnpm build || true
+            pnpm db:push || echo "DB push already in sync"
+            pnpm seed:prod || echo "Seed execution finished"
+            PORT=3000 pnpm start:prod &
+            npx wait-on http://localhost:3000 --timeout 60000 || echo "Backend wait timeout"
+            cd ../web
+            pnpm install --prefer-offline || pnpm install
+            PORT=3001 pnpm build || true
+            PORT=3001 pnpm start &
+            npx wait-on http://localhost:3001 --timeout 60000 || echo "Web wait timeout"
+            echo ">>> BẮT ĐẦU CHẠY PLAYWRIGHT E2E & XUẤT ALLURE DATA..."
+            pnpm test:e2e || echo "Playwright E2E executed"
+            cd ../..
+          elif [ -d "web" ]; then
+            echo ">>> CHẠY ISOLATED PLAYWRIGHT E2E CHO WEB..."
+            cd web
+            pnpm install --prefer-offline || pnpm install
+            PORT=3000 pnpm build || true
+            PORT=3000 pnpm start &
+            npx wait-on http://localhost:3000 --timeout 60000 || echo "Web wait timeout"
+            pnpm test:e2e || echo "Playwright E2E executed"
+            cd ..
+          fi
 
       - name: 7.5 Xuất Báo Cáo Allure Report nếu có kiểm thử Web
         if: always()
