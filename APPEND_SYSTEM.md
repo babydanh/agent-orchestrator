@@ -20,7 +20,7 @@ Khi người dùng nói bất kỳ câu nào như: "đẩy session workflow đan
 Khi người dùng yêu cầu: làm tính năng mới, sửa giao diện, sửa bug, tối ưu code:
 - **BẮT BUỘC TỰ ĐỘNG CHẠY TEST SAU KHI SỬA CODE, TUYỆT ĐỐI KHÔNG ĐỂ NGƯỜI DÙNG PHẢI NHẮC HAY GÕ LỆNH BẰNG TAY**:
   1. **Tự viết/cập nhật test**: Sửa tính năng nào thì tự viết bài test Playwright / Unit test tương ứng.
-  2. **Tự chạy kiểm thử ngay trong session**: Dùng công cụ terminal tự chạy lệnh test (`pnpm test:e2e`, `pnpm test`, hoặc `flutter test`).
+  2. **Tự chạy kiểm thử, đúng chỗ**: Test nhẹ (vài file, `flutter test --no-pub <file>`, unit đơn lẻ) chạy ngay trong session. Test NẶNG (E2E full-stack `pnpm test:e2e`, cả bộ `flutter test`/`flutter analyze`, pytest AICheckVAR) ở session LOCAL thì tự đẩy lên GitHub Actions theo skill `cloud-test-runner` (đọc `C:\Users\GIGABYTE\.omp\agent\skills\cloud-test-runner\SKILL.md`), không chạy trên máy. Session CLOUD (`agent-task.yml`) chạy ngay trong runner.
   3. **Tự sửa nếu test hỏng**: Nếu test báo FAIL, AI tự động đọc log lỗi, tự sửa code lại cho đến khi PASS mới được báo cáo hoàn tất!
   4. **CẤM NÓI SUÔNG**: Nghiêm cấm trả lời "đã code xong" mà không tự chạy lệnh test kiểm chứng thực tế (Skill `verification-before-completion`).
 
