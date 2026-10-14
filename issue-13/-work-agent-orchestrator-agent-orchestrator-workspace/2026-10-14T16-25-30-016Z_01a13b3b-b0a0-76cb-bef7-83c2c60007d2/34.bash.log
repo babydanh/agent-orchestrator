@@ -1,0 +1,614 @@
+backend-server: ready pid=16150 ready
+$ node --enable-source-maps dist/main
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [NestFactory] Starting Nest application...
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] SentryModule dependencies initialized +55ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] PassportModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ConfigHostModule dependencies initialized +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ThrottlerModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] DiscoveryModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM    WARN [MailService] SMTP credentials are missing; development email delivery will be mocked to console.
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ConfigModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ConfigModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ScheduleModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] BullModule dependencies initialized +9ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] RedisModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] BullModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM    WARN [StorageService] Storage provider config is missing! Upload might fail.
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] DatabaseModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] MailModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] JwtModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AuditModule dependencies initialized +5ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] FirebaseModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ZaloModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AccountSanctionModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] StorageModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] UploadModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] BullModule dependencies initialized +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] BullModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] BullModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AppVersionModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] RegionsModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] FriendshipsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] SocialLocationsModule dependencies initialized +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] SeriesModule dependencies initialized +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] CategoriesModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AdvertisementsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] SponsorsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] NotificationsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AppModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] RankingsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] FootballTeamsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] PaymentsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AdminModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ChatModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] UsersModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] CommunitiesModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [AiService] Đã load system prompt từ file: /home/runner/work/agent-orchestrator/agent-orchestrator/workspace/backend/docs/ai-system-prompt.md
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] SocialSessionsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] VenuesModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] LivestreamModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AuthModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] MatchesModule dependencies initialized +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] TournamentsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] ClubMatchSessionsModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [InstanceLoader] AiModule dependencies initialized +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] NotificationsGateway subscribed to the "subscribe" message +377ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "joinMatch" message +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "leaveMatch" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "joinTournament" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "leaveTournament" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "joinClubMatchSession" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "leaveClubMatchSession" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "joinClubCommunity" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] LiveScoreGateway subscribed to the "leaveClubCommunity" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "checkOnlineUsers" message +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "joinChatRoom" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "leaveChatRoom" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "subscribeSupportInbox" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "subscribeMySupport" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "sendMessage" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "supportTyping" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [WebSocketsController] ChatGateway subscribed to the "typing" message +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RoutesResolver] AppController {/api/v1}: +2ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1, GET} route +4ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RoutesResolver] AuthController {/api/v1/auth}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/register, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/login, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/refresh, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/logout, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/google, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/google/callback, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/mobile/login, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/mobile/register, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/mobile/refresh, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/mobile/google, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/mobile/apple, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/verify-email/request, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/verify-email/confirm, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/verify-phone/request, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/verify-phone/confirm, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/logout-all, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/forgot-password, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/auth/reset-password, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RoutesResolver] UsersController {/api/v1/users}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users, GET} route +3ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/search/public, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/search, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/profile, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/reports/me, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/:id/public, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/:id/system-roles, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/profile, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/profile/avatar, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/profile/cover, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:07 PM     LOG [RouterExplorer] Mapped {/api/v1/users/change-password, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/:id, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/reports, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/delete-account, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/change-requests, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/admin/change-requests, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/admin/change-requests/:id/approve, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/users/admin/change-requests/:id/reject, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] UploadController {/api/v1/upload}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/upload/image, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] RankingsController {/api/v1/rankings}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/football-teams, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/pairs, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/players, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/players/:userId/detail, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/contexts, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/contexts/:contextId/history, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/admin/operations, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/user/:userId, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/user/:userId/history, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/rankings/update-elo, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] CategoriesController {/api/v1/categories}: +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/admin/all, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:id, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:id/elo-tiers, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:id/elo-tiers, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:categoryId/elo-tiers/:tierId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/categories/:categoryId/elo-tiers/:tierId, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] CommunitiesController {/api/v1/communities}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/activity-feed, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/my, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/my/invites, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/favorites, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/pending, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/search, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/admin, GET} route +2ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/dashboard, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/my-membership, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/resubmit, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/review, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId/tags, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId/elo, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/tag-presets, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/tag-presets, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/tag-presets/:presetId, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId/ban, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/:userId/ban, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/join, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/join-requests/:memberId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/follow, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/follow, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/favorite, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/favorite, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/join-requests, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/invite, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/invite/:action, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/gallery, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/gallery, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/gallery/:imageId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/tournaments, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/rankings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:id/members/me/notification-preference, PUT} route +2ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/my/notification-preferences, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] CommunitySocialController {/api/v1/communities/:communityId}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/activity-share, POST} route +2ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/social-settings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/social-settings, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/comments, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/comments, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/comments/:commentId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/comments/:commentId/delete, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/comments/:commentId/moderation, PATCH} route +2ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/moderation/posts, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/reaction, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/reactions, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/comments/:commentId/reaction, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/comments/:commentId/reactions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/report, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/moderation/reports, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/moderation/reports/:reportId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/posts/:postId/moderation, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/social-preferences, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/polls/:pollId/vote, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/polls/:pollId/options, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/communities/:communityId/polls/:pollId/close, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] NotificationsController {/api/v1/notifications}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications/unread-count, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications/:id/read, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications/read-all, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications/device-token, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/notifications/device-token, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] VenuesController {/api/v1/venues}: +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues/:id, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues/:id/courts, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/venues/:id/courts/:courtId, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] LivestreamController {/api/v1/livestream}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/prepare, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/:sessionId/started, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/:sessionId/heartbeat, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/:sessionId/reconnect, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/:sessionId/stop, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/tournaments/:tournamentId/sessions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/sessions/:sessionId, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/facebook/connect, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/facebook/callback, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/facebook/connection, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/facebook/validate, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/facebook/connection, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices/pair, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices/:deviceId/pairing-token, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices/:deviceId/heartbeat, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices/:deviceId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/devices/:deviceId/revoke, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/tournaments/:tournamentId/cameras, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/tournaments/:tournamentId/matches, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/tournaments/:tournamentId/courts/:courtId/playback-url, PUT} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/tournaments/:tournamentId/cameras, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/aqp-stream-key, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/aqp-stream-key, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/aqp-stream-key, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/aqp-stream-key/rotate, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/aqp-stream-key, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/publish-qr, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/rotate-stream-key, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/status, GET} route +3ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/cameras/:cameraId/court, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/assign-camera, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/control-state, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/start, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/stop, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/recording-days, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/recordings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/livestream/matches/:matchId/playback, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] RegionsController {/api/v1/regions}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/regions/provinces, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/regions/wards, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/regions/search, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/regions/resolve, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/regions/wards/centroid, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] TournamentsController {/api/v1/tournaments}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/fees, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/public, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/home, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/my, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/my/management, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/workspace/me, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/join/:inviteCode, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/join/:inviteCode, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent/my, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent/:id/aggregation, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/parent/:id, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/divisions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/divisions, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/divisions/:divisionId, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/divisions/:divisionId/config, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/divisions/:divisionId/participants, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/divisions/:divisionId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId/default, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId/courts, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId/courts/batch, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venues/:venueId/courts/:courtId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/venue, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/courts, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/courts, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/courts/batch, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/courts/:courtId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/validate-invite, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/join/:inviteCode, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/join/:inviteCode, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/participants, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/club-members, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/pairs, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/pairs/generate, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/pairs/:participantId/unpair, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/pairing/participants, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/pairing, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/pairing/batch, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/pairing/generate, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/pairing/:participantId/unpair, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/divisions/:divisionId/bracket/slots, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/bracket, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/lite/:id/bracket/reset, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/generate-bracket, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/divisions/:divisionId/bracket/slots, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/bracket/divisions/:divisionId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/publish, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/follow, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/follow, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/my/followed, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/seeds, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/lock, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/confirm-roster, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/register, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/join-team, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/participants/:participantId/accept-partner, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/participants/:participantId/reject-partner, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/withdraw, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/my-registration, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/regenerate-invite, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/reopen-registration, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/gallery, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/gallery, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/gallery/:index, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/manage/participants, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/referees, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/referees, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/referees/:refereeId/respond, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/referees/:refereeId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/bracket, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/stages/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/groups/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/mock-participants, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/registration-attachment, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/import-participants/preview, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/import-participants, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/roster-import-batches/preview, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/roster-import-batches, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/roster-import, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/add-athletes/candidates, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/add-athletes/search, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/add-athletes/candidates, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/add-athletes/direct, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/add-athletes/pairs, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/mock-participants, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/mock, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/fee-payment, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/note, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/presence, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/me/ranking-consent, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/lock-roster, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/unlock-roster, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/football-roster, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/football-roster/respond, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/football-roster, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/reserve-slots, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/participants/:participantId/kick, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/ops-audit-logs, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/cancel, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/recurring/toggle, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/recurring, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/playoff, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/stages/:stageId/finalize, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/auto-seed, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/advance-standings, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/standings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/results, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/staff, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/staff, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:id/staff/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] SeriesController {/api/v1/series}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/:slug, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/:id/legs, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/:id/legs/:legId/events, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/:id/standings, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/:id/legs/:legId/categories/:categoryId/finals-qualifiers, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] OrganizerSeriesController {/api/v1/organizer/series}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/legs, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/legs/:legId, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/legs/:legId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/legs/:legId/events, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/legs/:legId/events/:eventId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/reset-season, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] SeriesInvitationsController {/api/v1/series/invitations}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/invitations/:id/accept, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/series/invitations/:id/reject, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] OrganizerSeriesStaffController {/api/v1/organizer/series}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/invitations, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/invitations, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/managers, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/organizer/series/:id/managers/:userId, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] MatchesController {/api/v1/matches}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/score-access, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/comments, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/comments, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/score, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/scoreboard-visibility, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/lite-score, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/status, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/lite-status, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/schedule, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/operation, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/assign-referee, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/unmute-user/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/muted-users, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/cheer, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/matches/:id/cheer-count, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] TournamentScheduleController {/api/v1/tournaments}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/schedule-plans, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] ClubMatchSessionsController {/api/v1/club-match-sessions}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/standalone-matches, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/standalone-matches, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/standalone-matches/:matchId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/standalone-matches/:matchId/playback-url, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/standalone-matches/:matchId/playback-url, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/matches/:matchId, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/matches/:matchId/start, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/matches/:matchId/score, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/matches/:matchId/scoreboard-visibility, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/matches/:matchId/complete, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/transition, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants/self, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants/self/withdraw, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants/force, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants/mock, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/participants/:userId/remove, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/preferences/me, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/matches, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/club-match-sessions/:id/matches, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] PaymentsController {/api/v1/payments}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/stats, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/payouts, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/payouts/:id/review, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/transactions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/payments/:id/receipt, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/admin/payments/:id/confirm-refund, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/create-link, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/webhook, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/mock-verify, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/payout, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/me, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/payouts, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/:id, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/payments/:id/receipt, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] ChatController {/api/v1/chat}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/direct-policy/:userId, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/messages, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id/messages, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id/head, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id/read, PUT} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id/clear, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:id/unread, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/support/me, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/messages/:id/revoke, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:roomId/messages/:id/pin, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:roomId/messages/:id/pin, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:roomId/pinned, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/messages/:id/reaction, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/messages/:id/poll/vote, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/link-preview, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/rooms/:roomId/settings, PUT} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/blocks, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/blocks/:userId, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/blocks/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/support, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/admin/support/rooms, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/admin/support/rooms/:id/messages, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/admin/support/rooms/:id/read, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/chat/admin/support/rooms/:id/messages, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AdminController {/api/v1/admin}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/dashboard/metrics, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/dashboard/revenue-chart, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/audit-logs, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AdminTicketsController {/api/v1/admin/verification-tickets}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets/my, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets/:id/withdraw, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets/:id/approve, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets/:id/reject, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/verification-tickets/:id/revoke, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AdminModerationController {/api/v1/admin}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/users/:id/ban, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/users/:id/unban, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports/:id/actions, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports/:id/triage, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports/:id/start-review, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports/:id/escalate, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/reports/:id/resolve, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/suspend, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/unsuspend, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/approve, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/reject, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/ban, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/approve-delete, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments/:id/reject-delete, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/tournaments, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AdminConfigController {/api/v1/admin/configs}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/configs, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/admin/configs/:key, PUT} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AiController {/api/v1/ai}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/chat, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/message, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/tournaments/:tournamentId/schedule-preview, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/parse-tournament-source, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/tournaments/:tournamentId/roster-layout, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/ai/tournaments/:tournamentId/roster-review, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AppVersionController {/api/v1/app/version}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/app/version, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] FootballTeamsController {/api/v1/football-teams}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/mine, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/member-candidates, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/invites, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/invites/respond, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/invites/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/members/:userId, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/members/me, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/football-teams/:id/members/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] SponsorsController {/api/v1/tournaments/:tournamentId/sponsors}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/sponsors, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/sponsors/manage, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/sponsors, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/sponsors/:sponsorId, PATCH} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/tournaments/:tournamentId/sponsors/:sponsorId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] AdvertisementsController {/api/v1/advertisements}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/active, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id/view, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id/click, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/admin/list, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id/toggle, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/advertisements/:id, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] SocialSessionsController {/api/v1/social-sessions}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/nearby, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/short/:code, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/by-community/:communityId, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/requests, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/requests, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/requests/:participantId/approve, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/requests/:participantId/reject, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/requests/self, DELETE} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/cancel, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/messages, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/messages, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/join, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/participants, POST} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/participants/batch, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/participants/:userId, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-sessions/:id/participants/:userId/payment, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] NearbySocialsController {/api/v1/socials}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/socials/nearby, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] SocialLocationsController {/api/v1/social-locations}: +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-locations/search, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-locations/reverse, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social-locations/:placeId, GET} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RoutesResolver] FriendshipsController {/api/v1/social}: +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social/friends, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social/friendships/status/:userId, GET} route +1ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social/friend-requests, POST} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social/friend-requests/:id, PATCH} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RouterExplorer] Mapped {/api/v1/social/friendships/:id, DELETE} route +0ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RedisService] Connecting to Redis at localhost:6379...
+[Nest] 16277  - 10/14/2026, 4:35:08 PM    WARN [FirebaseService] [FirebaseService] No valid Firebase service account found. Push notifications will be skipped.
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [RedisService] Successfully connected to Redis
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG [NestApplication] Nest application successfully started +73ms
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG Application is running on: http://localhost:3000/api/v1
+[Nest] 16277  - 10/14/2026, 4:35:08 PM     LOG Scalar API Reference is running on: http://localhost:3000/api/docs
