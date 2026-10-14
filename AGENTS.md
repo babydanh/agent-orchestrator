@@ -280,7 +280,7 @@ Khi người dùng yêu cầu sửa lỗi, làm tính năng mới hoặc nâng c
      + Backend + Web chạy trực tiếp (Web dùng `--turbo`), Playwright chạy **headless** (`headless: true` đã có trong `playwright.config.ts`).
      + **Dọn dẹp hẹp**: chỉ dừng container/tiến trình do CHÍNH session này tạo (ghi lại tên/PID lúc tạo). KHÔNG `docker compose down` mù, KHÔNG xóa volume/dữ liệu của người dùng. `docker compose down` chỉ dùng khi chính session đã dựng compose stack riêng.
    - **Session chạy trên CLOUD (GitHub Actions, `agent-task.yml`)**: test chạy **ngay trên cloud**, trong chính runner đó (Postgres, Redis, Backend, Web đã dựng sẵn ở workflow).
-   - `test-runner.yml`: session local **được tự dispatch** theo skill `cloud-test-runner` (`~/.omp/scripts/cloud-test-runner.py`): push nhánh hiện tại, KHÔNG tự tạo nhánh, KHÔNG push `main` Web/Backend (deploy) mà phải hỏi, không chen run đang chạy cùng target, tối đa 3 vòng sửa rồi dừng báo.
+   - `test-runner.yml`: session local **được tự dispatch** theo skill `cloud-test-runner` — ĐỌC `C:\Users\GIGABYTE\.omp\agent\skills\cloud-test-runner\SKILL.md` trước (script `~/.omp/scripts/cloud-test-runner.py`): push nhánh hiện tại, KHÔNG tự tạo nhánh, KHÔNG push `main` Web/Backend (deploy) mà phải hỏi, không chen run đang chạy cùng target, tối đa 3 vòng sửa rồi dừng báo.
    - Báo kết quả thật: số pass/fail gộp theo test duy nhất (retry không đếm nhiều lần), nói rõ phần chưa chạy.
 
 ---
