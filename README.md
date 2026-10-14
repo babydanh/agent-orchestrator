@@ -31,10 +31,15 @@ Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở
 
 ## Test chạy ở đâu
 
-- Session **trên máy bạn**: test chạy trên máy bạn.
+- Session **trên máy bạn**: test nhẹ (vài file) chạy trên máy; test nặng (E2E full-stack, cả bộ Flutter, pytest AICheckVAR)
+  đẩy lên `test-runner.yml` theo skill `cloud-test-runner` (`~/.omp/scripts/cloud-test-runner.py`).
 - Session **trên cloud** (`agent-task.yml`): test chạy trên cloud.
-- `test-runner.yml` là workflow riêng, chỉ chạy khi **bạn dispatch tay** (không tự chạy, không hẹn giờ). Nó dựng
-  Postgres + Redis + Backend + Web rồi chạy toàn bộ Playwright, xuất báo cáo Allure thành artifact.
+- `test-runner.yml` chỉ chạy khi được dispatch (bạn bấm tay hoặc session local theo skill), không hẹn giờ.
+  - `fullstack-e2e`: Postgres + Redis + Backend + Web rồi chạy toàn bộ Playwright, Allure thành artifact. Mất ~55–58 phút / timeout 60.
+  - `web`: Playwright KHÔNG có backend (API SSR rơi về production) — không dùng để xác minh. `all` không chạy job này.
+  - `backend` (Jest), `app` (`flutter analyze` + `flutter test`, không thiết bị thật), `aicheckvar` (pytest).
+  - `auto25d`: hỏng — repo `Auto25D-Remotion` "not found" trên run 12/10.
+- Đọc lỗi: `python ~/.omp/scripts/cloud-test-runner.py summary <run_id|last>`.
 
 ## Secrets cần có (Settings -> Secrets and variables -> Actions)
 
