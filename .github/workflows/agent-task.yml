@@ -337,7 +337,7 @@ jobs:
           Ngữ cảnh không gian làm việc (workspace):
           - Thư mục 'backend/': Dự án NestJS TypeScript (sử dụng pnpm, test bằng 'pnpm test').
           - Thư mục 'app/': Dự án Flutter Dart (kiểm tra bằng 'flutter test').
-          - Thư mục 'web/': Dự án Next.js React TypeScript (sử dụng pnpm, test bằng 'pnpm test:e2e' hoặc 'pnpm build').
+          - Thư mục 'web/': Dự án Next.js React TypeScript (sử dụng pnpm; e2e chỉ chạy đúng file liên quan: 'pnpm test:e2e test/e2e/<file>.spec.ts', KHÔNG chạy cả bộ trừ khi issue ghi 'E2E: toàn bộ'; hoặc 'pnpm build').
           - Thư mục 'aicheckvar/': Dự án Python Computer Vision AI (kiểm tra bằng 'pytest').
           - Thư mục 'auto3dvideo/': Dự án Auto 3D Video Tauri / Python.
           - Thư mục 'auto25d-remotion/': Dự án Remotion Video Motion Design (kiểm tra bằng 'python -m unittest discover -s tests').
@@ -347,7 +347,7 @@ jobs:
           2. Tạo hoặc chuyển sang branch '$BRANCH_NAME' bằng lệnh: git checkout -B $BRANCH_NAME
           3. ĐỌC TEST CŨ TRƯỚC: Mở và khảo sát toàn bộ các file test cũ (trong test/e2e/, tests/, *_test.dart) để nắm rõ UI selector và assertions, đảm bảo không phá vỡ logic cũ.
           4. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên và hoàn thành toàn bộ.
-          5. CHẠY TEST THẬT & ALLURE: Chạy test thực tế (ví dụ: 'pnpm test:allure' hoặc 'pnpm test:e2e') để đảm bảo test cũ vẫn pass 100% và tính năng mới hoạt động chuẩn.
+          5. CHẠY TEST THẬT & ALLURE: Chạy đúng test liên quan tới việc này (Web: 'pnpm test:e2e <các spec trong trường E2E specs của issue hoặc spec bạn vừa thêm/sửa>'; Backend: 'pnpm test'; App: 'flutter test <file>') để đảm bảo tính năng mới chạy chuẩn và test liên quan vẫn pass. Spec mới viết cho việc này đặt trong test/e2e/ để bước E2E tự động chạy lại.
           6. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
@@ -436,8 +436,18 @@ jobs:
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
           FRONTEND_URL: http://localhost:3001
           CI: true
+          # Trước đây bước này KHÔNG có 3 biến dưới => luôn [SKIP], Playwright chưa từng chạy (run 38157761530, 38326505271, 38597746643: 0 dòng "Running N tests").
+          ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
+          ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
+          MANUAL_BRANCH: ${{ github.event.inputs.target_branch }}
         run: |
           cd workspace
+          # Cùng nhánh bước 6/7 đã dùng.
+          BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
+          if [ -n "$MANUAL_BRANCH" ]; then BRANCH_NAME="$MANUAL_BRANCH"; fi
+          HANDOFF_BRANCH=$(printf '%s\n' "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          if [ -n "$HANDOFF_BRANCH" ]; then BRANCH_NAME="$HANDOFF_BRANCH"; fi
           NEED_E2E=false
           TARGET_REPO=$(echo "$ISSUE_BODY" | grep -oP 'Repo mục tiêu\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
 
@@ -474,6 +484,36 @@ jobs:
             exit 0
           fi
 
+          # CHỈ CHẠY E2E MÀ VIỆC NÀY YÊU CẦU (không chạy cả bộ ~55 phút cho mọi issue):
+          #  1) các file test/e2e/*.spec.ts ghi trong tiêu đề/nội dung issue (trường "E2E specs" của fast-handoff),
+          #  2) nếu issue không ghi: các spec nhánh này thêm/sửa so với main,
+          #  3) cả bộ CHỈ khi issue ghi rõ "E2E: toàn bộ" / "E2E: full".
+          FULL_E2E=false
+          # Chỉ khi một DÒNG kết thúc bằng "E2E: toàn bộ" / "E2E specs: toàn bộ" (hoặc full); cụm nằm giữa câu không tính.
+          if printf '%s\n' "$ISSUE_BODY" | grep -iqE 'E2E( specs)?\**:[[:space:]]*(toàn bộ|full)[[:space:]]*$'; then FULL_E2E=true; fi
+          SPECS=$(printf '%s\n%s\n' "$ISSUE_TITLE" "$ISSUE_BODY" | grep -oE 'test/e2e/[A-Za-z0-9_./-]+\.spec\.ts' | sort -u | tr '\n' ' ' || true)
+          if [ -z "$SPECS" ] && [ -d web ] && [ -n "$BRANCH_NAME" ] && git -C web rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+            SPECS=$(git -C web diff --name-only --diff-filter=AM main.."$BRANCH_NAME" -- 'test/e2e/*.spec.ts' | tr '\n' ' ' || true)
+          fi
+          # Bỏ spec không có trong repo Web (Playwright sẽ báo "No tests found").
+          KEPT=""
+          for s in $SPECS; do
+            if [ -f "web/$s" ]; then KEPT="$KEPT $s"; else echo ">>> Bỏ qua spec không tồn tại: $s"; fi
+          done
+          SPECS="${KEPT# }"
+          if [ "$FULL_E2E" = "true" ]; then
+            SPECS=""
+            echo ">>> E2E: issue yêu cầu chạy TOÀN BỘ bộ Playwright."
+          elif [ -z "$SPECS" ]; then
+            echo "=========================================================="
+            echo ">>> [SKIP E2E] Issue không nêu spec nào (test/e2e/<file>.spec.ts) và nhánh không thêm/sửa spec."
+            echo ">>> Ghi spec cần chạy vào issue (trường 'E2E specs'), hoặc 'E2E: toàn bộ' để chạy cả bộ."
+            echo "=========================================================="
+            exit 0
+          else
+            echo ">>> E2E chỉ chạy: $SPECS"
+          fi
+
           echo "=========================================================="
           echo ">>> [TRIGGER] BẮT ĐẦU CHUỖI PLAYWRIGHT UI TEST & ALLURE..."
           echo "=========================================================="
@@ -496,7 +536,8 @@ jobs:
             PORT=3001 pnpm start &
             npx wait-on http://localhost:3001 --timeout 60000
             echo ">>> BẮT ĐẦU CHẠY PLAYWRIGHT E2E & XUẤT ALLURE DATA..."
-            pnpm test:e2e
+            # shellcheck disable=SC2086
+            pnpm test:e2e $SPECS
             cd ../..
           elif [ -d "web" ]; then
             echo ">>> CHẠY ISOLATED PLAYWRIGHT E2E CHO WEB..."
@@ -505,7 +546,8 @@ jobs:
             PORT=3000 pnpm build
             PORT=3000 pnpm start &
             npx wait-on http://localhost:3000 --timeout 60000
-            pnpm test:e2e
+            # shellcheck disable=SC2086
+            pnpm test:e2e $SPECS
             cd ..
           fi
 
