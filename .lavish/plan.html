@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Botkeep 7 node — nên chạy gì và tối ưu thế nào</title>
+<style>
+:root{color-scheme:dark;--bg:#09111f;--panel:#111d30;--panel2:#17263c;--ink:#edf4ff;--muted:#a6b6ce;--line:#2b3c56;--cyan:#69d9d0;--amber:#f6c36b;--red:#ff8189;--green:#8ee0ac;--blue:#93baff;--violet:#c7a6ff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 88% -15%,#1c3857 0,transparent 44%),var(--bg);color:var(--ink);font:clamp(15px,1vw + 10px,17px)/1.6 system-ui,"Segoe UI",sans-serif}
+main{width:min(100% - 2rem,1200px);margin:auto;padding:clamp(1rem,4vw,3rem) 0 4rem}
+h1{font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15;margin:0 0 .4rem}
+h2{font-size:clamp(1.25rem,2.4vw,1.6rem);margin:2.6rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+h3{margin:0 0 .4rem;font-size:1.05rem}
+p{margin:.3rem 0 .8rem}
+.lead{color:var(--muted);max-width:75ch}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;min-width:0}
+.card p,.card li{overflow-wrap:anywhere}
+.card.hl{border-color:var(--cyan)}
+.card.warn{border-color:var(--amber)}
+.card.bad{border-color:var(--red)}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.04em;padding:.1rem .5rem;border-radius:99px;margin-right:.3rem;background:var(--panel2);color:var(--muted)}
+.tag.c{color:var(--cyan)}.tag.a{color:var(--amber)}.tag.r{color:var(--red)}.tag.g{color:var(--green)}.tag.v{color:var(--violet)}
+.big{font-size:1.9rem;font-weight:800;line-height:1.1}
+.muted{color:var(--muted)}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:720px;background:var(--panel)}
+th,td{padding:.6rem .75rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--panel2);font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+code{font:0.88em ui-monospace,Consolas,monospace;background:#0c1626;border:1px solid var(--line);padding:.05rem .35rem;border-radius:6px}
+ul{padding-left:1.2rem;margin:.3rem 0}
+li{margin:.25rem 0}
+.mermaid{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem;overflow-x:auto}
+.q{background:linear-gradient(135deg,#1a2c46,#122036);border:1px solid var(--blue);border-radius:14px;padding:1rem 1.2rem;margin:1rem 0}
+.q ol{margin:.4rem 0 0}
+.check li{list-style:none;margin-left:-1.2rem}
+.check input{margin-right:.5rem;accent-color:var(--cyan)}
+small.src{color:var(--muted);font-size:.8rem}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Botkeep 7 node: nên chạy gì, tối ưu thế nào</h1>
+<p class="lead">Lấy làm mốc cấu hình bạn đưa ra: 7 node, mỗi node 1,5 vCPU, 2 GB RAM, 2 GB disk. Hiện 5 node mới dùng hết khoảng 342 MB, còn <code>comagent6</code> và <code>comagent7</code> trả 404, tức là chưa deploy gì. Số liệu bên dưới lấy từ mã nguồn tại <code>D:/DevTools/botkeep-cluster-final</code>, từ <code>/api/activity</code>, <code>/api/health</code>, và từ các lệnh gọi API mình chạy thật hôm nay.</p>
+
+<div class="q">
+<b>Cần bạn quyết 2 việc</b> (mình cũng hỏi lại trong terminal):
+<ol>
+<li>Node 7 dùng làm <b>SQL sandbox</b> (PGlite, chạy thử migration Drizzle + EXPLAIN) hay <b>Browser audit</b> (Chromium: chụp màn hình + quét lỗi a11y cho web đã deploy)?</li>
+<li>Bắt đầu từ đâu: <b>sửa nhanh Node 1–4 trước</b> (secret cứng, làm nóng ESLint, cache) hay <b>dựng Node 5 trước</b>?</li>
+</ol>
+</div>
+
+<h2>Kết luận nhanh</h2>
+<div class="grid">
+  <div class="card hl"><span class="tag c">NODE 5</span><h3>Package Intel</h3><p>Thay mock API (0 lượt dùng). Kiểm tra gói pub.dev/npm: bản mới nhất, đã bị ngừng phát triển chưa, CVE (OSV), ngày hết hỗ trợ của runtime (EOL), changelog giữa 2 phiên bản. Đây là chỗ trống lớn nhất: chưa tool nào phủ, và app Flutter của bạn có hơn 60 dependency.</p></div>
+  <div class="card hl"><span class="tag c">NODE 6</span><h3>Docs Index tự host</h3><p>Lưu sẵn <code>llms.txt</code> của Next.js, NestJS, Drizzle, Redis, Flutter và bản dump DevDocs vào SQLite FTS5. Mục tiêu: tra docs gần như tức thì thay vì 4,3 s trung bình qua Context7, và không còn giới hạn quota.</p></div>
+  <div class="card warn"><span class="tag a">NODE 7</span><h3>SQL sandbox <i>hoặc</i> Browser audit</h3><p>PGlite tốn khoảng 0,4 GB (khoảng 0,9 GB khi bật PostGIS). Chromium tốn 0,6–1,5 GB và cần thư viện hệ thống. Chỉ chọn một.</p></div>
+  <div class="card bad"><span class="tag r">GẤP</span><h3>Node 3 còn secret cứng</h3><p><code>node3-sqlite-semgrep/server.js:15</code>: nếu thiếu biến môi trường <code>CLUSTER_SECRET</code>, code tự dùng một secret viết sẵn trong mã. File <code>plan.html</code> cũ ghi là "đã gỡ hết", điều đó sai.</p></div>
+</div>
+
+<h2>Hiện trạng đo được</h2>
+<div class="table-wrap"><table>
+<tr><th>Node</th><th>RAM dùng</th><th>Tool</th><th>Lượt gọi thật</th><th>Độ trễ thật</th><th>Ghi chú từ mã nguồn</th></tr>
+<tr><td>1 Gateway</td><td>71 MB</td><td>MCP router, catalog 12 tool</td><td>—</td><td>RTT mạng ~230 ms; mỗi lượt từ máy bạn tốn 0,76–1,25 s chỉ cho mạng</td><td>Cache LRU chỉ áp cho 6 tool (<code>server.js:308-315</code>). <code>/api/activity</code> chỉ giữ trong RAM, mất khi khởi động lại</td></tr>
+<tr><td>2 WebDocs</td><td>93 MB</td><td>devdocs_search, web_markdown_reader, gitingest, package_size</td><td>devdocs 6</td><td>devdocs TB 4,3 s (3,2–7,9 s)</td><td>Gọi Context7 2 lượt nối tiếp (<code>/libs/search</code> rồi <code>/context</code>, <code>context7.js:188,206</code>). Có chặn SSRF tốt (<code>safe-fetch.js</code>)</td></tr>
+<tr><td>3 AST/Security</td><td>116 MB</td><td>code_security_review, diff_validator, quicktype, swagger, drizzle, sqlite</td><td>review 13, diff 4</td><td>review TB 2,3 s, <b>tối đa 14,7 s</b></td><td>ESLint và parser TS chỉ được <code>require</code> ở lượt gọi đầu (<code>getESLint</code>, dòng 365), nên lượt đầu chậm. Dart chỉ dùng kiểm tra theo mẫu đơn giản (heuristic)</td></tr>
+<tr><td>4 Solver</td><td>37 MB</td><td>stackoverflow, github_issue</td><td>1 + 1 (thử hôm nay)</td><td>0,5–1,1 s</td><td>Không phụ thuộc thư viện ngoài. Stack Exchange không có key: 10k lượt/ngày tính theo IP, dùng chung với mọi người trên cùng IP</td></tr>
+<tr><td>5 Mock API</td><td>25 MB</td><td>mock_api_client</td><td>0</td><td>—</td><td>Có thể giải phóng node này</td></tr>
+<tr><td>6, 7</td><td>0</td><td>—</td><td>—</td><td>—</td><td>Subdomain trả 404, chưa deploy</td></tr>
+</table></div>
+<small class="src">Nguồn: /api/activity và /api/health lúc 13:31Z ngày 14/10; mã nguồn đọc trực tiếp; đo bằng curl từ máy bạn (IP đích 51.75.76.215, nginx).</small>
+
+<h2>Kiến trúc đề xuất</h2>
+<pre class="mermaid">
+flowchart LR
+  A[omp agent<br/>máy bạn] -->|MCP HTTP| G[Node 1 Gateway<br/>cache SWR + single-flight<br/>log SQLite + p95]
+  G --> N2[Node 2 WebDocs<br/>Context7 fallback<br/>web reader]
+  G --> N3[Node 3 AST/Security<br/>ESLint warm, ast-grep<br/>quicktype, swagger]
+  G --> N4[Node 4 Solver<br/>SO + GitHub, có key]
+  G --> N5[Node 5 Package Intel<br/>pub.dev, npm, deps.dev<br/>OSV, endoflife]
+  G --> N6[Node 6 Docs Index<br/>SQLite FTS5<br/>llms.txt + DevDocs]
+  G --> N7[Node 7 SQL sandbox<br/>PGlite + EXPLAIN]
+  N6 -.không có kết quả.-> N2
+</pre>
+
+<h2>Node 5: Package Intel (đã thử API thật)</h2>
+<div class="table-wrap"><table>
+<tr><th>Tool</th><th>Agent dùng khi nào</th><th>Upstream (đã gọi thử hôm nay)</th><th>Chi phí</th></tr>
+<tr><td><code>package_intel</code></td><td>Trước khi thêm hoặc nâng một gói: bản mới nhất, đã ngừng phát triển chưa, điểm pub, lượt tải</td><td>pub.dev <code>/api/packages/dio</code> 200 (1,0 s; latest 5.11.1); <code>/score</code> 200 (160 điểm, 4,75 triệu lượt tải/30 ngày); npm registry 200 (0,4 s); deps.dev 200 (0,14 s)</td><td>Không cần key, RAM &lt; 100 MB</td></tr>
+<tr><td><code>dependency_audit</code></td><td>Dán <code>pubspec.lock</code> hoặc <code>package-lock.json</code>, nhận danh sách CVE kèm bản đã vá</td><td>OSV: <code>next@14.0.0</code> trả 34 lỗ hổng (0,86 s); hệ Pub <code>http@0.13.0</code> trả 1 lỗ hổng (0,45 s)</td><td>Không key, không có rate limit công bố</td></tr>
+<tr><td><code>runtime_eol</code></td><td>Node, Next.js, PostgreSQL, Redis còn được hỗ trợ đến khi nào</td><td>endoflife.date v1 200 (0,46 s). Không có Dart/Flutter/NestJS</td><td>Không key</td></tr>
+<tr><td><code>upgrade_notes</code></td><td>Nâng Riverpod, go_router, Next…: tóm tắt breaking change giữa 2 phiên bản</td><td>CHANGELOG trong gói tải từ <code>archive_url</code> của pub.dev / tarball npm</td><td>Cần giải nén tar.gz, RAM ~128 MB</td></tr>
+</table></div>
+<p class="muted">Nên gộp 4 tool trên thành 1–2 tool chính, đừng tách thành nhiều tool mỏng. Lý do: 0 lượt gọi của <code>package_size_checker</code> cho thấy tool lẻ ít được chọn [SUY LUẬN]. Đã có sẵn một MCP bên ngoài làm việc tương tự (<code>dephealth.dsh.sh/mcp</code>, initialize trả 200), nhưng nó không tập trung vào pub.dev.</p>
+
+<h2>Node 6 / Node 7: so sánh lựa chọn</h2>
+<div class="table-wrap"><table>
+<tr><th>Ứng viên</th><th>RAM / disk</th><th>Giá trị cho stack của bạn</th><th>Rủi ro nền tảng</th><th>Công sức</th></tr>
+<tr><td><b>Docs Index</b> (SQLite FTS5)</td><td>Vài chục MB; dump postgres 8,3 MB, nextjs 2,9 MB</td><td>Cao: thay Context7 (4,3 s, 1.000 lượt/tháng ở gói Free)</td><td>Thấp: chỉ cần Node.js</td><td>M (2–4 ngày)</td></tr>
+<tr><td>Docs Index + embeddings (bge-small q8)</td><td>RSS đo được 175 MB; onnxruntime-node khi cài chiếm 301 MB disk</td><td>Tìm theo nghĩa thay vì từ khóa. Có thể làm dự phòng cho <code>find</code> của OpenViking (đang bị circuit breaker)</td><td>Cần đóng gói model 34 MB vào bản deploy</td><td>+M</td></tr>
+<tr><td><b>SQL sandbox</b> (PGlite)</td><td>364 MB; khoảng 905 MB khi có PostGIS (PostGIS còn ở mức thử nghiệm)</td><td>Cao: chạy thử migration Drizzle và xem EXPLAIN mà không cần Docker trên máy (Docker của bạn hay tắt)</td><td>Thấp: WASM thuần, không cần root. Mỗi lúc chỉ 1 kết nối nên không test được lock hay race</td><td>M</td></tr>
+<tr><td>Browser audit (Chromium)</td><td>headless-shell khoảng 582 MB RSS; bản đầy đủ khoảng 1 GB; có báo cáo leak lên 1,5 GB sau 8 giờ</td><td>Trung bình: máy bạn đã có Playwright và trình duyệt</td><td><b>Cao</b>: nếu nền tảng không cho cài apt/root thì phải dùng <code>@sparticuz/chromium</code>, chưa thử</td><td>L (≥ 1 tuần)</td></tr>
+<tr><td>Chạy thử code (sandbox)</td><td>QuickJS 2,5 MB; Dart SDK 670 MB</td><td>Thấp: chỉ an toàn với JS. Dart không có sẵn trên nền tảng</td><td>Chạy code không tin cậy trên host dùng chung</td><td>—</td></tr>
+<tr><td>OCR, SearXNG, Crawl4AI</td><td>Crawl4AI cần ≥ 4 GB</td><td>Thấp: model đọc được ảnh trực tiếp, và Node 2 đã có trình đọc web</td><td>—</td><td>Không làm</td></tr>
+</table></div>
+<small class="src">Số đo RAM: HeavyToolsResearch đo trên Windows x64 (không phải môi trường Linux của Botkeep), cộng với headlessperfbench, Sparticuz README, pglite.dev và huggingface Xenova/bge-small-en-v1.5.</small>
+
+<h2>Tối ưu Node 1–4</h2>
+<div class="grid">
+<div class="card"><span class="tag v">NODE 1</span><h3>Gateway</h3><ul>
+<li><b>Cache cả các tool chỉ đọc mà có kết quả cố định</b> (quicktype, swagger, drizzle, code_security_review): cùng input thì cùng output, nhưng hiện chưa được cache.</li>
+<li>Thêm <b>stale-while-revalidate</b>: hết TTL thì vẫn trả bản cũ ngay rồi làm mới ở nền. Thêm <b>single-flight</b>: request trùng nhau đang chạy thì chỉ gọi upstream một lần.</li>
+<li>Lưu <code>/api/activity</code> vào <code>node:sqlite</code> (bật WAL) thay vì chỉ giữ 100 event trong RAM. Cách này cũng xử lý được chuyện dashboard báo 58 lượt trong khi activity báo 24.</li>
+<li>Đo p50/p95 theo từng tool bằng <code>perf_hooks.createHistogram</code>.</li>
+<li>Circuit breaker riêng cho từng node. Retry tối đa 1 lần, có jitter.</li>
+<li>Dùng <code>undici</code> Agent keep-alive giữa gateway và worker.</li>
+<li>Thêm annotation <code>readOnlyHint</code> và <code>destructiveHint</code> (cho sqlite_query, mock_api), giới hạn kích thước output khoảng 10k token.</li>
+</ul></div>
+<div class="card"><span class="tag v">NODE 2</span><h3>WebDocs</h3><ul>
+<li>Cache devdocs theo cặp (thư viện, câu hỏi), TTL 24 giờ + SWR. Ghi xuống disk để còn sau khi khởi động lại.</li>
+<li>Thử endpoint một bước <code>/api/v3/search</code> của Context7 [SUY LUẬN, chưa kiểm chứng] để bớt 1 round-trip.</li>
+<li>Đặt <code>CONTEXT7_API_KEY</code>: không có key thì Context7 áp "low rate limits".</li>
+<li>Khi đã có Node 6: tra index trước, không có kết quả mới gọi Context7.</li>
+<li>Bỏ <code>package_size_checker</code> (dời sang Node 5). Với <code>gitingest</code>: thêm cảnh báo không dùng cho repo riêng, hoặc gỡ bỏ.</li>
+<li>Lỗi upstream đang trả HTTP 200 kèm payload lỗi. Đổi sang <code>isError: true</code>.</li>
+</ul></div>
+<div class="card"><span class="tag v">NODE 3</span><h3>AST/Security</h3><ul>
+<li><b>Gỡ secret dự phòng ở dòng 15</b>: thiếu <code>CLUSTER_SECRET</code> thì dừng khởi động (fail-closed) như Node 2 và Node 4.</li>
+<li><b>Làm nóng ESLint khi khởi động</b>: gọi <code>getESLint('javascript')</code> và <code>getESLint('typescript')</code>, lint thử một đoạn rỗng. Bỏ được lượt đầu 14,7 s.</li>
+<li>Thêm <code>module.enableCompileCache()</code> để giảm thời gian khởi động.</li>
+<li><code>sqlite_query</code>: mặc định <code>readOnly: true</code>, tách thao tác ghi sang một tool riêng.</li>
+<li>Thêm <code>outputSchema</code> và <code>structuredContent</code> cho quicktype và swagger.</li>
+<li>Thống nhất phiên bản Node yêu cầu: <code>package.json</code> ghi <code>engines &gt;=22.5</code> nhưng README ghi 24.</li>
+</ul></div>
+<div class="card"><span class="tag v">NODE 4</span><h3>Solver</h3><ul>
+<li>Đăng ký key Stack Exchange. Không có key thì 10k lượt/ngày tính theo IP, mà IP đang dùng chung với người khác.</li>
+<li>Đặt GitHub token phía server: 5.000 lượt/giờ so với 60 lượt/giờ khi không có token.</li>
+<li>Gộp 2 tool thành một <code>error_solver</code>: gọi song song SO và GitHub, trả kết quả kèm nguồn và trạng thái.</li>
+<li><code>github_issue_solver</code>: thêm <code>"q" in:title,body</code> và lọc theo độ khớp. Lần thử hôm nay trả kết quả lệch chủ đề.</li>
+<li>Cache 1 giờ, dùng ETag.</li>
+</ul></div>
+</div>
+
+<h2>Lộ trình gợi ý</h2>
+<ul class="check">
+<li><label><input type="checkbox"> <b>P0, khoảng 1 giờ</b>: gỡ secret cứng ở Node 3; làm nóng ESLint; đặt <code>CONTEXT7_API_KEY</code>, key Stack Exchange, GitHub token.</label></li>
+<li><label><input type="checkbox"> <b>P1, 1–2 ngày</b>: Node 1 thêm cache SWR + single-flight, log SQLite, đo p95, annotation cho tool.</label></li>
+<li><label><input type="checkbox"> <b>P2, 2–3 ngày</b>: Node 5 Package Intel (<code>package_intel</code> + <code>dependency_audit</code>), thêm vào skill <code>botkeep-cloud</code>.</label></li>
+<li><label><input type="checkbox"> <b>P3, 2–4 ngày</b>: Node 6 Docs Index (FTS5) và chuyển routing devdocs sang tra index trước.</label></li>
+<li><label><input type="checkbox"> <b>P4</b>: Node 7 theo lựa chọn của bạn.</label></li>
+</ul>
+
+<h2>Rủi ro và điều chưa xác minh</h2>
+<div class="grid">
+<div class="card warn"><h3>Giới hạn nền tảng</h3><p>Tài liệu công khai của botkeep.cloud ghi: không có root, không cài gói hệ thống tùy ý, mỗi workload chạy một process, cấm proxy, và hạn chế việc dùng CPU/RAM liên tục ở mức lạm dụng. Mình chưa xác minh được <code>bot-keep.xyz</code> có cùng chính sách hay không. Chromium là thứ phụ thuộc vào điều này nhiều nhất.</p></div>
+<div class="card warn"><h3>Disk có bền không</h3><p>Cache của Node 6 và log SQLite cần disk còn nguyên sau khi redeploy. Quy trình deploy hiện tại là upload ZIP rồi Extract đè lên, nên có thể mất file nếu không đặt ngoài thư mục bị ghi đè. Cần thử thực tế.</p></div>
+<div class="card warn"><h3>Mạng</h3><p>Mỗi lượt gọi có sàn khoảng 0,76 s chỉ cho mạng (RTT 230 ms tới châu Âu). Tối ưu server không làm giảm được phần này, nên đừng tách một việc thành nhiều tool nhỏ phải gọi nối tiếp.</p></div>
+<div class="card"><h3>Mã nguồn không có trong Git</h3><p><code>D:/DevTools/botkeep-cluster-final</code> không thuộc repo nào. Nên đưa vào một repo riêng tư trước khi sửa tiếp.</p></div>
+</div>
+
+</main>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({startOnLoad:true,theme:'dark'});
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+diff --git a/test/e2e/create-players.spec.ts b/test/e2e/create-players.spec.ts
+index 8538f43c..a4bb011a 100644
+--- a/test/e2e/create-players.spec.ts
++++ b/test/e2e/create-players.spec.ts
+@@ -3,10 +3,8 @@ import { test, expect, Page } from '@playwright/test';
+ test.describe.serial('Register 3 user accounts automation flow', () => {
+   test.setTimeout(120_000);
+ 
+-  // LOCAL
+-  // const baseURL = process.env.FRONTEND_URL || 'http://localhost:3001';
+-  // PRODUCTION
+-  const baseURL = 'https://sporto.asia';
++  // Mặc định localhost. KHÔNG fallback về production để tránh test tạo dữ liệu thật trên site thật.
++  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+   const users = Array.from({ length: 3 }, (_, index) => {
+     const number = index + 1; // Start from 11 to avoid conflicts with existing users
+     return {
+diff --git a/test/e2e/join-tournament.spec.ts b/test/e2e/join-tournament.spec.ts
+index 9d711aef..33a4010f 100644
+--- a/test/e2e/join-tournament.spec.ts
++++ b/test/e2e/join-tournament.spec.ts
+@@ -4,7 +4,7 @@ test.describe.serial('Join First Tournament (3 Existing Configured Accounts)', (
+   test.setTimeout(120_000);
+ 
+   // BASE URL Configuration
+-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'https://sporto.asia';
++  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+ 
+   // 3 Pre-configured accounts (editable via env vars or default setup)
+   const users = [
+diff --git a/test/e2e/p0/edit-profile.spec.ts b/test/e2e/p0/edit-profile.spec.ts
+index 11674f0c..b8150a6a 100644
+--- a/test/e2e/p0/edit-profile.spec.ts
++++ b/test/e2e/p0/edit-profile.spec.ts
+@@ -3,10 +3,8 @@ import { test, expect, Page } from '@playwright/test';
+ test.describe('Edit Profile Flow', () => {
+   test.setTimeout(60_000);
+ 
+-  // LOCAL
+-  // const baseURL = process.env.FRONTEND_URL || 'http://localhost:3001';
+-  // PRODUCTION
+-  const baseURL = 'https://sporto.asia';
++  // Mặc định localhost. KHÔNG fallback về production để tránh test tạo dữ liệu thật trên site thật.
++  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+ 
+   const profileData = {
+     phone: '0987654321',
+@@ -21,7 +19,7 @@ test.describe('Edit Profile Flow', () => {
+   test.beforeEach(async ({ page }) => {
+     const sleep = async () => page.waitForTimeout(500);
+     // Login
+-    await page.goto('http://localhost:3001/login');
++    await page.goto(`${baseURL}/login`);
+     await sleep();
+ 
+     await page.getByTestId('login-email-input').fill(userEmail);
+diff --git a/test/e2e/player-full-flow.spec.ts b/test/e2e/player-full-flow.spec.ts
+index df302d1e..9e00beaf 100644
+--- a/test/e2e/player-full-flow.spec.ts
++++ b/test/e2e/player-full-flow.spec.ts
+@@ -4,7 +4,7 @@ test.describe.serial('Full Player Automation Flow (3 Users: Register -> Login ->
+   test.setTimeout(180_000);
+ 
+   // BASE URL Configuration
+-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'https://sporto.asia';
++  const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+ 
+   const users = Array.from({ length: 3 }, (_, index) => {
+     const number = index + 24;
+diff --git a/test/e2e/quick-tournament.spec.ts b/test/e2e/quick-tournament.spec.ts
+index 0d382041..71f6ca74 100644
+--- a/test/e2e/quick-tournament.spec.ts
++++ b/test/e2e/quick-tournament.spec.ts
+@@ -1,9 +1,7 @@
+ import { test, expect } from '@playwright/test';
+ 
+-// LOCAL
+-// const baseURL = process.env.FRONTEND_URL || 'http://localhost:3001';
+-// PRODUCTION
+-const baseURL = 'https://sporto.asia';
++// Mặc định localhost. KHÔNG fallback về production để tránh test tạo dữ liệu thật trên site thật.
++const baseURL = process.env.PLAYWRIGHT_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+ test.describe.serial('Quick Tournament Creation and Edit Flow', () => {
+   test.setTimeout(120_000);
