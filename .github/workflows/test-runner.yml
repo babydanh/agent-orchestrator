@@ -33,6 +33,10 @@ on:
         description: 'Nhánh/SHA của Web cho fullstack-e2e (để trống = dùng custom_branch, rồi nhánh mặc định)'
         required: false
         default: ''
+      specs:
+        description: 'Chỉ chạy các file Playwright này (cách nhau bằng dấu cách, vd: test/e2e/a.spec.ts test/e2e/b.spec.ts). Để trống = toàn bộ'
+        required: false
+        default: ''
 
 concurrency:
   group: test-runner-${{ github.ref }}-${{ github.event.inputs.target_project }}
@@ -175,6 +179,7 @@ jobs:
           NEXT_API_URL: http://localhost:3000/api/v1
           NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
           CI: true
+          SPECS: ${{ github.event.inputs.specs }}
         run: |
           # Backend có globalPrefix /api/v1 và không có route "/" nên GET / luôn 404 -> wait-on http:// không bao giờ xong.
           # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
@@ -191,7 +196,12 @@ jobs:
           PORT=3001 pnpm build
           PORT=3001 pnpm start &
           npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
-          pnpm test:e2e
+          # SPECS đi qua env (không nội suy vào script) và chỉ nhận ký tự đường dẫn.
+          if [ -n "$SPECS" ] && ! printf '%s' "$SPECS" | grep -qE '^[A-Za-z0-9_./ -]+$'; then
+            echo "::error::specs chứa ký tự không hợp lệ"; exit 1
+          fi
+          # shellcheck disable=SC2086
+          pnpm test:e2e $SPECS
 
       - name: 8. Generate Allure Report Dashboard
         if: always()
@@ -301,6 +311,7 @@ jobs:
         env:
           FRONTEND_URL: http://localhost:3000
           CI: true
+          SPECS: ${{ github.event.inputs.specs }}
         run: |
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           if [ "${{ steps.playwright-cache-web.outputs.cache-hit }}" != "true" ]; then
@@ -309,7 +320,11 @@ jobs:
           pnpm build
           pnpm start &
           npx wait-on http://localhost:3000 --timeout 60000
-          pnpm test:e2e
+          if [ -n "$SPECS" ] && ! printf '%s' "$SPECS" | grep -qE '^[A-Za-z0-9_./ -]+$'; then
+            echo "::error::specs chứa ký tự không hợp lệ"; exit 1
+          fi
+          # shellcheck disable=SC2086
+          pnpm test:e2e $SPECS
 
       - name: 7. Generate Allure Report Dashboard
         if: always()
