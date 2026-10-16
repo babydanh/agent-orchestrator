@@ -198,6 +198,15 @@ jobs:
             fi
             echo "Tài khoản E2E $email: HTTP $code"
           done
+          # Register chỉ cho role PLAYER, email chưa xác thực; layout /organizer chặn cả hai.
+          # admin1 là tài khoản Ban tổ chức của spec (quick-tournament, p0 organizerEmail), nên cấp ORGANIZER + xác thực email.
+          PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 <<'SQL'
+          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com');
+          INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
+          INSERT INTO user_to_roles (user_id, role_id)
+            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
+            ON CONFLICT DO NOTHING;
+          SQL
 
           cd workspace/web
 
