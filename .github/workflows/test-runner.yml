@@ -237,6 +237,31 @@ jobs:
             ON CONFLICT DO NOTHING;
           SQL
 
+          # seed=data: kiểm khói qua API THẬT trước khi chạy spec, để biết dữ liệu mẫu dùng được chứ không chỉ nằm trong DB.
+          # Hỏng là dừng job: chạy spec trên dữ liệu không đăng nhập được thì kết quả không có nghĩa.
+          if [ "$E2E_SEED" = "data" ]; then
+            API=http://localhost:3000/api/v1
+            for cred in "vndcsport@gmail.com:Admin@123" "macter.970@gmail.com:Test@123" "danh.nguyen@gmail.com:Player@123"; do
+              email="${cred%%:*}"; pass="${cred#*:}"
+              code=$(curl -s -o /tmp/login.json -w '%{http_code}' -X POST "$API/auth/mobile/login" \
+                -H 'Content-Type: application/json' -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
+              token=$(jq -r '.data.accessToken // .accessToken // empty' /tmp/login.json)
+              if [ "$code" != "200" ] && [ "$code" != "201" ] || [ -z "$token" ]; then
+                echo "::error::Dữ liệu mẫu: không đăng nhập được $email (HTTP $code)"; head -c 300 /tmp/login.json; exit 1
+              fi
+              echo "Dữ liệu mẫu: đăng nhập $email OK (HTTP $code)"
+              [ "$email" = "macter.970@gmail.com" ] && ORG_TOKEN="$token"
+            done
+            # Giải công khai Backend trả về, và giải mà BTC macter.970 quản lý (seed chia 13 giải cho 2 BTC).
+            curl -s "$API/tournaments?limit=50" -o /tmp/public.json
+            echo "Dữ liệu mẫu: API /tournaments trả $(jq '[.. | objects | select(has("inviteCode"))] | length' /tmp/public.json) giải;" \
+              "theo trạng thái: $(jq -c '[.. | objects | select(has("inviteCode")) | .status] | group_by(.) | map({(.[0]): length}) | add' /tmp/public.json)"
+            curl -s "$API/tournaments/my/management" -H "Authorization: Bearer $ORG_TOKEN" -o /tmp/manage.json
+            n=$(jq '[.. | objects | select(has("inviteCode"))] | length' /tmp/manage.json)
+            echo "Dữ liệu mẫu: BTC macter.970 thấy $n giải trong trang quản lý"
+            if [ "$n" -lt 1 ]; then echo "::error::Dữ liệu mẫu: BTC không thấy giải nào"; head -c 400 /tmp/manage.json; exit 1; fi
+          fi
+
           cd workspace/web
 
           # CHỐT CHẶN AN TOÀN: không xóa/bỏ test nào. Chỉ từ chối chạy nếu còn spec nào đánh thẳng
