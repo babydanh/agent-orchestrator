@@ -1,4 +1,6 @@
 name: Cloud Multi-Project Test Runner
+# Tên lượt chạy mang mã yêu cầu để script local nhận đúng lượt của mình khi nhiều session chạy song song.
+run-name: "test ${{ github.event.inputs.target_project || 'schedule' }} web=${{ github.event.inputs.web_ref || github.event.inputs.custom_branch || 'main' }} #${{ github.event.inputs.request_id || github.run_id }}"
 # Quyền tường minh: step báo cáo cần ghi Issue. Không dựa vào mặc định của repo (chưa đọc được).
 permissions:
   contents: read
@@ -37,10 +39,16 @@ on:
         description: 'Chỉ chạy các file Playwright này (cách nhau bằng dấu cách, vd: test/e2e/a.spec.ts test/e2e/b.spec.ts). Để trống = toàn bộ'
         required: false
         default: ''
+      request_id:
+        description: 'Mã yêu cầu duy nhất do cloud-test-runner.py tạo (để nhận đúng lượt chạy khi chạy song song)'
+        required: false
+        default: ''
 
+# Mỗi yêu cầu một nhóm riêng: nhiều session chạy SONG SONG (repo public: tới 20 job cùng lúc), không lượt nào huỷ lượt
+# của session khác. Mỗi job tự dựng Postgres/Backend/Web riêng trên máy của nó nên không giẫm nhau.
 concurrency:
-  group: test-runner-${{ github.ref }}-${{ github.event.inputs.target_project }}
-  cancel-in-progress: true
+  group: test-runner-${{ github.event.inputs.request_id || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   # =========================================================================
