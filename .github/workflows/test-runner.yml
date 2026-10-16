@@ -47,6 +47,10 @@ on:
         description: 'true = dừng sau 3 test hỏng và không chạy lại test hỏng (cổng gộp merge-lane: đỏ thì biết sớm)'
         required: false
         default: 'false'
+      seed:
+        description: 'Dữ liệu mẫu cho fullstack-e2e. "data" = chạy thêm `pnpm seed:data` của Backend (seed-data-prod.ts: 13 giải 4 thể thức ở trạng thái mở đăng ký/đang đấu/đã kết thúc, 24 VĐV mật khẩu Player@123, BTC macter.970 & hxlinh1683 / Test@123, admin vndcsport@gmail.com / Admin@123). Để trống = chỉ seed:prod như cũ'
+        required: false
+        default: ''
 
 # Mỗi yêu cầu một nhóm riêng: nhiều session chạy SONG SONG (repo public: tới 20 job cùng lúc), không lượt nào huỷ lượt
 # của session khác. Mỗi job tự dựng Postgres/Backend/Web riêng trên máy của nó nên không giẫm nhau.
@@ -152,6 +156,16 @@ jobs:
           pnpm verify:football-schema
 
           pnpm seed:prod
+
+          # Dữ liệu mẫu (tuỳ chọn): seed-data-prod.ts chỉ ghi DB của job này (DB_HOST=localhost ở trên), không gọi API,
+          # không xoá gì, chạy lại không tạo trùng (bỏ qua giải đã có).
+          if [ "${{ github.event.inputs.seed }}" = "data" ]; then
+            pnpm seed:data
+            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -c \
+              "SELECT status, count(*) AS so_giai FROM tournaments GROUP BY status ORDER BY status;"
+            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -tAc \
+              "SELECT 'tran: ' || count(*) || ', da xong: ' || count(*) FILTER (WHERE status = 'COMPLETED') FROM matches;"
+          fi
           
           # Khởi động Backend API
           PORT=3000 pnpm start:prod &
@@ -193,6 +207,8 @@ jobs:
           CI: true
           SPECS: ${{ github.event.inputs.specs }}
           FAIL_FAST: ${{ github.event.inputs.fail_fast }}
+          # Spec biết job có dữ liệu mẫu hay không (seed=data) để tự bỏ qua ca cần dữ liệu khi chạy trên DB trống.
+          E2E_SEED: ${{ github.event.inputs.seed }}
         run: |
           # Backend có globalPrefix /api/v1 và không có route "/" nên GET / luôn 404 -> wait-on http:// không bao giờ xong.
           # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
