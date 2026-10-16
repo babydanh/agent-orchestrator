@@ -43,6 +43,10 @@ on:
         description: 'Mã yêu cầu duy nhất do cloud-test-runner.py tạo (để nhận đúng lượt chạy khi chạy song song)'
         required: false
         default: ''
+      fail_fast:
+        description: 'true = dừng sau 3 test hỏng và không chạy lại test hỏng (cổng gộp merge-lane: đỏ thì biết sớm)'
+        required: false
+        default: 'false'
 
 # Mỗi yêu cầu một nhóm riêng: nhiều session chạy SONG SONG (repo public: tới 20 job cùng lúc), không lượt nào huỷ lượt
 # của session khác. Mỗi job tự dựng Postgres/Backend/Web riêng trên máy của nó nên không giẫm nhau.
@@ -188,6 +192,7 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
           CI: true
           SPECS: ${{ github.event.inputs.specs }}
+          FAIL_FAST: ${{ github.event.inputs.fail_fast }}
         run: |
           # Backend có globalPrefix /api/v1 và không có route "/" nên GET / luôn 404 -> wait-on http:// không bao giờ xong.
           # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
@@ -232,7 +237,7 @@ jobs:
             echo "::error::specs chứa ký tự không hợp lệ"; exit 1
           fi
           # shellcheck disable=SC2086
-          pnpm test:e2e $SPECS
+          pnpm test:e2e $SPECS $([ "$FAIL_FAST" = "true" ] && echo "--max-failures=3 --retries=0")
 
       - name: 8. Generate Allure Report Dashboard
         if: always()
@@ -343,6 +348,7 @@ jobs:
           FRONTEND_URL: http://localhost:3000
           CI: true
           SPECS: ${{ github.event.inputs.specs }}
+          FAIL_FAST: ${{ github.event.inputs.fail_fast }}
         run: |
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           if [ "${{ steps.playwright-cache-web.outputs.cache-hit }}" != "true" ]; then
@@ -355,7 +361,7 @@ jobs:
             echo "::error::specs chứa ký tự không hợp lệ"; exit 1
           fi
           # shellcheck disable=SC2086
-          pnpm test:e2e $SPECS
+          pnpm test:e2e $SPECS $([ "$FAIL_FAST" = "true" ] && echo "--max-failures=3 --retries=0")
 
       - name: 7. Generate Allure Report Dashboard
         if: always()
