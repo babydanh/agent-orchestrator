@@ -1,0 +1,4 @@
+# Ghi chú plan/patch cục bộ của agent, không đưa lên repo công khai
+.lavish/
+.ompplan/
+patches/
