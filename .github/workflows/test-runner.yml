@@ -445,6 +445,8 @@ jobs:
 
       - name: 3. Run Flutter Analyze & Tests (Báo lỗi thật, không nuốt lỗi)
         run: |
+          # pubspec bundles .env as an asset; the repo ships only .env.example (no secrets).
+          [ -f .env ] || cp .env.example .env
           flutter pub get
           # Errors fail the job; the ~200 existing info/warning lints are reported, not fatal.
           flutter analyze --no-fatal-infos --no-fatal-warnings
