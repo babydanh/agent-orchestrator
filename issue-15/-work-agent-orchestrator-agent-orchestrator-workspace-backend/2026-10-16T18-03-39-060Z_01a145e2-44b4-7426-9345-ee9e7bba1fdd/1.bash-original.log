@@ -1,0 +1,38 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/backup/stash-a9e4248a1e
+  remotes/origin/backup/stash-f09caa3af5
+  remotes/origin/btc-free-gender-pairing-20261016
+  remotes/origin/danh
+  remotes/origin/feature/add-athlete-candidate-profile-20261009
+  remotes/origin/feature/aqvision-auto-recording-20261008
+  remotes/origin/feature/aqvision-mp4-catalog-20261009
+  remotes/origin/feature/tournament-ai-ops
+  remotes/origin/feature/tournament-match-score-entry-20260928
+  remotes/origin/fix/live-score-gateway-improvements
+  remotes/origin/fix/refund-platform-fee-ledger-reversal-20261009
+  remotes/origin/import-seed-file-order
+  remotes/origin/main
+  remotes/origin/omp/handoff-backend-roster
+  remotes/origin/omp/handoff-current-session-20261006
+  remotes/origin/omp/issue-12
+  remotes/origin/omp/issue-13
+  remotes/origin/omp/issue-5
+  remotes/origin/omp/issue-8
+  remotes/origin/overlay-h2h-bracket-be-20261014
+  remotes/origin/workbook-import-rules-20261016
+  remotes/origin/worktree-agent-a6223101182409d2c
+d4fe03f docs(openspec): archive btc-free-gender-pairing
+944fdcd fix(bracket): VDV ao chi vao so do khi da la doi hoan chinh (COMPLETE)
+a714a17 feat(pairing): BTC ghep cap khong kiem gioi tinh; VDV nhap Excel doi thieu VDV 2 vao hang cho ghep; tao giai nhanh mac dinh Doi Linh Hoat
+48412e9 fix
+7a45423 service
+9d5d51d file cu xoa spec
+9c76a20 chore(openspec): archive guest-doubles-pairing
+d1a0b9b feat(pairing): khách một mình ở nội dung đôi chờ ghép (PENDING_PARTNER); ghép tay/ngẫu nhiên/tách cặp nhận khách, giới tính chỉ kiểm bên có tài khoản
+origin	https://***@github.com/babydanh/HethongBackendApi_QuanlyGiaiDau.git (fetch)
+origin	https://***@github.com/babydanh/HethongBackendApi_QuanlyGiaiDau.git (push)

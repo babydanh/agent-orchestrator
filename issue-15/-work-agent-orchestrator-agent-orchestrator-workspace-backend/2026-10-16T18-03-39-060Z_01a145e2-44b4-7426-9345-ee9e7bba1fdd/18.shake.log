@@ -1,0 +1,758 @@
+### region 1 (read, ~49 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1043:        rotated = await this.aqvisionAgencyApiClient.rotateStreamKey(streamKeyId);
+…
+1097:      if (
+…
+1100:      ) {
+…
+1102:      }
+
+### region 2 (read, ~52 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1116:      const keys = await this.aqvisionAgencyApiClient.listStreamKeys();
+…
+1160:    if (result.keyRevoked && !result.disconnected) {
+…
+1163:    }
+
+### region 3 (read, ~61 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1495:  private async stopAqvisionPull(pullProxyKey: string | null | undefined) {
+…
+1507:  }
+…
+1565:          throw new ServiceUnavailableException('Đã mất quyền xử lý camera.');
+
+### region 4 (bash, ~207 tok)
+
+774:            if (camera.aqpStreamKeyId) {
+1059:  private async ensureCameraAqpStreamKey(
+1114:  private async findAqpStreamKey(streamName: string): Promise<AqvisionAgencyStreamKey | null> {
+1134:  private async saveAqpStreamKeyId(
+1144:  private async revokeAqpProviderStreamKey(
+1175:  private async runWithAqpCameraAndStreamNameLocks<T>(
+1512:   * `isMediaOnline` trả lời đúng câu "sân này đã có hình chưa" thay vì suy đoán
+1516:  async getCameraLiveStatus(cameraId: string, user: JwtPayload) {
+1524:    let online: boolean;
+1526:      ({ online } = await this.aqvisionApiClient.isMediaOnline(camera.streamName));
+1550:  async deleteCamera(cameraId: string, user: JwtPayload) {
+1567:        if (camera.aqpStreamKeyId) {
+1568:          await this.revokeAqpProviderStreamKey(camera.aqpStreamKeyId, lease);
+
+
+### region 5 (edit, ~580 tok)
+
+This edit anchors to lines 1059-1096, 1098-1099, 1101, 1103-1112, 1144-1159, 1161-1162, 1164-1173, 1524-1535, 1548, 1567-1569 of src/modules/livestream/livestream.service.ts that [src/modules/livestream/livestream.service.ts#4E15] never displayed (it showed a partial range, a search hit, or a folded summary). Preview of the actual file content at the first 40 unseen line(s):
+  1059:  private async ensureCameraAqpStreamKey(
+  1060:    camera: AqpStreamKeyCamera,
+  1061:    lease: CameraLeaseHandle,
+  1062:  ): Promise<AqvisionAgencyStreamKey> {
+  1063:    let existingId = camera.aqpStreamKeyId;
+  1064:    if (existingId) {
+  1065:      try {
+  1066:        const current = await this.aqvisionAgencyApiClient.getStreamKey(existingId);
+  1067:        this.assertAqpCameraKeyMatches(camera.streamName, current);
+  1068:        this.assertAqpLeaseOwned(lease);
+  1069:        if (current.push) return current;
+  1070:      } catch (error) {
+  1071:        if (!(error instanceof AqvisionAgencyApiException) || error.httpStatus !== 404) {
+  1072:          throw this.toAqpServiceUnavailable(error);
+  1073:        }
+  1074:        await this.saveAqpStreamKeyId(camera.id, null, lease);
+  1075:        existingId = null;
+  1076:      }
+  1077:    }
+  1078:
+  1079:    if (!existingId) {
+  1080:      const discovered = await this.findAqpStreamKey(camera.streamName);
+  1081:      this.assertAqpLeaseOwned(lease);
+  1082:      if (discovered?.push) {
+  1083:        await this.saveAqpStreamKeyId(camera.id, discovered.id, lease);
+  1084:        return discovered;
+  1085:      }
+  1086:      if (discovered) existingId = discovered.id;
+  1087:    }
+  1088:
+  1089:    this.assertAqpLeaseOwned(lease);
+  1090:    let key: AqvisionAgencyStreamKey;
+  1091:    try {
+  1092:      key = await this.aqvisionAgencyApiClient.createStreamKey({
+  1093:        app: 'live',
+  1094:        stream: camera.streamName,
+  1095:      });
+  1096:    } catch (error) {
+  1098:        !(error instanceof AqvisionAgencyApiException) ||
+  1099:        (error.httpStatus !== 409 && !error.mayHaveApplied)
+The range exceeds the inline preview cap — re-read the remainder with `src/modules/livestream/livestream.service.ts:1059-1096,1098-1099,1101,1103-1112,1144-1159,1161-1162,1164-1173,1524-1535,1548,1567-1569` before re-issuing the edit.
+
+### region 6 (read, ~533 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1059:  private async ensureCameraAqpStreamKey(
+1060:    camera: AqpStreamKeyCamera,
+1061:    lease: CameraLeaseHandle,
+1062:  ): Promise<AqvisionAgencyStreamKey> {
+1063:    let existingId = camera.aqpStreamKeyId;
+1064:    if (existingId) {
+1065:      try {
+1066:        const current = await this.aqvisionAgencyApiClient.getStreamKey(existingId);
+1067:        this.assertAqpCameraKeyMatches(camera.streamName, current);
+1068:        this.assertAqpLeaseOwned(lease);
+1069:        if (current.push) return current;
+1070:      } catch (error) {
+1071:        if (!(error instanceof AqvisionAgencyApiException) || error.httpStatus !== 404) {
+1072:          throw this.toAqpServiceUnavailable(error);
+1073:        }
+1074:        await this.saveAqpStreamKeyId(camera.id, null, lease);
+1075:        existingId = null;
+1076:      }
+1077:    }
+1078:
+1079:    if (!existingId) {
+1080:      const discovered = await this.findAqpStreamKey(camera.streamName);
+1081:      this.assertAqpLeaseOwned(lease);
+1082:      if (discovered?.push) {
+1083:        await this.saveAqpStreamKeyId(camera.id, discovered.id, lease);
+1084:        return discovered;
+1085:      }
+1086:      if (discovered) existingId = discovered.id;
+1087:    }
+1088:
+1089:    this.assertAqpLeaseOwned(lease);
+1090:    let key: AqvisionAgencyStreamKey;
+1091:    try {
+1092:      key = await this.aqvisionAgencyApiClient.createStreamKey({
+1093:        app: 'live',
+1094:        stream: camera.streamName,
+1095:      });
+1096:    } catch (error) {
+…
+1098:        !(error instanceof AqvisionAgencyApiException) ||
+1099:        (error.httpStatus !== 409 && !error.mayHaveApplied)
+…
+1101:        throw this.toAqpServiceUnavailable(error);
+…
+1103:      key = await this.reconcileAqpStreamKey(camera.streamName);
+1104:    }
+1105:
+1106:    this.assertAqpCameraKeyMatches(camera.streamName, key);
+1107:    if (!key.push) {
+1108:      throw new ServiceUnavailableException('AQP chưa trả cấu hình RTMP cho stream key.');
+1109:    }
+1110:    await this.saveAqpStreamKeyId(camera.id, key.id, lease);
+1111:    return key;
+1112:  }
+
+### region 7 (read, ~300 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1144:  private async revokeAqpProviderStreamKey(
+1145:    streamKeyId: string,
+1146:    lease: CameraLeaseHandle,
+1147:  ): Promise<AqvisionAgencyDeleteResult> {
+1148:    const deleteKey = async (): Promise<AqvisionAgencyDeleteResult> => {
+1149:      try {
+1150:        return await this.aqvisionAgencyApiClient.deleteStreamKey(streamKeyId);
+1151:      } catch (error) {
+1152:        if (error instanceof AqvisionAgencyApiException && error.httpStatus === 404) {
+1153:          return { keyRevoked: true, disconnected: true };
+1154:        }
+1155:        throw this.toAqpServiceUnavailable(error);
+1156:      }
+1157:    };
+1158:    this.assertAqpLeaseOwned(lease);
+1159:    let result = await deleteKey();
+…
+1161:      this.assertAqpLeaseOwned(lease);
+1162:      result = await deleteKey();
+…
+1164:    if (!result.keyRevoked || !result.disconnected) {
+1165:      throw new ServiceUnavailableException(
+1166:        'AQP chưa xác nhận đã thu hồi key và ngắt publisher; key vẫn được liên kết để thử lại.',
+1167:      );
+1168:    }
+1169:    this.assertAqpLeaseOwned(lease);
+1170:    return result;
+1171:  }
+1172:
+1173:
+
+### region 8 (read, ~388 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1509:  /**
+…
+1515:   */
+1516:  async getCameraLiveStatus(cameraId: string, user: JwtPayload) {
+1517:    const camera = await this.livestreamRepository.findCameraById(cameraId);
+1518:    if (!camera) {
+1519:      throw new NotFoundException('Camera không tồn tại');
+1520:    }
+1521:
+1522:    await this.assertTournamentOperator(camera.tournamentId, user);
+1523:
+1524:    let online: boolean;
+1525:    try {
+1526:      ({ online } = await this.aqvisionApiClient.isMediaOnline(camera.streamName));
+1527:    } catch (error) {
+1528:      if (error instanceof AqvisionApiException) {
+1529:        throw new ServiceUnavailableException(
+1530:          'Không đọc được trạng thái phát từ máy chủ media AQP. ' +
+1531:            'Kiểm tra AQVISION_API_SECRET.',
+1532:        );
+1533:      }
+1534:      throw error;
+1535:    }
+1536:
+1537:    const status = online ? 'LIVE' : 'IDLE';
+1538:    if (camera.status !== status && camera.status !== 'ARCHIVED') {
+1539:      await this.livestreamRepository.updateCameraStatus(camera.id, status);
+1540:    }
+1541:
+1542:    return {
+1543:      cameraId: camera.id,
+1544:      streamName: camera.streamName,
+1545:      online,
+1546:      status: camera.status === 'ARCHIVED' ? camera.status : status,
+1547:    };
+1548:  }
+1549:
+1550:  async deleteCamera(cameraId: string, user: JwtPayload) {
+1551:    const camera = await this.livestreamRepository.findCameraById(cameraId);
+…
+1583:  }
+
+[Showing lines 1515-1551 of 2103. Use :1552 to continue]
+
+### region 9 (read, ~257 tok)
+
+[src/modules/livestream/livestream.service.ts#4E15]
+1552:    if (!camera) {
+…
+1554:    }
+1555:
+1556:    await this.assertTournamentOperator(camera.tournamentId, user);
+1557:    const result = await this.livestreamHealthQueue.runWithCameraLock(
+1558:      camera.id,
+1559:      async (lease) => {
+1560:        if (!lease.isOwned()) {
+1561:          throw new ServiceUnavailableException('Đã mất quyền xử lý camera.');
+1562:        }
+1563:        await this.stopAqvisionPull(camera.pullProxyKey);
+1564:        if (!lease.isOwned()) {
+1565:          throw new ServiceUnavailableException('Đã mất quyền xử lý camera.');
+1566:        }
+1567:        if (camera.aqpStreamKeyId) {
+1568:          await this.revokeAqpProviderStreamKey(camera.aqpStreamKeyId, lease);
+1569:        }
+1570:
+1571:        const archived = await this.livestreamRepository.deleteCamera(cameraId);
+1572:        if (!lease.isOwned()) {
+…
+1574:        }
+…
+1576:      },
+1577:    );
+
+[Showing lines 1554-1572 of 2103. Use :1573 to continue]
+
+### region 10 (edit, ~702 tok)
+
+[src/modules/livestream/livestream.service.ts#90DC]
+1059:  private async ensureCameraAqpStreamKey(
+
+1062:  ): Promise<AqvisionAgencyStreamKey> {
+
+1064:    if (existingId) {
+
+1077:    }
+1078:
+1079:    // Camera chưa liên kết (hoặc liên kết vừa bị gỡ): dùng lại key rảnh trong kho
+1080:    // trước khi POST tạo key mới — giới hạn 10 key/agency nên mỗi key mất là mất vĩnh viễn.
+1081:    if (!existingId) {
+1082:      const reused = await this.reuseFreeAqpStreamKey(camera, lease);
+1083:      this.assertAqpLeaseOwned(lease);
+1084:      if (reused) return reused;
+1085:    }
+1086:
+
+1089:    try {
+
+1094:    } catch (error) {
+1095:      if (
+1096:        error instanceof AqvisionAgencyApiException &&
+1097:        (error.httpStatus === 409 || error.mayHaveApplied)
+1098:      ) {
+1099:        key = await this.reconcileAqpStreamKey(camera.streamName);
+1100:      } else if (await this.hasReachedAqpStreamKeyLimit()) {
+…
+1105:        );
+1106:      } else {
+1107:        throw this.toAqpServiceUnavailable(error);
+1108:      }
+1109:    }
+1110:
+1117:  }
+1118:
+1119:  /**
+1120:   * Dùng lại key rảnh trong kho đại lý trước khi POST tạo key mới, dưới lease Redis
+…
+1322:  }
+1323:
+1324:  private async findAqpStreamKey(streamName: string): Promise<AqvisionAgencyStreamKey | null> {
+1325:    try {
+
+1329:    } catch (error) {
+
+1331:    }
+1332:  }
+
+1344:  private async saveAqpStreamKeyId(
+
+1348:  ): Promise<void> {
+
+1352:    this.assertAqpLeaseOwned(lease);
+1353:  }
+1354:
+1355:  private async runWithAqpCameraAndStreamNameLocks<T>(
+1356:    cameraId: string,
+
+1359:  ): Promise<T> {
+
+1368:  }
+
+1696:  async getCameraLiveStatus(cameraId: string, user: JwtPayload) {
+
+1702:    await this.assertTournamentOperator(camera.tournamentId, user);
+1703:
+1704:    const { online } = await this.readMediaOnlineOrFail(camera.streamName);
+1705:
+1706:    const status = online ? 'LIVE' : 'IDLE';
+1717:  }
+1718:
+1719:  /**
+1720:   * Trạng thái phát thật từ media server AQP; lỗi AQP thành 503 nêu tên biến env
+…
+1734:  }
+1735:
+1736:  async deleteCamera(cameraId: string, user: JwtPayload) {
+1737:    const camera = await this.livestreamRepository.findCameraById(cameraId);
+
+1750:        if (!lease.isOwned()) {
+
+1752:        }
+1753:        if (camera.aqpStreamKeyId) {
+1754:          // Không bao giờ DELETE key trên AQP (giới hạn 10 key/agency): rotate để mã cũ
+1755:          // hết hiệu lực, rồi gỡ liên kết local — key trở về kho để camera khác dùng lại.
+…
+1772:          await this.saveAqpStreamKeyId(camera.id, null, lease);
+1773:          this.assertAqpLeaseOwned(lease);
+1774:        }
+1775:
+
+1788:  }
+
+Warnings:
+Auto-prefixed bare body row(s) with `+`. Body rows must be `+TEXT` literal lines.
+
+### region 11 (bash, ~150 tok)
+
+520:    const streamName = this.newAqpStreamName();
+748:        : this.newAqpStreamName();
+808:        if (!this.isUniqueViolation(error) || isLastAttempt) throw error;
+1219:      if (!this.isUniqueViolation(error)) return null;
+1320:  private newAqpStreamName(): string {
+1489:  private isUniqueViolation(error: unknown): boolean {
+===
+  private async runWithAqpCameraAndStreamNameLocks<T>($
+    cameraId: string,$
+    streamName: string,$
+    operation: (lease: CameraLeaseHandle) => Promise<T>,$
+  ): Promise<T> {$
+    return this.runWithAqpStreamNameLock(cameraId, streamName, (nameLease) =>$
+
+
+### region 12 (read, ~58 tok)
+
+[src/modules/livestream/livestream.service.ts#90DC]
+1258:    try {
+…
+1265:    } catch (error) {
+…
+1281:    }
+…
+1286:  private async issuePushForAqpStreamKey(
+…
+1290:  ): Promise<AqvisionAgencyStreamKey | null> {
+…
+1310:  }
+
+### region 13 (read, ~19 tok)
+
+      key = await this.issuePushForAqpStreamKey(key, camera, lease);
+
+…
+
+
+
+### region 14 (read, ~38 tok)
+
+    return prefix.length > 0 ? prefix : 'camera_';
+
+…
+
+  private async findAqpStreamKey(streamName: string): Promise<AqvisionAgencyStreamKey | null> {
+
+### region 15 (bash, ~435 tok)
+
+1208:       key = await this.issuePushForAqpStreamKey(key, camera, lease);
+1209:       if (!key) return null;
+1210:     }
+1211: 
+1212:     if (!key.push) return null;
+1213:     this.assertAqpCameraKeyMatches(camera.streamName, key);
+1214: 
+1215:     try {
+1216:       await this.saveAqpStreamKeyId(camera.id, key.id, lease);
+1217:     } catch (error) {
+1218:       // Camera khác vừa gắn key này (vi phạm unique index toàn bảng): thử key kế tiếp.
+1219:       if (!this.isUniqueViolation(error)) return null;
+1220:       return null;
+1221:     }
+1222:     return key;
+1223:   }
+1224: 
+---
+1316:     return prefix.length > 0 ? prefix : 'camera_';
+1317:   }
+1318: 
+1319:   /** Tên stream mới cho camera: namespace môi trường + UUID (không dấu). */
+1320:   private newAqpStreamName(): string {
+1321:     return `${this.getAqpStreamNamePrefix()}${randomUUID().replace(/-/g, '')}`;
+1322:   }
+1323: 
+1324:   private async findAqpStreamKey(streamName: string): Promise<AqvisionAgencyStreamKey | null> {
+---
+1485:     return new ServiceUnavailableException('Agency API hiện không khả dụng.');
+1486:   }
+1487: 
+1488:   /** Vi phạm unique index của Postgres (SQLSTATE 23505). */
+1489:   private isUniqueViolation(error: unknown): boolean {
+1490:     if (typeof error !== 'object' || error === null || !('code' in error)) {
+1491:       return false;
+1492:     }
+1493:     return error.code === '23505';
+1494:   }
+1495: 
+1496:   /**
+1497:    * Sân phải thuộc địa điểm mà giải này dùng — qua cả venue mặc định lẫn venue
+1498:    * theo vòng — nếu không thì khai URL cho sân của giải khác sẽ lọt vào đây.
+1499:    */
+1500:   private async assertCourtUsableByTournament(
+
+
+### region 16 (edit, ~140 tok)
+
+This edit anchors to lines 1219-1220 of src/modules/livestream/livestream.service.ts that [src/modules/livestream/livestream.service.ts#90DC] never displayed (it showed a partial range, a search hit, or a folded summary). Actual file content at those lines:
+  1219:      if (!this.isUniqueViolation(error)) return null;
+  1220:      return null;
+Verify the content matches what you intend to touch, then re-issue the edit with the same [path#tag] header — a straight retry now succeeds without a re-read. If the content does NOT match, fix your line numbers.
+
+### region 17 (edit, ~108 tok)
+
+Edit rejected for src/modules/livestream/livestream.repository.ts: hash #D165 is not from this session.
+The current file hashes to #2B14. Re-read the file with `read` to copy a current [path#tag] header — never invent the tag and never reuse one from a prior session.
+
+ 453:
+ 454:    return Boolean(camera);
+*455:  }
+ 456:  async hasCameraRecordings(cameraId: string): Promise<boolean> {
+ 457:    const [recording] = await this.db
+
+### region 18 (edit, ~90 tok)
+
+Edit rejected for src/modules/livestream/livestream-health.queue.ts: hash #B326 is not from this session.
+The current file hashes to #971C. Re-read the file with `read` to copy a current [path#tag] header — never invent the tag and never reuse one from a prior session.
+
+ 104:      operation,
+ 105:    );
+*106:  }
+ 107:
+ 108:  private async runWithLease<T>(
+
+### region 19 (read, ~34 tok)
+
+[src/modules/livestream/livestream.service.ts#90DC]
+1215:    try {
+…
+1217:    } catch (error) {
+…
+1221:    }
+1222:    return key;
+
+### region 20 (read, ~62 tok)
+
+[src/modules/livestream/livestream.repository.ts#2B14]
+442:  async setAqpStreamKeyId(cameraId: string, aqpStreamKeyId: string | null): Promise<boolean> {
+…
+455:  }
+456:  async hasCameraRecordings(cameraId: string): Promise<boolean> {
+…
+468:  }
+
+### region 21 (read, ~36 tok)
+
+[src/modules/livestream/livestream-health.queue.ts#971C]
+88:  async runWithCameraLock<T>(
+…
+91:  ): Promise<T | null> {
+…
+93:  }
+…
+107:
+
+### region 22 (edit, ~104 tok)
+
+[src/modules/livestream/livestream.service.ts#FA52]
+1215:    try {
+
+1217:    } catch (error) {
+1218:      // Camera khác vừa gắn key này (vi phạm unique index toàn bảng): thử key kế tiếp.
+1219:      if (!this.isUniqueViolation(error)) throw error;
+1220:      return null; // Vi phạm unique index (23505): camera khác vừa gắn key này, thử key kế tiếp.
+1221:    }
+1222:    return key;
+
+### region 23 (edit, ~131 tok)
+
+[src/modules/livestream/livestream.repository.ts#5770]
+442:  async setAqpStreamKeyId(cameraId: string, aqpStreamKeyId: string | null): Promise<boolean> {
+
+454:    return Boolean(camera);
+455:  }
+456:
+457:  /**
+…
+468:    return Boolean(camera);
+469:  }
+470:  async hasCameraRecordings(cameraId: string): Promise<boolean> {
+471:    const [recording] = await this.db
+472:      .select({ id: schema.matchLivestreams.id })
+473:      .from(schema.matchLivestreams)
+474:      .where(
+
+479:      )
+480:      .limit(1);
+
+482:  }
+
+### region 24 (edit, ~112 tok)
+
+[src/modules/livestream/livestream-health.queue.ts#99D7]
+96:  async runWithStreamNameLock<T>(
+
+100:  ): Promise<T | null> {
+
+106:  }
+107:
+108:  /**
+109:   * Lease Redis CHUNG cho toàn bộ kho stream key AQP (key tĩnh, không theo camera):
+…
+119:  }
+120:
+121:  private async runWithLease<T>(
+122:    key: string,
+
+125:  ): Promise<T | null> {
+
+192:  }
+
+Warnings:
+Auto-prefixed bare body row(s) with `+`. Body rows must be `+TEXT` literal lines.
+
+### region 25 (bash, ~31 tok)
+
+462:  async isAqpStreamKeyIdInUse(aqpStreamKeyId: string): Promise<boolean> {
+114:  async runWithAqpStreamKeyPoolLock<T>(
+
+
+### region 26 (todo, ~1224 tok)
+
+Errors: Task "OpenSpec change aqp-stream-key-pool (proposal/design/tasks/README/.openspec.yaml/delta spec)" not found
+Remaining items (20):
+  - pnpm install (đang chạy nền) [in_progress] (Khảo sát & cài deps)
+  - Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md [pending] (OpenSpec change aqp-stream-key-pool)
+  - env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_) [pending] (Biến môi trường prefix tên stream)
+  - createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường [pending] (Biến môi trường prefix tên stream)
+  - livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED) [pending] (Repository + pool lock)
+  - livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock) [pending] (Repository + pool lock)
+  - Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts [pending] (Client AQP: bỏ DELETE)
+  - renameCameraAqpStreamKey: rotate thay revoke [pending] (Service: bỏ DELETE everywhere)
+  - deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null) [pending] (Service: bỏ DELETE everywhere)
+  - ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505) [pending] (Service: bỏ DELETE everywhere)
+  - POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP' [pending] (Service: bỏ DELETE everywhere)
+  - Tạo .env.example, env validation [pending] (Service: bỏ DELETE everywhere)
+  - livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key) [pending] (Test jest)
+  - livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse [pending] (Test jest)
+  - pnpm exec jest các spec liên quan [pending] (Verify: jest + tsc)
+  - NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts) [pending] (Verify: jest + tsc)
+  - pnpm exec eslint các file sửa (nếu có) [pending] (Verify: jest + tsc)
+  - Cập nhật tasks.md [x] kèm bằng chứng [pending] (Hoàn tất & commit)
+  - git add . && git commit trên main [pending] (Hoàn tất & commit)
+  - Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production) [pending] (Hoàn tất & commit)
+Overall: 1/21 done, 20 open.
+Active phase 1/9 "Khảo sát & cài deps" (1/2).
+  Khảo sát & cài deps:
+    - [ ] pnpm install (đang chạy nền) (in progress)
+    - [X] Đọc test cũ + code AQP liên quan
+  OpenSpec change aqp-stream-key-pool:
+    - [ ] Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md
+  Biến môi trường prefix tên stream:
+    - [ ] env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_)
+    - [ ] createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường
+  Repository + pool lock:
+    - [ ] livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED)
+    - [ ] livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock)
+  Client AQP: bỏ DELETE:
+    - [ ] Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts
+  Service: bỏ DELETE everywhere:
+    - [ ] renameCameraAqpStreamKey: rotate thay revoke
+    - [ ] deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null)
+    - [ ] ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505)
+    - [ ] POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP'
+    - [ ] Tạo .env.example, env validation
+  Test jest:
+    - [ ] livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key)
+    - [ ] livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse
+  Verify: jest + tsc:
+    - [ ] pnpm exec jest các spec liên quan
+    - [ ] NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts)
+    - [ ] pnpm exec eslint các file sửa (nếu có)
+  Hoàn tất & commit:
+    - [ ] Cập nhật tasks.md [x] kèm bằng chứng
+    - [ ] git add . && git commit trên main
+    - [ ] Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production)
+
+### region 27 (todo, ~1225 tok)
+
+Errors: Task "Client AHP bỏ DELETE + env prefix + repository isAqpStreamKeyIdInUse + health queue pool lock" not found
+Remaining items (20):
+  - pnpm install (đang chạy nền) [in_progress] (Khảo sát & cài deps)
+  - Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md [pending] (OpenSpec change aqp-stream-key-pool)
+  - env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_) [pending] (Biến môi trường prefix tên stream)
+  - createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường [pending] (Biến môi trường prefix tên stream)
+  - livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED) [pending] (Repository + pool lock)
+  - livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock) [pending] (Repository + pool lock)
+  - Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts [pending] (Client AQP: bỏ DELETE)
+  - renameCameraAqpStreamKey: rotate thay revoke [pending] (Service: bỏ DELETE everywhere)
+  - deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null) [pending] (Service: bỏ DELETE everywhere)
+  - ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505) [pending] (Service: bỏ DELETE everywhere)
+  - POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP' [pending] (Service: bỏ DELETE everywhere)
+  - Tạo .env.example, env validation [pending] (Service: bỏ DELETE everywhere)
+  - livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key) [pending] (Test jest)
+  - livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse [pending] (Test jest)
+  - pnpm exec jest các spec liên quan [pending] (Verify: jest + tsc)
+  - NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts) [pending] (Verify: jest + tsc)
+  - pnpm exec eslint các file sửa (nếu có) [pending] (Verify: jest + tsc)
+  - Cập nhật tasks.md [x] kèm bằng chứng [pending] (Hoàn tất & commit)
+  - git add . && git commit trên main [pending] (Hoàn tất & commit)
+  - Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production) [pending] (Hoàn tất & commit)
+Overall: 1/21 done, 20 open.
+Active phase 1/9 "Khảo sát & cài deps" (1/2).
+  Khảo sát & cài deps:
+    - [ ] pnpm install (đang chạy nền) (in progress)
+    - [X] Đọc test cũ + code AQP liên quan
+  OpenSpec change aqp-stream-key-pool:
+    - [ ] Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md
+  Biến môi trường prefix tên stream:
+    - [ ] env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_)
+    - [ ] createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường
+  Repository + pool lock:
+    - [ ] livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED)
+    - [ ] livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock)
+  Client AQP: bỏ DELETE:
+    - [ ] Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts
+  Service: bỏ DELETE everywhere:
+    - [ ] renameCameraAqpStreamKey: rotate thay revoke
+    - [ ] deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null)
+    - [ ] ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505)
+    - [ ] POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP'
+    - [ ] Tạo .env.example, env validation
+  Test jest:
+    - [ ] livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key)
+    - [ ] livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse
+  Verify: jest + tsc:
+    - [ ] pnpm exec jest các spec liên quan
+    - [ ] NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts)
+    - [ ] pnpm exec eslint các file sửa (nếu có)
+  Hoàn tất & commit:
+    - [ ] Cập nhật tasks.md [x] kèm bằng chứng
+    - [ ] git add . && git commit trên main
+    - [ ] Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production)
+
+### region 28 (todo, ~1218 tok)
+
+Errors: Task "Viết lại livestream.camera-aqp-stream-key.spec.ts theo flow mới" not found
+Remaining items (20):
+  - pnpm install (đang chạy nền) [in_progress] (Khảo sát & cài deps)
+  - Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md [pending] (OpenSpec change aqp-stream-key-pool)
+  - env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_) [pending] (Biến môi trường prefix tên stream)
+  - createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường [pending] (Biến môi trường prefix tên stream)
+  - livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED) [pending] (Repository + pool lock)
+  - livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock) [pending] (Repository + pool lock)
+  - Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts [pending] (Client AQP: bỏ DELETE)
+  - renameCameraAqpStreamKey: rotate thay revoke [pending] (Service: bỏ DELETE everywhere)
+  - deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null) [pending] (Service: bỏ DELETE everywhere)
+  - ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505) [pending] (Service: bỏ DELETE everywhere)
+  - POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP' [pending] (Service: bỏ DELETE everywhere)
+  - Tạo .env.example, env validation [pending] (Service: bỏ DELETE everywhere)
+  - livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key) [pending] (Test jest)
+  - livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse [pending] (Test jest)
+  - pnpm exec jest các spec liên quan [pending] (Verify: jest + tsc)
+  - NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts) [pending] (Verify: jest + tsc)
+  - pnpm exec eslint các file sửa (nếu có) [pending] (Verify: jest + tsc)
+  - Cập nhật tasks.md [x] kèm bằng chứng [pending] (Hoàn tất & commit)
+  - git add . && git commit trên main [pending] (Hoàn tất & commit)
+  - Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production) [pending] (Hoàn tất & commit)
+Overall: 1/21 done, 20 open.
+Active phase 1/9 "Khảo sát & cài deps" (1/2).
+  Khảo sát & cài deps:
+    - [ ] pnpm install (đang chạy nền) (in progress)
+    - [X] Đọc test cũ + code AQP liên quan
+  OpenSpec change aqp-stream-key-pool:
+    - [ ] Tạo thư mục openspec/changes/aqp-stream-key-pool: proposal.md, design.md, tasks.md, README.md, .openspec.yaml, specs/aqp-stream-key-pool/spec.md
+  Biến môi trường prefix tên stream:
+    - [ ] env.validation.ts + .env.example: thêm AQVISION_STREAM_NAME_PREFIX (mặc định camera_)
+    - [ ] createCamera + rotateCameraStreamKey: đặt tên stream theo prefix môi trường
+  Repository + pool lock:
+    - [ ] livestream.repository.ts: thêm isAqpStreamKeyIdInUse (kể cả ARCHIVED)
+    - [ ] livestream-health.queue.ts: thêm runWithAqpStreamKeyPoolLock (Redis shared pool lock)
+  Client AQP: bỏ DELETE:
+    - [ ] Xoá deleteStreamKey, AqvisionAgencyDeleteResult, nhánh DELETE-pending trong requestEnvelope; cập nhật aqvision-agency-api.client.spec.ts
+  Service: bỏ DELETE everywhere:
+    - [ ] renameCameraAqpStreamKey: rotate thay revoke
+    - [ ] deleteCamera: kiểm tra online → rotate → gỡ liên kết (aqp_stream_key_id=null)
+    - [ ] ensureCameraAqpStreamKey: pool reuse dưới pool lock (tên namespace, không camera nào gắn, rename→rotate→gắn, retry key kế khi 23505)
+    - [ ] POST create lỗi: đếm >=10 key → báo 'đã dùng hết 10 key AQP'
+    - [ ] Tạo .env.example, env validation
+  Test jest:
+    - [ ] livestream.camera-aqp-stream-key.spec.ts: viết lại theo flow mới (lấy key rảnh, va unique, đủ 10 key, không bao giờ DELETE, xoá camera = rotate+gỡ liên kết, revoked key)
+    - [ ] livestream.repository.spec.ts: test SQL isAqpStreamKeyIdInUse
+  Verify: jest + tsc:
+    - [ ] pnpm exec jest các spec liên quan
+    - [ ] NODE_OPTIONS=--max-old-space-size=4096 pnpm exec tsc --noEmit (baseline 12 lỗi *.spec.ts)
+    - [ ] pnpm exec eslint các file sửa (nếu có)
+  Hoàn tất & commit:
+    - [ ] Cập nhật tasks.md [x] kèm bằng chứng
+    - [ ] git add . && git commit trên main
+    - [ ] Báo người dùng: merge-lane.py không có trên Linux, KHÔNG push main (deploy production)
+
+### region 29 (bash, ~107 tok)
+
+Backgrounded early to handle an incoming message; the command keeps running.
+
+Backgrounded as job bg_1 (killed once it has run 240s in total; `timeout: 0` disables the deadline); its output is injected into the conversation as a follow-up the moment it finishes. Do NOT poll for it (no `sleep`, `ps`, `pgrep`, `top`, `pidwait`, log tailing): every poll is a wasted turn. Do other work, or end your reply and wait to be woken.
