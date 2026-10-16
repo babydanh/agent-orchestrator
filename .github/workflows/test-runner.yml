@@ -253,11 +253,12 @@ jobs:
               [ "$email" = "macter.970@gmail.com" ] && ORG_TOKEN="$token"
             done
             # Giải công khai Backend trả về, và giải mà BTC macter.970 quản lý (seed chia 13 giải cho 2 BTC).
+            # Chỉ đếm đối tượng có trạng thái của GIẢI: phản hồi có đối tượng con cũng mang inviteCode (trạng thái ACTIVE).
             curl -s "$API/tournaments?limit=50" -o /tmp/public.json
-            echo "Dữ liệu mẫu: API /tournaments trả $(jq '[.. | objects | select(has("inviteCode"))] | length' /tmp/public.json) giải;" \
-              "theo trạng thái: $(jq -c '[.. | objects | select(has("inviteCode")) | .status] | group_by(.) | map({(.[0]): length}) | add' /tmp/public.json)"
+            echo "Dữ liệu mẫu: API /tournaments trả $(jq '[.. | objects | select(has("inviteCode") and (.status | IN("DRAFT","REGISTRATION_OPEN","REGISTRATION_CLOSED","IN_PROGRESS","COMPLETED","CANCELLED")))] | length' /tmp/public.json) giải;" \
+              "theo trạng thái: $(jq -c '[.. | objects | select(has("inviteCode") and (.status | IN("DRAFT","REGISTRATION_OPEN","REGISTRATION_CLOSED","IN_PROGRESS","COMPLETED","CANCELLED"))) | .status] | group_by(.) | map({(.[0]): length}) | add' /tmp/public.json)"
             curl -s "$API/tournaments/my/management" -H "Authorization: Bearer $ORG_TOKEN" -o /tmp/manage.json
-            n=$(jq '[.. | objects | select(has("inviteCode"))] | length' /tmp/manage.json)
+            n=$(jq '[.. | objects | select(has("inviteCode") and (.status | IN("DRAFT","REGISTRATION_OPEN","REGISTRATION_CLOSED","IN_PROGRESS","COMPLETED","CANCELLED")))] | length' /tmp/manage.json)
             echo "Dữ liệu mẫu: BTC macter.970 thấy $n giải trong trang quản lý"
             if [ "$n" -lt 1 ]; then echo "::error::Dữ liệu mẫu: BTC không thấy giải nào"; head -c 400 /tmp/manage.json; exit 1; fi
           fi
