@@ -185,6 +185,20 @@ jobs:
           # Chờ cổng TCP mở: Nest chỉ listen() sau khi khởi tạo module xong.
           npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 60000
 
+          # seed:prod không tạo tài khoản đăng nhập mà spec dùng mặc định (test/e2e/p0/fixtures.ts,
+          # quick-tournament.spec.ts): không có bước này thì spec đăng nhập luôn kẹt ở /login.
+          # Tạo qua chính API register (băm mật khẩu như thật); 409 = đã có thì bỏ qua.
+          for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player"; do
+            email="${account%%:*}"; name="${account#*:}"
+            code=$(curl -s -o /tmp/register.json -w '%{http_code}' -X POST http://localhost:3000/api/v1/auth/register \
+              -H 'Content-Type: application/json' \
+              -d "{\"email\":\"$email\",\"password\":\"123456\",\"fullName\":\"$name\"}")
+            if [ "$code" != "201" ] && [ "$code" != "409" ]; then
+              echo "::error::Tạo tài khoản E2E $email lỗi HTTP $code"; cat /tmp/register.json; exit 1
+            fi
+            echo "Tài khoản E2E $email: HTTP $code"
+          done
+
           cd workspace/web
 
           # CHỐT CHẶN AN TOÀN: không xóa/bỏ test nào. Chỉ từ chối chạy nếu còn spec nào đánh thẳng
