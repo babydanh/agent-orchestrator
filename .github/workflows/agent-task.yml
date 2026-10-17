@@ -218,16 +218,17 @@ jobs:
           modelRoles:
             default: openai-codex/gpt-6-luna:xhigh
             plan: openai-codex/gpt-6.1-sol:high
-            judge: openrouter/~typesafe/jev-latest:auto
-            smol: openrouter/inclusionai/ling-3.1-flash
-            task: openrouter/inclusionai/ling-3.1-flash
-            vision: openrouter/google/gemini-2.5-flash
-            commit: openrouter/inclusionai/ling-3.1-flash
-            advisor: openrouter/inclusionai/ling-3.1-flash
-            slow: openrouter/inclusionai/ling-3.1-flash
-            tiny: openrouter/inclusionai/ling-3.1-flash
-            memory: openrouter/inclusionai/ling-3.1-flash
-            image: openrouter/inclusionai/ming-image-0.1-design
+            judge: openrouter/poolside/laguna-s-2.1:free
+            smol: openrouter/poolside/laguna-s-2.1:free
+            task: openrouter/poolside/laguna-s-2.1:free
+            # Không có model nhìn ảnh miễn phí đã kiểm chứng trên OpenRouter: dùng Codex (gói tháng, không tốn tiền OpenRouter).
+            vision: openai-codex/gpt-6-luna:high
+            commit: openrouter/poolside/laguna-s-2.1:free
+            advisor: openrouter/poolside/laguna-s-2.1:free
+            slow: openrouter/poolside/laguna-s-2.1:free
+            tiny: openrouter/poolside/laguna-s-2.1:free
+            memory: openrouter/poolside/laguna-s-2.1:free
+            # Bỏ vai image (ming-image trả phí, không có bản miễn phí): agent trên cloud không tạo ảnh.
           compaction:
             methodOrder:
               - shake
@@ -258,15 +259,20 @@ jobs:
             modelFallback: false
             fallbackChains:
               "openai-codex/*":
-                - openrouter/inclusionai/ling-3.1-flash
+                - openrouter/poolside/laguna-s-2.1:free
+                - openrouter/nvidia/nemotron-3.5-lightning:free
               default:
-                - openrouter/inclusionai/ling-3.1-flash
+                - openrouter/poolside/laguna-s-2.1:free
+                - openrouter/nvidia/nemotron-3.5-lightning:free
               plan:
-                - openrouter/inclusionai/ling-3.1-flash
+                - openrouter/poolside/laguna-s-2.1:free
+                - openrouter/nvidia/nemotron-3.5-lightning:free
               smol:
-                - openrouter/inclusionai/ling-3.1-flash
+                - openrouter/nvidia/nemotron-3.5-lightning:free
               task:
-                - openrouter/inclusionai/ling-3.1-flash
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+              judge:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
           providers:
             openrouterVariant: nitro
             cacheWarming: idle
@@ -385,9 +391,9 @@ jobs:
           echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
           cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
-            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/inclusionai/ling-3.1-flash" -p
+            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/poolside/laguna-s-2.1:free" -p
           else
-            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/inclusionai/ling-3.1-flash" -p
+            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/poolside/laguna-s-2.1:free" -p
           fi
           cd - >/dev/null
       - name: 7. Tự động đẩy code thẳng vào nhánh thực thi & Kích hoạt Test
