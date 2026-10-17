@@ -20,6 +20,7 @@ on:
           - 'fullstack-e2e'
           - 'web'
           - 'backend'
+          - 'api-contract'
           - 'app'
           - 'aicheckvar'
           - 'auto25d'
@@ -458,6 +459,77 @@ jobs:
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
           pnpm test
+
+  # =====================================================================
+  # JOB: HỢP ĐỒNG API BACKEND (OpenAPI xuất không cần DB + oasdiff so main)
+  # =====================================================================
+  test-api-contract:
+    name: 📜 API contract (OpenAPI + oasdiff)
+    if: github.event.inputs.target_project == 'api-contract'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 1. Checkout Backend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.backend_ref || github.event.inputs.custom_branch || 'main' }}
+          # Cần origin/main để lấy openapi.json làm mốc so sánh.
+          fetch-depth: 0
+
+      - name: 2. Setup Node.js & PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 3. Setup PNPM Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-backend-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-backend-
+
+      - name: 4. Build & xuất OpenAPI (preview, không cần DB/Redis)
+        run: |
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          pnpm build
+          pnpm openapi:export
+          mkdir -p contract
+          cp openapi.json contract/branch.json
+          echo "Số path: $(node -e "console.log(Object.keys(require('./openapi.json').paths||{}).length)")"
+
+      - name: 5. openapi.json đã commit phải khớp bản vừa xuất
+        run: |
+          if ! git ls-files --error-unmatch openapi.json >/dev/null 2>&1; then
+            echo "::warning::openapi.json chưa được commit (lượt baseline): tải artifact openapi-spec, commit file branch.json thành openapi.json ở gốc repo Backend"
+          elif ! git diff --quiet -- openapi.json; then
+            echo "::error::openapi.json đã commit KHÁC bản vừa xuất. Chạy: pnpm build && pnpm openapi:export rồi commit openapi.json"
+            git diff --stat -- openapi.json
+            exit 1
+          fi
+
+      - name: 6. So thay đổi phá vỡ với main (oasdiff)
+        run: |
+          if git show origin/main:openapi.json > contract/main.json 2>/dev/null; then
+            docker run --rm -v "$PWD/contract:/specs" tufin/oasdiff:latest breaking /specs/main.json /specs/branch.json --fail-on ERR --format text
+          else
+            rm -f contract/main.json
+            echo "main chưa có openapi.json: bỏ qua so phá vỡ (lượt baseline)"
+          fi
+
+      - name: 7. Upload bản mô tả
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: contract/
+          retention-days: 7
 
   # ==========================================
   # JOB 4: TEST FLUTTER APP (ANALYZE & TEST)
