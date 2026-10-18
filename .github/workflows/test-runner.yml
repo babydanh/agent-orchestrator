@@ -22,6 +22,7 @@ on:
           - 'backend'
           - 'api-contract'
           - 'app'
+          - 'app-e2e'
           - 'aicheckvar'
           - 'auto25d'
       custom_branch:
@@ -36,8 +37,12 @@ on:
         description: 'Nhánh/SHA của Web cho fullstack-e2e (để trống = dùng custom_branch, rồi nhánh mặc định)'
         required: false
         default: ''
+      app_ref:
+        description: 'Nhánh/SHA của App cho app-e2e (để trống = dùng custom_branch, rồi nhánh mặc định)'
+        required: false
+        default: ''
       specs:
-        description: 'Chỉ chạy các file Playwright này (cách nhau bằng dấu cách, vd: test/e2e/a.spec.ts test/e2e/b.spec.ts). Để trống = toàn bộ'
+        description: 'Chỉ chạy các file này (cách nhau bằng dấu cách). fullstack-e2e: vd test/e2e/a.spec.ts. app-e2e: vd integration_test/smoke_test.dart. Để trống = toàn bộ'
         required: false
         default: ''
       request_id:
@@ -565,6 +570,222 @@ jobs:
           # Errors fail the job; the ~200 existing info/warning lints are reported, not fatal.
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
+
+  # =========================================================================
+  # JOB E2E APP: integration_test CHẠY TRÊN EMULATOR ANDROID + BACKEND THẬT
+  # =========================================================================
+  # Chỉ chạy khi chọn target_project = app-e2e (không nằm trong 'all', không theo lịch).
+  test-app-e2e:
+    name: 📱🧪 E2E Flutter App (emulator Android API 34 + Backend thật)
+    if: github.event.inputs.target_project == 'app-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    # Postgres + Redis giống test-fullstack: Backend thật cần cả hai.
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: your_password
+          POSTGRES_DB: tournament_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 1. Setup Node.js 22 LTS & PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 2. Setup Java 17 (Gradle của Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Backend lấy backend_ref hoặc main. KHÔNG lấy custom_branch: đó là nhánh App, Backend không có nhánh đó.
+      - name: 3. Checkout Backend
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.backend_ref || 'main' }}
+          path: backend
+
+      # App lấy app_ref, rồi custom_branch (--branch của script), rồi main.
+      - name: 4. Checkout App
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongFrontEndApp_QLgiaidau
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.app_ref || github.event.inputs.custom_branch || 'main' }}
+          path: app
+
+      - name: 5. Kiểm tra danh sách spec đầu vào
+        env:
+          E2E_SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          for s in $E2E_SPECS; do
+            case "$s" in
+              integration_test/*_test.dart) ;;
+              *) echo "::error::Spec không hợp lệ cho app-e2e: $s (phải là integration_test/<tên>_test.dart)"; exit 1 ;;
+            esac
+            case "$s" in
+              *..*) echo "::error::Spec chứa '..': $s"; exit 1 ;;
+            esac
+          done
+
+      # Backend giống test-fullstack. Luôn nạp seed:data: tài khoản ADMIN (vndcsport) chỉ có trong seed:data và app-e2e cần nó để duyệt giải qua API.
+      - name: 6. Backend migrate, seed, khởi động NestJS
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: your_password
+          DB_DATABASE: tournament_db
+          DB_SSL: false
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
+        run: |
+          cd backend
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          pnpm build
+          node run-prod-migration.js
+          node run-prod-migration.js
+          pnpm verify:football-schema
+          pnpm seed:prod
+          pnpm seed:data
+          PORT=3000 pnpm start:prod > "$RUNNER_TEMP/backend.log" 2>&1 &
+          echo "Backend khởi động, log: $RUNNER_TEMP/backend.log"
+
+      - name: 7. Chờ Backend và tạo tài khoản E2E
+        run: |
+          npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 120000
+          for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player"; do
+            email="${account%%:*}"; name="${account#*:}"
+            code=$(curl -s -o /tmp/register.json -w '%{http_code}' -X POST http://localhost:3000/api/v1/auth/register \
+              -H 'Content-Type: application/json' \
+              -d "{\"email\":\"$email\",\"password\":\"123456\",\"fullName\":\"$name\"}")
+            if [ "$code" != "201" ] && [ "$code" != "409" ]; then
+              echo "::error::Tạo tài khoản E2E $email lỗi HTTP $code"; cat /tmp/register.json; exit 1
+            fi
+            echo "Tài khoản E2E $email: HTTP $code"
+          done
+          PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 <<'SQL'
+          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com');
+          INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
+          INSERT INTO user_to_roles (user_id, role_id)
+            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
+            ON CONFLICT DO NOTHING;
+          SQL
+
+      - name: 8. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          # App cần Dart ^3.10.3; cùng dòng 3.47 với máy dev.
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 9. Tạo .env từ .env.example (chỉ đổi API_BASE_URL và APP_API_KEY)
+        working-directory: app
+        run: |
+          cp .env.example .env
+          sed -i 's|^API_BASE_URL=.*|API_BASE_URL=http://10.0.2.2:3000/api/v1|' .env
+          sed -i 's|^APP_API_KEY=.*|APP_API_KEY=|' .env
+          grep -q '^API_BASE_URL=' .env || echo 'API_BASE_URL=http://10.0.2.2:3000/api/v1' >> .env
+          grep -q '^APP_API_KEY=' .env || echo 'APP_API_KEY=' >> .env
+          grep '^API_BASE_URL=' .env
+
+      - name: 10. Flutter pub get
+        working-directory: app
+        run: flutter pub get
+
+      - name: 11. Bật KVM cho emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Script ghi ra file để emulator-runner chỉ gọi một dòng lệnh (multi-line trong 'script' chạy từng dòng riêng).
+      - name: 12. Ghi script chạy E2E
+        run: |
+          cat > "$RUNNER_TEMP/run-e2e.sh" <<'SH'
+          #!/usr/bin/env bash
+          # Chạy trong thư mục app (working-directory của emulator-runner).
+          mkdir -p app-e2e-report
+          if [ -n "${E2E_SPECS:-}" ]; then
+            read -r -a SPECS_ARR <<< "$E2E_SPECS"
+          else
+            SPECS_ARR=(integration_test)
+          fi
+          echo "Thiết bị đang chạy:"; adb devices
+          flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
+          RC=${PIPESTATUS[0]}
+          # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
+          python3 - app-e2e-report/flutter-test.log <<'PY'
+          import re, sys
+          text = open(sys.argv[1], errors="replace").read()
+          rows = re.findall(r"^\d+:\d{2}(?::\d{2})? \+(\d+)(?: ~(\d+))?(?: -(\d+))?:", text, re.M)
+          if rows:
+              passed, skipped, failed = rows[-1]
+              print(f"Tests: {int(passed or 0)} passed, {int(failed or 0)} failed, {int(skipped or 0)} skipped")
+          PY
+          # Ảnh màn hình cuối và logcat: bằng chứng khi test không lưu ảnh ra đĩa.
+          adb exec-out screencap -p > app-e2e-report/emulator-cuoi.png || true
+          adb logcat -d -t 3000 > app-e2e-report/logcat.txt || true
+          exit "$RC"
+          SH
+          chmod +x "$RUNNER_TEMP/run-e2e.sh"
+
+      - name: 13. Chạy integration_test trên emulator Android API 34 (x86_64)
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_SPECS: ${{ github.event.inputs.specs }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: app
+          script: bash "$RUNNER_TEMP/run-e2e.sh"
+
+      - name: 14. Gom backend.log vào báo cáo (chạy cả khi lỗi)
+        if: always()
+        run: |
+          mkdir -p app/app-e2e-report
+          cp "$RUNNER_TEMP/backend.log" app/app-e2e-report/backend.log || echo "Không có backend.log"
+
+      - name: 15. Upload app-e2e-report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-e2e-report
+          path: app/app-e2e-report/
+          if-no-files-found: warn
 
   # ==========================================
   # JOB 5: TEST AICHECKVAR (PYTHON PYTEST)
