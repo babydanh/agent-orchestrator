@@ -1,0 +1,240 @@
+name: Security Scan (Backend / Web / App)
+run-name: "security-scan ${{ github.event.inputs.target || 'all' }} ref=${{ github.event.inputs.ref || 'main' }}"
+
+# Quét tĩnh: chỉ đọc mã nguồn và lockfile. KHÔNG cài dependency của repo được quét, KHÔNG chạy code của repo đó.
+# Log công khai (repo orchestrator là public) chỉ có counts/status/SHA. Chi tiết chỉ vào issue của repo private.
+# Chưa nối deploy gate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "all, backend, web hoặc app"
+        required: true
+        type: choice
+        default: all
+        options: [all, backend, web, app]
+      ref:
+        description: "Nhánh hoặc SHA của repo mục tiêu"
+        required: false
+        type: string
+        default: main
+  schedule:
+    - cron: "20 2 * * 1" # Thứ Hai hằng tuần, 02:20 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Lập matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      ref: ${{ steps.plan.outputs.ref }}
+    steps:
+      - id: plan
+        env:
+          TARGET: ${{ github.event.inputs.target || 'all' }}
+          REF: ${{ github.event.inputs.ref || 'main' }}
+        run: |
+          set -euo pipefail
+          # Tên repo lấy từ agent-task.yml. Owner = github.repository_owner.
+          CATALOG='[{"target":"backend","repo":"HethongBackendApi_QuanlyGiaiDau","semgrep":true},{"target":"web","repo":"HethongFrontEndWeb_QLgiaidau","semgrep":true},{"target":"app","repo":"HethongFrontEndApp_QLgiaidau","semgrep":false}]'
+          case "$TARGET" in
+            all|backend|web|app) ;;
+            *) echo "::error::target không hợp lệ"; exit 1 ;;
+          esac
+          git check-ref-format --branch "$REF" > /dev/null || { echo "::error::ref không hợp lệ"; exit 1; }
+          MATRIX="$(jq -c --arg t "$TARGET" '{include: [.[] | select($t == "all" or .target == $t)]}' <<< "$CATALOG")"
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+  scan:
+    name: "Quét ${{ matrix.target }}"
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      OWNER: ${{ github.repository_owner }}
+      TARGET_KEY: ${{ matrix.target }}
+      TARGET_REPO: ${{ matrix.repo }}
+      SEMGREP_ENABLED: ${{ matrix.semgrep }}
+      REF: ${{ needs.plan.outputs.ref }}
+      SEMGREP_SEND_METRICS: "off"
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+      OSV_SCANNER_VERSION: "2.7.0"
+      OSV_SCANNER_SHA256: "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b"
+      SEMGREP_VERSION: "1.181.0"
+      SEMGREP_WHEEL_URL: "https://files.pythonhosted.org/packages/b0/1d/aed54e9cea5491f0dd54286126216f97ef817a356734d3c9d5e40c124c34/semgrep-1.181.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_x86_64.whl"
+      SEMGREP_WHEEL_SHA256: "c142ec04a2ed144970cb0a92f6877651dd3c088505eec737bb7f4db7ae5f0ffa"
+    steps:
+      - name: Checkout orchestrator (scripts và rule)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Cài Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Kiểm bộ tổng hợp báo cáo (không lộ secret, không báo sạch khi thiếu kết quả)
+        run: python -m unittest discover -s scripts/security -p 'test_*.py'
+
+      - name: Cài Gitleaks và OSV-Scanner (release đã ghim, kiểm SHA256)
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          BIN="$RUNNER_TEMP/bin"
+          mkdir -p "$BIN"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/gitleaks.tgz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$BIN" gitleaks
+          curl -fsSL --retry 3 -o "$BIN/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  $BIN/osv-scanner" | sha256sum -c -
+          chmod +x "$BIN/gitleaks" "$BIN/osv-scanner"
+          GL_V="$("$BIN/gitleaks" version)"
+          grep -qF "$GITLEAKS_VERSION" <<< "$GL_V"
+          OSV_V="$("$BIN/osv-scanner" --version)"
+          grep -qF "$OSV_SCANNER_VERSION" <<< "$OSV_V"
+
+      - name: Cài Semgrep CE (wheel đã ghim, kiểm SHA256)
+        if: matrix.semgrep
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          WHEEL="$RUNNER_TEMP/${SEMGREP_WHEEL_URL##*/}"
+          curl -fsSL --retry 3 -o "$WHEEL" "$SEMGREP_WHEEL_URL"
+          echo "${SEMGREP_WHEEL_SHA256}  $WHEEL" | sha256sum -c -
+          python -m venv "$RUNNER_TEMP/semgrep-venv"
+          "$RUNNER_TEMP/semgrep-venv/bin/pip" install --quiet --disable-pip-version-check "$WHEEL"
+          ln -sf "$RUNNER_TEMP/semgrep-venv/bin/semgrep" "$RUNNER_TEMP/bin/semgrep"
+          SV="$("$RUNNER_TEMP/bin/semgrep" --version)"
+          [ "$SV" = "$SEMGREP_VERSION" ]
+
+      - name: Self-test quy tắc Semgrep (fixture lỗi phải bị bắt, fixture an toàn phải sạch)
+        if: matrix.semgrep
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python scripts/security/semgrep_selftest.py \
+            --semgrep "$RUNNER_TEMP/bin/semgrep" \
+            --rules scripts/security/rules/semgrep-ts-js.yml \
+            --fixtures scripts/security/fixtures/semgrep
+
+      - name: Clone repo mục tiêu (GH_PAT qua GIT_CONFIG_*, không ghi vào .git/config)
+        timeout-minutes: 15
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          export GIT_TERMINAL_PROMPT=0
+          if [ -z "${GH_PAT:-}" ]; then
+            echo "::error::Thiếu secret GH_PAT (lỗi hạ tầng)"; exit 1
+          fi
+          AUTH_B64="$(printf 'x-access-token:%s' "$GH_PAT" | base64 -w0)"
+          echo "::add-mask::$AUTH_B64"
+          TARGET_DIR="$RUNNER_TEMP/target-src"
+          REPORTS="$RUNNER_TEMP/security-reports"
+          mkdir -p "$REPORTS/logs"
+          if ! GIT_CONFIG_COUNT=1 \
+               GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+               GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${AUTH_B64}" \
+               timeout 900 git clone --quiet "https://github.com/${OWNER}/${TARGET_REPO}.git" "$TARGET_DIR" \
+               > "$REPORTS/logs/clone.log" 2>&1; then
+            echo "::error::Clone repo mục tiêu thất bại (lỗi hạ tầng: kiểm quyền GH_PAT)"; exit 1
+          fi
+          cd "$TARGET_DIR"
+          if git config --local --list | grep -qiE 'extraheader|authorization|x-access-token'; then
+            echo "::error::Phát hiện token trong git config (lỗi hạ tầng)"; exit 1
+          fi
+          if [[ "$REF" =~ ^[0-9a-f]{40}$ ]]; then CO="$REF"; else CO="origin/$REF"; fi
+          if ! git checkout --quiet --detach "$CO" > "$REPORTS/logs/checkout.log" 2>&1; then
+            echo "::error::Không checkout được ref ${REF}"; exit 1
+          fi
+          echo "TARGET_DIR=$TARGET_DIR" >> "$GITHUB_ENV"
+          echo "REPORTS=$REPORTS" >> "$GITHUB_ENV"
+          echo "TARGET_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "Đã checkout ${REF} @ $(git rev-parse --short=12 HEAD)"
+
+      - name: Gitleaks (toàn bộ lịch sử mọi nhánh)
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          NOIGN="$RUNNER_TEMP/noignore"
+          mkdir -p "$NOIGN"
+          : > "$NOIGN/.gitleaksignore"
+          rc=0
+          timeout 1200 "$RUNNER_TEMP/bin/gitleaks" git "$TARGET_DIR" \
+            --config "$GITHUB_WORKSPACE/scripts/security/gitleaks.toml" \
+            --gitleaks-ignore-path "$NOIGN" \
+            --log-opts=--all \
+            --redact --no-banner --log-level warn \
+            --exit-code 0 \
+            --report-format json --report-path "$REPORTS/gitleaks.json" \
+            > "$REPORTS/logs/gitleaks.log" 2>&1 || rc=$?
+          echo "$rc" > "$REPORTS/gitleaks.exit"
+
+      - name: OSV-Scanner (mọi lockfile đã track)
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          cd "$TARGET_DIR"
+          mapfile -t LOCKS < <(git ls-files | grep -E '(^|/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|pubspec\.lock)$' || true)
+          echo "${#LOCKS[@]}" > "$REPORTS/osv.lockfiles"
+          if [ "${#LOCKS[@]}" -eq 0 ]; then
+            echo 128 > "$REPORTS/osv.exit"
+            exit 0
+          fi
+          ARGS=()
+          for l in "${LOCKS[@]}"; do ARGS+=("--lockfile=$PWD/$l"); done
+          rc=0
+          timeout 1200 "$RUNNER_TEMP/bin/osv-scanner" scan source \
+            --config "$GITHUB_WORKSPACE/scripts/security/osv-scanner.toml" \
+            -f json --output-file "$REPORTS/osv.json" \
+            "${ARGS[@]}" > "$REPORTS/logs/osv.log" 2>&1 || rc=$?
+          echo "$rc" > "$REPORTS/osv.exit"
+
+      - name: Semgrep (quy tắc cục bộ, không dùng registry)
+        if: matrix.semgrep
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          cd "$TARGET_DIR"
+          rc=0
+          timeout 1200 "$RUNNER_TEMP/bin/semgrep" scan \
+            --config "$GITHUB_WORKSPACE/scripts/security/rules/semgrep-ts-js.yml" \
+            --json --output "$REPORTS/semgrep.json" \
+            --metrics=off --disable-version-check --quiet \
+            --exclude node_modules --exclude dist --exclude build --exclude .next --exclude coverage \
+            . > "$REPORTS/logs/semgrep.log" 2>&1 || rc=$?
+          echo "$rc" > "$REPORTS/semgrep.exit"
+
+      - name: Tổng hợp (log công khai chỉ counts/status/SHA; chi tiết vào issue private)
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          python scripts/security/report.py \
+            --target "$TARGET_KEY" --repo "$TARGET_REPO" --owner "$OWNER" \
+            --sha "$TARGET_SHA" --ref "$REF" \
+            --workdir "$TARGET_DIR" --reports "$REPORTS" \
+            --semgrep "$SEMGREP_ENABLED"
+
+      - name: Dọn báo cáo thô trên runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/target-src" "$RUNNER_TEMP/security-reports" "$RUNNER_TEMP/noignore" "$RUNNER_TEMP"/semgrep-*.whl

@@ -1,0 +1,95 @@
+# Quy tắc Semgrep cục bộ cho TypeScript/JavaScript/JSX. Không dùng registry: kết quả không đổi theo thời gian.
+# Mỗi quy tắc có fixture positive/negative trong scripts/security/fixtures/semgrep.
+# Self-test (scripts/security/semgrep_selftest.py) chạy trước mỗi lượt quét và phải đạt.
+rules:
+  - id: js-sql-template-injection
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Câu lệnh SQL được nội suy bằng template literal (${...}) hoặc nối chuỗi rồi truyền vào hàm query/execute.
+      Dùng tham số hoá (placeholder $1 kèm mảng tham số) hoặc tagged template sql`...` của ORM.
+    metadata:
+      category: security
+      cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command'
+    patterns:
+      - pattern-either:
+          - pattern: $DB.$FN($SQL)
+          - pattern: $DB.$FN($SQL, ...)
+      - metavariable-regex:
+          metavariable: $FN
+          regex: '^(query|execute|\$queryRawUnsafe|\$executeRawUnsafe)$'
+      - pattern-either:
+          - metavariable-regex:
+              metavariable: $SQL
+              regex: '^`[\s\S]*\$\{'
+          - metavariable-pattern:
+              metavariable: $SQL
+              pattern: $LEFT + $RIGHT
+
+  - id: js-dynamic-exec
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      Lệnh shell được dựng động (biến, nối chuỗi hoặc template có ${...}) rồi đưa vào exec/execSync.
+      Dùng execFile hoặc spawn với đối số cố định dạng mảng.
+    metadata:
+      category: security
+      cwe: 'CWE-78: Improper Neutralization of Special Elements used in an OS Command'
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $OBJ.$FN($CMD)
+                  - pattern: $OBJ.$FN($CMD, ...)
+              - metavariable-regex:
+                  metavariable: $OBJ
+                  regex: '^(child_process|childProcess|cp)$'
+              - metavariable-regex:
+                  metavariable: $FN
+                  regex: '^(exec|execSync)$'
+              - pattern-either:
+                  - metavariable-regex:
+                      metavariable: $CMD
+                      regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
+                  - metavariable-pattern:
+                      metavariable: $CMD
+                      pattern: $LEFT + $RIGHT
+          - patterns:
+              - pattern-either:
+                  - pattern: $FN($CMD)
+                  - pattern: $FN($CMD, ...)
+              - metavariable-regex:
+                  metavariable: $FN
+                  regex: '^(exec|execSync)$'
+              - pattern-either:
+                  - metavariable-regex:
+                      metavariable: $CMD
+                      regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
+                  - metavariable-pattern:
+                      metavariable: $CMD
+                      pattern: $LEFT + $RIGHT
+
+  - id: js-eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      eval() và new Function() biến chuỗi thành mã thực thi. Thay bằng hàm hoặc bảng tra cứu cố định.
+    metadata:
+      category: security
+      cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code'
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: jsx-dangerously-set-inner-html
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      dangerouslySetInnerHTML nhận giá trị động (biến, lời gọi hàm hoặc template có ${...}).
+      Chỉ dùng khi nội dung đã qua bộ làm sạch (ví dụ DOMPurify.sanitize) hoặc là hằng số.
+    metadata:
+      category: security
+      cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)'
+    patterns:
+      - pattern-regex: 'dangerouslySetInnerHTML=\{\{\s*__html:\s*(?:[A-Za-z_$][^}]*|`[^`]*\$\{[^`]*`)'
+      - pattern-not-regex: 'dangerouslySetInnerHTML=\{\{\s*__html:\s*DOMPurify\.sanitize\('

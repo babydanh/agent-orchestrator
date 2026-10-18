@@ -2,3 +2,4 @@
 .lavish/
 .ompplan/
 patches/
+scripts/security/__pycache__/

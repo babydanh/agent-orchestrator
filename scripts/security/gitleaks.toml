@@ -1,0 +1,6 @@
+# Cấu hình Gitleaks dùng chung cho mọi lượt quét bảo mật của orchestrator.
+# Được truyền bằng --config nên ghi đè .gitleaks.toml trong repo được quét: repo không tự nới luật.
+title = "security-scan: Gitleaks mặc định của orchestrator"
+
+[extend]
+useDefault = true

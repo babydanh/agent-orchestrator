@@ -41,6 +41,23 @@ Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở
   - `auto25d`: hỏng — repo `Auto25D-Remotion` "not found" trên run 12/10.
 - Đọc lỗi: `python ~/.omp/scripts/cloud-test-runner.py summary <run_id|last>`.
 
+## Quét bảo mật Backend / Web / App (`security-scan.yml`)
+
+- Chạy tay: `gh workflow run security-scan.yml -f target=all -f ref=main` (`target`: `all`, `backend`, `web`, `app`). Tự chạy mỗi thứ Hai 02:20 UTC. Chưa nối deploy gate.
+- Quét tĩnh, không cài dependency và không chạy code của repo được quét:
+  - Gitleaks 8.30.1 (CLI, không dùng gitleaks-action): toàn bộ lịch sử mọi nhánh.
+  - OSV-Scanner 2.7.0: mọi lockfile đã track (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `pubspec.lock`).
+  - Semgrep 1.181.0 CE với quy tắc cục bộ `scripts/security/rules/semgrep-ts-js.yml` (SQL nội suy, exec động, eval, `dangerouslySetInnerHTML` động). Trước mỗi lượt quét, `scripts/security/semgrep_selftest.py` chạy fixture lỗi (phải bị bắt đủ) và fixture an toàn (phải sạch).
+- Phạm vi: Backend và Web có đủ ba scanner. App (Flutter/Dart) chỉ có Gitleaks và OSV: Semgrep coi Dart là thử nghiệm nên không có SAST cho App.
+- Ghim và kiểm: binary và wheel được ghim phiên bản cùng SHA256 từ nguồn chính thức. Dependency transitive của Semgrep lấy từ PyPI, chưa ghim hash.
+- Quyền và token: workflow chỉ có `contents: read`. Clone repo mục tiêu dùng `GH_PAT` qua biến môi trường `GIT_CONFIG_*`, token không vào `.git/config` hay URL. Tối đa 2 job song song.
+- Kết quả:
+  - Log và step summary công khai chỉ có số lượng, trạng thái, SHA. Không có đường dẫn file, snippet, giá trị secret hay stderr.
+  - Chi tiết (rule/advisory, gói@phiên bản, file, dòng, commit) chỉ vào issue private: Web ghi trong repo Web; Backend/App ghi trong `babydanh/omp-global-config` vì hai repo mục tiêu đang public. Tiêu đề chứa tên repo để không trộn báo cáo.
+  - Job đỏ với "có phát hiện" khi có finding. Job đỏ với "lỗi hạ tầng" khi scanner lỗi, thiếu lockfile, không quét được file, hoặc không đọc/ghi được issue. Hai loại được tách riêng trong summary.
+- `GH_PAT` cần Contents read trên 3 repo mục tiêu và Issues read/write trên Web và `omp-global-config`. Không ghi được báo cáo private thì job báo lỗi hạ tầng, không bỏ qua.
+- Gitleaks quét cả lịch sử, nên secret đã xoá khỏi nhánh hiện tại vẫn bị báo nếu còn trong commit cũ.
+
 ## Secrets cần có (Settings -> Secrets and variables -> Actions)
 
 - `GH_PAT`: kéo/đẩy code vào các repo dự án (cần Contents, Actions, Issues).
