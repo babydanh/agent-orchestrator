@@ -816,6 +816,12 @@ jobs:
           echo "$XML"
           if echo "$XML" | grep -Eq '10\.0\.2\.2|localhost'; then echo "::error::APK release chứa ngoại lệ cleartext của debug"; exit 1; fi
 
+      # Task 5.2: phân tích tĩnh integration_test. Chạy sau bước test (always) để không chặn emulator; lỗi vẫn làm job đỏ.
+      - name: 13c. Phân tích tĩnh integration_test (task 5.2)
+        if: always()
+        working-directory: app
+        run: flutter analyze --no-pub integration_test
+
       - name: 14. Gom backend.log vào báo cáo (chạy cả khi lỗi)
         if: always()
         run: |
