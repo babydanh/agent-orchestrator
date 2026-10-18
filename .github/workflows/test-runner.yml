@@ -622,6 +622,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Cache ~/.gradle: build APK lạnh mất 509s (run 39116901048). setup-gradle lưu cache cả khi job đỏ (post-if: !cancelled()),
+      # khác setup-java cache: gradle (chỉ lưu khi xanh). 'basic' = cache GitHub Actions mã nguồn mở; mặc định 'enhanced' là dịch vụ thương mại.
+      # Chỉ ghi cache khi chạy trên nhánh mặc định (main); nhánh khác chỉ đọc.
+      - name: 2b. Cache Gradle (setup-gradle)
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
       # Backend lấy backend_ref hoặc main. KHÔNG lấy custom_branch: đó là nhánh App, Backend không có nhánh đó.
       - name: 3. Checkout Backend
         uses: actions/checkout@v4
