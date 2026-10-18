@@ -803,7 +803,7 @@ jobs:
           timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
           T_TEST1=$(date +%s)
-          GRADLE_S=$(grep -oE "Running Gradle task 'assembleDebug'\.\.\. [0-9.]+s" app-e2e-report/flutter-test.log | grep -oE '[0-9.]+' | awk '{s+=$1} END {printf "%.0f", s}')
+          GRADLE_S=$(grep -oE "Running Gradle task 'assembleDebug'\.\.\. +[0-9.]+s" app-e2e-report/flutter-test.log | awk '{sub(/s$/, "", $NF); s+=$NF} END {printf "%.0f", s}')
           echo "MỐC $(date -u +%H:%M:%S) UTC: flutter test xong sau $((T_TEST1 - T_TEST0)) s; Gradle assembleDebug cộng dồn ${GRADLE_S:-0} s (phần còn lại: cài APK và chạy test)"
           # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
           python3 - app-e2e-report/flutter-test.log <<'PY'
@@ -837,6 +837,8 @@ jobs:
           script: bash "$RUNNER_TEMP/run-e2e.sh"
 
       # Bước 13a: lưu NDK/CMake nếu lượt này chưa có cache và APK đã build xong (NDK đã cài đủ). Chạy cả khi test đỏ.
+      # Khóa lấy từ bước 10d (tính TRƯỚC build): build sinh thêm *.gradle* trong app/android nên băm lại ở đây ra khóa khác,
+      # cache không bao giờ khớp và lượt nào cũng nén lại NDK ~8,5 phút (run 39121296600: khôi phục c1d57d…, lưu 7490ec…).
       - name: 13a. Lưu NDK và CMake vào cache
         if: always() && steps.ndk-cache.outputs.cache-hit != 'true' && hashFiles('app/build/app/outputs/flutter-apk/app-debug.apk') != ''
         uses: actions/cache/save@v4
@@ -844,7 +846,7 @@ jobs:
           path: |
             ${{ steps.sdk.outputs.dir }}/ndk
             ${{ steps.sdk.outputs.dir }}/cmake
-          key: ${{ runner.os }}-android-ndk-cmake-${{ hashFiles('app/android/**/*.gradle*') }}
+          key: ${{ steps.ndk-cache.outputs.cache-primary-key }}
 
       # Task 2.1: manifest và resource release không có ngoại lệ cleartext tới 10.0.2.2/localhost.
       # Không dùng flutter build apk --release: compileReleaseJavaWithJavac lỗi vì GeneratedPluginRegistrant
