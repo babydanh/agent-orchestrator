@@ -813,9 +813,9 @@ jobs:
           # bash, không phải sh: gradlew là script bash; sh (dash trên ubuntu) lỗi "Syntax error: (" (run 39101569603).
           bash ./gradlew :app:processReleaseManifest :app:mergeReleaseResources --no-daemon --console=plain
           cd ..
-          # Flutter đặt thư mục build ở app/build (log run 39107055615: "build/outputs/flutter-apk"), nên tìm cả hai vị trí.
-          # Module app ghi vào build/ (APK ở build/outputs); plugin ghi vào build/<plugin>/, nên chỉ lấy build/intermediates.
-          MANIFEST=$(find build/intermediates android/app/build/intermediates -path '*merged*manifest*release*' -name AndroidManifest.xml 2>/dev/null | head -1)
+          # Module app ghi vào build/app (log run 39108355255: "build/app/outputs/flutter-apk"); plugin ghi vào build/<plugin>/.
+          # Chỉ tìm trong build/app/intermediates để không lấy manifest của plugin; android/app/build làm dự phòng.
+          MANIFEST=$(find build/app/intermediates android/app/build/intermediates -path '*merged*manifest*release*' -name AndroidManifest.xml 2>/dev/null | head -1)
           if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
           echo "Manifest release: $MANIFEST"
           if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
@@ -825,7 +825,7 @@ jobs:
             COUNT=$((COUNT + 1))
             echo "Kiểm resource release: $f"
             if grep -q '10\.0\.2\.2\|localhost' "$f"; then echo "::error::Bản release chứa ngoại lệ debug: $f"; exit 1; fi
-          done < <(find build/intermediates android/app/build/intermediates -path '*release*' -name 'network_security_config.xml' 2>/dev/null)
+          done < <(find build/app/intermediates android/app/build/intermediates -path '*release*' -name 'network_security_config.xml' 2>/dev/null)
           if [ "$COUNT" -eq 0 ]; then echo "::error::Không thấy network_security_config.xml trong resource release"; exit 1; fi
           echo "Task 2.1 OK: $COUNT file network_security_config release, không có 10.0.2.2/localhost."
 
