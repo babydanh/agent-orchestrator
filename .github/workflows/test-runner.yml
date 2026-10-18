@@ -723,6 +723,51 @@ jobs:
         working-directory: app
         run: flutter pub get
 
+      # Build debug cần google-services.json: plugin Gradle áp cứng và file này gitignored.
+      # File giả chỉ để Gradle chạy; Firebase lỗi khi khởi tạo và app đã bắt lỗi đó (push_notification_service.dart:37-107).
+      - name: 10b. Tạo google-services.json giả cho build debug (không commit)
+        working-directory: app
+        run: |
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "e2e-placeholder",
+              "storage_bucket": "e2e-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": { "package_name": "vn.vnsport.quanlygiaidau" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "e2e-placeholder-key" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+
+      # Task 2.1: bản release không có ngoại lệ cleartext tới 10.0.2.2/localhost. Đọc manifest và resource đã gộp.
+      - name: 10c. Kiểm cấu hình mạng bản release (task 2.1)
+        working-directory: app/android
+        run: |
+          ./gradlew :app:processReleaseManifest :app:mergeReleaseResources --no-daemon -q
+          MANIFEST=$(find app/build/intermediates -path '*merged_manifest*' -name AndroidManifest.xml | grep -i release | head -1)
+          if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
+          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
+          echo "Manifest release: $MANIFEST"
+          grep -o 'networkSecurityConfig="[^"]*"' "$MANIFEST"
+          COUNT=0
+          while IFS= read -r f; do
+            COUNT=$((COUNT + 1))
+            echo "Kiểm resource release: $f"
+            if grep -q '10\.0\.2\.2\|localhost' "$f"; then echo "::error::Bản release chứa ngoại lệ debug: $f"; exit 1; fi
+          done < <(find app/build/intermediates -path '*release*' -name 'network_security_config.xml')
+          if [ "$COUNT" -eq 0 ]; then echo "::error::Không thấy network_security_config.xml trong resource release"; exit 1; fi
+
       - name: 11. Bật KVM cho emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
