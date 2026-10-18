@@ -171,9 +171,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-
 
-      # Backend (cài, build, migrate, seed: ~60-110 giây, phần lớn chờ mạng) và Web (cài, build) không phụ thuộc
-      # nhau nên chạy song song. Log Web in ra sau, khi Web xong.
-      - name: 6. Dựng Backend (migrate, seed, start) và build Web song song
+      # Backend (cài, build, migrate, seed: ~60-110 giây, phần lớn chờ mạng) chạy song song với cài gói + Chromium của
+      # Web. KHÔNG build Web ở đây: `next build` gọi API Backend lúc tạo trang tĩnh (sitemap, /tournaments...),
+      # build khi Backend chưa listen sẽ ra trang rỗng. Build ở bước 7, sau khi Backend đã seed và mở cổng.
+      - name: 6. Dựng Backend (migrate, seed, start), song song cài gói Web
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -185,10 +186,6 @@ jobs:
           REDIS_PORT: 6379
           JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
-          # Next nhúng biến NEXT_PUBLIC_* lúc build.
-          FRONTEND_URL: http://localhost:3001
-          NEXT_API_URL: http://localhost:3000/api/v1
-          NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
           CI: true
         run: |
           (
@@ -198,7 +195,6 @@ jobs:
             if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
               npx playwright install --with-deps chromium
             fi
-            PORT=3001 pnpm build
           ) > "$RUNNER_TEMP/web-prep.log" 2>&1 &
           WEB_PID=$!
 
@@ -227,13 +223,13 @@ jobs:
           # Khởi động Backend API
           PORT=3000 pnpm start:prod &
 
-          echo "::group::Log cài và build Web"
+          echo "::group::Log cài gói Web"
           WEB_OK=0
           wait "$WEB_PID" || WEB_OK=$?
           cat "$RUNNER_TEMP/web-prep.log"
           echo "::endgroup::"
           if [ "$WEB_OK" != 0 ]; then
-            echo "::error::Cài/build Web lỗi (exit $WEB_OK), xem nhóm log 'Log cài và build Web'"; exit 1
+            echo "::error::Cài gói Web lỗi (exit $WEB_OK), xem nhóm log 'Log cài gói Web'"; exit 1
           fi
 
       # CHỜ CẢ 2 CỔNG SẴN SÀNG VÀ CHẠY PLAYWRIGHT E2E
@@ -312,6 +308,7 @@ jobs:
             echo "::error::Còn spec trỏ thẳng https://sporto.asia, từ chối chạy E2E trên CI"; exit 1
           fi
 
+          PORT=3001 pnpm build
           PORT=3001 pnpm start &
           npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
           # SPECS đi qua env (không nội suy vào script) và chỉ nhận ký tự đường dẫn.
