@@ -414,7 +414,8 @@ jobs:
           # --mode json để thấy model thật sự trả lời; có errorMessage nghĩa là Codex lỗi và đã bị chuyển dự phòng.
           printf 'Trả lời đúng chữ OK.\n' | omp -p --mode json --no-session --tools=read --model openai-codex/gpt-6-luna > /tmp/codex_check.json 2>&1 || true
           if grep -q '"errorMessage"' /tmp/codex_check.json || ! grep -q '"model":"gpt-6-luna"' /tmp/codex_check.json; then
-            echo "::error::Khóa Codex (secret OMP_CODEX_AUTH) không dùng được: $(grep -o '"errorMessage":"[^"]*' /tmp/codex_check.json | head -1 | cut -c1-200)"
+            echo "::error::Khóa Codex (secret OMP_CODEX_AUTH) không dùng được. Ở máy chạy: powershell ~/.omp/scripts/sync-codex-token.ps1"
+            grep -v '^\s*$' /tmp/codex_check.json | tail -5 | cut -c1-300
             exit 1
           fi
           echo "Khóa Codex hoạt động."
