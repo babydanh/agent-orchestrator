@@ -750,24 +750,6 @@ jobs:
           }
           JSON
 
-      # Task 2.1: bản release không có ngoại lệ cleartext tới 10.0.2.2/localhost. Đọc manifest và resource đã gộp.
-      - name: 10c. Kiểm cấu hình mạng bản release (task 2.1)
-        working-directory: app/android
-        run: |
-          ./gradlew :app:processReleaseManifest :app:mergeReleaseResources --no-daemon -q
-          MANIFEST=$(find app/build/intermediates -path '*merged_manifest*' -name AndroidManifest.xml | grep -i release | head -1)
-          if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
-          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
-          echo "Manifest release: $MANIFEST"
-          grep -o 'networkSecurityConfig="[^"]*"' "$MANIFEST"
-          COUNT=0
-          while IFS= read -r f; do
-            COUNT=$((COUNT + 1))
-            echo "Kiểm resource release: $f"
-            if grep -q '10\.0\.2\.2\|localhost' "$f"; then echo "::error::Bản release chứa ngoại lệ debug: $f"; exit 1; fi
-          done < <(find app/build/intermediates -path '*release*' -name 'network_security_config.xml')
-          if [ "$COUNT" -eq 0 ]; then echo "::error::Không thấy network_security_config.xml trong resource release"; exit 1; fi
-
       - name: 11. Bật KVM cho emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -817,6 +799,27 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: app
           script: bash "$RUNNER_TEMP/run-e2e.sh"
+
+      # Task 2.1: bản release không có ngoại lệ cleartext tới 10.0.2.2/localhost. Đọc manifest và resource đã gộp.
+      - name: 13b. Kiểm cấu hình mạng bản release (task 2.1)
+        if: always()
+        working-directory: app/android
+        run: |
+          # Repo không có gradlew; flutter test chèn wrapper vào android/ khi build. Nếu không có thì dùng gradle trên PATH.
+          if [ -f gradlew ]; then G="bash gradlew"; else G=gradle; fi
+          $G :app:processReleaseManifest :app:mergeReleaseResources --no-daemon -q
+          MANIFEST=$(find app/build/intermediates -path '*merged_manifest*' -name AndroidManifest.xml | grep -i release | head -1)
+          if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
+          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
+          echo "Manifest release: $MANIFEST"
+          grep -o 'networkSecurityConfig="[^"]*"' "$MANIFEST"
+          COUNT=0
+          while IFS= read -r f; do
+            COUNT=$((COUNT + 1))
+            echo "Kiểm resource release: $f"
+            if grep -q '10\.0\.2\.2\|localhost' "$f"; then echo "::error::Bản release chứa ngoại lệ debug: $f"; exit 1; fi
+          done < <(find app/build/intermediates -path '*release*' -name 'network_security_config.xml')
+          if [ "$COUNT" -eq 0 ]; then echo "::error::Không thấy network_security_config.xml trong resource release"; exit 1; fi
 
       - name: 14. Gom backend.log vào báo cáo (chạy cả khi lỗi)
         if: always()
