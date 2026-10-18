@@ -759,6 +759,24 @@ jobs:
           }
           JSON
 
+      # NDK 28.2 và CMake 3.22.1 do AGP tải vào SDK khi build APK lạnh: riêng NDK tốn ~5 phút (run 39118510032, bước 13).
+      # Cache thư mục SDK của runner. Bước 13a lưu cache sau khi APK đã build (NDK đã cài đủ), kể cả khi test đỏ.
+      - name: 10c. Xác định thư mục Android SDK
+        id: sdk
+        run: |
+          echo "dir=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_OUTPUT"
+
+      - name: 10d. Khôi phục NDK và CMake từ cache
+        id: ndk-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ steps.sdk.outputs.dir }}/ndk
+            ${{ steps.sdk.outputs.dir }}/cmake
+          key: ${{ runner.os }}-android-ndk-cmake-${{ hashFiles('app/android/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-android-ndk-cmake-
+
       - name: 11. Bật KVM cho emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -772,6 +790,7 @@ jobs:
           #!/usr/bin/env bash
           # Chạy trong thư mục app (working-directory của emulator-runner).
           mkdir -p app-e2e-report
+          echo "MỐC $(date -u +%H:%M:%S) UTC: emulator sẵn sàng; khởi động mất $(( $(date +%s) - ${E2E_BOOT_T0:-$(date +%s)} )) s (gồm cài SDK/AVD và boot)"
           if [ -n "${E2E_SPECS:-}" ]; then
             read -r -a SPECS_ARR <<< "$E2E_SPECS"
           else
@@ -779,8 +798,13 @@ jobs:
           fi
           echo "Thiết bị đang chạy:"; adb devices
           # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
+          T_TEST0=$(date +%s)
+          echo "MỐC $(date -u +%H:%M:%S) UTC: bắt đầu flutter test (mỗi file test: Gradle assembleDebug, cài APK, chạy)"
           timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
+          T_TEST1=$(date +%s)
+          GRADLE_S=$(grep -oE "Running Gradle task 'assembleDebug'\.\.\. [0-9.]+s" app-e2e-report/flutter-test.log | grep -oE '[0-9.]+' | awk '{s+=$1} END {printf "%.0f", s}')
+          echo "MỐC $(date -u +%H:%M:%S) UTC: flutter test xong sau $((T_TEST1 - T_TEST0)) s; Gradle assembleDebug cộng dồn ${GRADLE_S:-0} s (phần còn lại: cài APK và chạy test)"
           # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
           python3 - app-e2e-report/flutter-test.log <<'PY'
           import re, sys
@@ -796,6 +820,8 @@ jobs:
           exit "$RC"
           SH
           chmod +x "$RUNNER_TEMP/run-e2e.sh"
+          echo "E2E_BOOT_T0=$(date +%s)" >> "$GITHUB_ENV"
+          echo "MỐC $(date -u +%H:%M:%S) UTC: trước khi khởi động emulator (bước 13)"
 
       - name: 13. Chạy integration_test trên emulator Android API 34 (x86_64)
         uses: reactivecircus/android-emulator-runner@v2
@@ -809,6 +835,16 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: app
           script: bash "$RUNNER_TEMP/run-e2e.sh"
+
+      # Bước 13a: lưu NDK/CMake nếu lượt này chưa có cache và APK đã build xong (NDK đã cài đủ). Chạy cả khi test đỏ.
+      - name: 13a. Lưu NDK và CMake vào cache
+        if: always() && steps.ndk-cache.outputs.cache-hit != 'true' && hashFiles('app/build/app/outputs/flutter-apk/app-debug.apk') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ steps.sdk.outputs.dir }}/ndk
+            ${{ steps.sdk.outputs.dir }}/cmake
+          key: ${{ runner.os }}-android-ndk-cmake-${{ hashFiles('app/android/**/*.gradle*') }}
 
       # Task 2.1: manifest và resource release không có ngoại lệ cleartext tới 10.0.2.2/localhost.
       # Không dùng flutter build apk --release: compileReleaseJavaWithJavac lỗi vì GeneratedPluginRegistrant
