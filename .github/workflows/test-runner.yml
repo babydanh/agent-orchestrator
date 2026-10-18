@@ -379,12 +379,11 @@ jobs:
           if [ ${#dirs[@]} -gt 0 ]; then
             npx --yes allure-commandline@2.46.1 generate "${dirs[@]}" --clean -o allure-report
           fi
+      # Chỉ Allure đã gộp: ảnh/video/trace Playwright đã nằm trong artifact fullstack-e2e-shard-N, không chép lại.
       - uses: actions/upload-artifact@v4
         with:
           name: fullstack-allure-dashboard
-          path: |
-            allure-report/
-            shards/*/playwright-report/
+          path: allure-report/
           retention-days: 7
       - name: Báo kết quả vào Issue cố định
         if: github.event_name == 'schedule' || github.event.inputs.target_project == 'fullstack-e2e'
