@@ -69,11 +69,18 @@ jobs:
   # JOB 1: FULLSTACK INTEGRATION TEST (BẬT POSTGRES + BACKEND API + CHẠY WEB)
   # =========================================================================
   test-fullstack:
-    name: 🚀 Full-Stack E2E (Postgres + Backend NestJS + Web Next.js)
+    name: "🚀 Full-Stack E2E shard ${{ matrix.shard }}/${{ strategy.job-total }} (Postgres + Backend NestJS + Web Next.js)"
     # schedule không có inputs => phải cho phép riêng, nếu không job bị skip và cron báo xanh giả.
     if: github.event_name == 'schedule' || github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      # Cả bộ (specs trống) chia 4 máy, mỗi máy Postgres/Backend/Web riêng nên spec không giẫm dữ liệu của nhau.
+      # Lượt chọn spec chạy 1 máy như cũ. Không huỷ shard khác khi một shard đỏ: script tổng kết coi job bị huỷ là
+      # lỗi hạ tầng, sẽ che mất lỗi test thật. Điều kiện "cả bộ" lặp lại ở job report-fullstack.
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON((github.event_name == 'schedule' || github.event.inputs.specs == '') && '[1,2,3,4]' || '[1]') }}
 
     # CUNG CẤP DATABASE POSTGRESQL & REDIS THỰC TẾ TRÊN RUNNER
     services:
@@ -110,27 +117,63 @@ jobs:
         with:
           node-version: 22
 
-      # CACHE 1: PNPM Global Store
-      - name: 2. Setup PNPM Cache
+      # Chỉ lấy script chia shard / báo cáo của orchestrator, không lấy cả repo.
+      - uses: actions/checkout@v4
+        with:
+          path: orchestrator
+          sparse-checkout: scripts/e2e
+
+      # Clone trước để khoá cache theo đúng lockfile và đúng bản Playwright của nhánh đang test.
+      - name: 2. Clone Backend & Web
+        id: clone
+        run: |
+          mkdir -p workspace
+          cd workspace
+          REF="${{ github.event.inputs.backend_ref || github.event.inputs.custom_branch }}"
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
+          if [ -n "$REF" ]; then
+            git -C backend fetch --depth 1 origin "$REF"
+            git -C backend checkout FETCH_HEAD
+          fi
+          REF="${{ github.event.inputs.web_ref || github.event.inputs.custom_branch }}"
+          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
+          if [ -n "$REF" ]; then
+            git -C web fetch --depth 1 origin "$REF"
+            git -C web checkout FETCH_HEAD
+          fi
+          echo "pnpm_store=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+          echo "playwright=$(grep -m1 -oE '^  playwright-core@[0-9.]+' web/pnpm-lock.yaml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+
+      # CACHE 1: PNPM store. Khoá cũ cố định (pnpm-store-v1) không bao giờ lưu lại nên store cũ không dùng được
+      # (log: "reused 0", tải lại toàn bộ gói mỗi lượt).
+      - name: 3. Setup PNPM Cache
         uses: actions/cache@v4
         with:
-          path: ~/.local/share/pnpm/store
-          key: ${{ runner.os }}-pnpm-store-v1
+          path: ${{ steps.clone.outputs.pnpm_store }}
+          key: ${{ runner.os }}-pnpm12-store-${{ hashFiles('workspace/backend/pnpm-lock.yaml', 'workspace/web/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-pnpm12-store-
 
-      # CACHE 2: Playwright Chromium Browser Cache
-      - name: 3. Setup Playwright Browser Cache
+      # CACHE 2: Chromium theo đúng bản Playwright; khoá cố định cũ sẽ báo cache-hit cả khi Playwright đã lên bản mới.
+      - name: 4. Setup Playwright Browser Cache
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-v1
-          restore-keys: |
-            ${{ runner.os }}-playwright-
+          key: ${{ runner.os }}-playwright-${{ steps.clone.outputs.playwright }}
 
-      # CLONE BACKEND & START SERVICE KÈM DB SEEDING
-      - name: 4. Clone Backend, Migrate & Start NestJS Service
+      # CACHE 3: Next.js Build Cache
+      - name: 5. Setup Next.js Build Cache
+        uses: actions/cache@v4
+        with:
+          path: workspace/web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('workspace/web/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-
+
+      # Backend (cài, build, migrate, seed: ~60-110 giây, phần lớn chờ mạng) và Web (cài, build) không phụ thuộc
+      # nhau nên chạy song song. Log Web in ra sau, khi Web xong.
+      - name: 6. Dựng Backend (migrate, seed, start) và build Web song song
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -142,19 +185,27 @@ jobs:
           REDIS_PORT: 6379
           JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
+          # Next nhúng biến NEXT_PUBLIC_* lúc build.
+          FRONTEND_URL: http://localhost:3001
+          NEXT_API_URL: http://localhost:3000/api/v1
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
+          CI: true
         run: |
-          mkdir -p workspace
-          cd workspace
-          REF="${{ github.event.inputs.backend_ref || github.event.inputs.custom_branch }}"
-          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau.git backend
-          if [ -n "$REF" ]; then
-            git -C backend fetch --depth 1 origin "$REF"
-            git -C backend checkout FETCH_HEAD
-          fi
-          cd backend
+          (
+            set -e
+            cd workspace/web
+            pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+            if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+              npx playwright install --with-deps chromium
+            fi
+            PORT=3001 pnpm build
+          ) > "$RUNNER_TEMP/web-prep.log" 2>&1 &
+          WEB_PID=$!
+
+          cd workspace/backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
-          
+
           # Dùng đúng đường migration của Backend deploy.yml (đã kiểm chứng), KHÔNG dùng drizzle-kit push.
           node run-prod-migration.js
           # Chạy lần hai để xác nhận migration idempotent (như deploy.yml)
@@ -172,36 +223,18 @@ jobs:
             PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -tAc \
               "SELECT 'tran: ' || count(*) || ', da xong: ' || count(*) FILTER (WHERE status = 'COMPLETED') FROM matches;"
           fi
-          
+
           # Khởi động Backend API
           PORT=3000 pnpm start:prod &
-          cd ../..
 
-      # CLONE WEB REPO
-      - name: 5. Clone Web Repo & Install Dependencies
-        run: |
-          cd workspace
-          REF="${{ github.event.inputs.web_ref || github.event.inputs.custom_branch }}"
-          git clone --depth 1 https://${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau.git web
-          if [ -n "$REF" ]; then
-            git -C web fetch --depth 1 origin "$REF"
-            git -C web checkout FETCH_HEAD
+          echo "::group::Log cài và build Web"
+          WEB_OK=0
+          wait "$WEB_PID" || WEB_OK=$?
+          cat "$RUNNER_TEMP/web-prep.log"
+          echo "::endgroup::"
+          if [ "$WEB_OK" != 0 ]; then
+            echo "::error::Cài/build Web lỗi (exit $WEB_OK), xem nhóm log 'Log cài và build Web'"; exit 1
           fi
-          cd web
-          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
-            npx playwright install --with-deps chromium
-          fi
-          cd ../..
-
-      # CACHE 3: Next.js Build Cache (Đặt sau khi đã clone web)
-      - name: 6. Setup Next.js Build Cache
-        uses: actions/cache@v4
-        with:
-          path: workspace/web/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('workspace/web/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-
 
       # CHỜ CẢ 2 CỔNG SẴN SÀNG VÀ CHẠY PLAYWRIGHT E2E
       - name: 7. Wait for Backend & Run Playwright E2E UI Tests
@@ -213,6 +246,8 @@ jobs:
           CI: true
           SPECS: ${{ github.event.inputs.specs }}
           FAIL_FAST: ${{ github.event.inputs.fail_fast }}
+          SHARD: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ strategy.job-total }}
           # Spec biết job có dữ liệu mẫu hay không (seed=data) để tự bỏ qua ca cần dữ liệu khi chạy trên DB trống.
           E2E_SEED: ${{ github.event.inputs.seed }}
         run: |
@@ -277,71 +312,88 @@ jobs:
             echo "::error::Còn spec trỏ thẳng https://sporto.asia, từ chối chạy E2E trên CI"; exit 1
           fi
 
-          PORT=3001 pnpm build
           PORT=3001 pnpm start &
           npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
           # SPECS đi qua env (không nội suy vào script) và chỉ nhận ký tự đường dẫn.
           if [ -n "$SPECS" ] && ! printf '%s' "$SPECS" | grep -qE '^[A-Za-z0-9_./ -]+$'; then
             echo "::error::specs chứa ký tự không hợp lệ"; exit 1
           fi
+          # Cả bộ chia nhiều máy: shard này chạy phần của nó, cân theo thời gian đã đo (spec-durations.json).
+          if [ "$SHARD_TOTAL" -gt 1 ]; then
+            SPECS=$(python3 "$GITHUB_WORKSPACE/orchestrator/scripts/e2e/shard_specs.py" --root test/e2e --shard "$SHARD/$SHARD_TOTAL" | tr '\n' ' ')
+            if [ -z "${SPECS// /}" ]; then echo "Shard $SHARD/$SHARD_TOTAL không có spec nào"; exit 0; fi
+          fi
           # shellcheck disable=SC2086
           pnpm test:e2e $SPECS $([ "$FAIL_FAST" = "true" ] && echo "--max-failures=3 --retries=0")
 
       - name: 8. Generate Allure Report Dashboard
-        if: always()
+        if: always() && strategy.job-total == 1
         run: |
           cd workspace/web
           npx allure generate allure-results --clean -o allure-report || echo "Allure generate completed"
           cd ../..
 
+      # 1 shard: dashboard đã dựng sẵn (tên artifact cũ). Nhiều shard: kết quả thô để job report-fullstack gộp.
       - name: 9. Upload Allure & Playwright Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fullstack-allure-dashboard
+          name: ${{ strategy.job-total == 1 && 'fullstack-allure-dashboard' || format('fullstack-e2e-shard-{0}', matrix.shard) }}
           path: |
             workspace/web/allure-report/
+            workspace/web/allure-results/
             workspace/web/playwright-report/
           retention-days: 7
 
       - name: 10. Báo kết quả vào Issue cố định
-        if: always() && (github.event_name == 'schedule' || github.event.inputs.target_project == 'fullstack-e2e')
+        if: always() && strategy.job-total == 1 && (github.event_name == 'schedule' || github.event.inputs.target_project == 'fullstack-e2e')
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           JOB_STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           REPO: ${{ github.repository }}
+        run: python3 orchestrator/scripts/e2e/nightly_report.py workspace/web/allure-report
+
+  # Gộp kết quả các shard của lượt chạy cả bộ thành một dashboard Allure và một dòng báo cáo.
+  report-fullstack:
+    name: 📊 Gộp kết quả E2E các shard
+    needs: test-fullstack
+    # Cùng điều kiện "cả bộ" với matrix của test-fullstack.
+    if: always() && needs.test-fullstack.result != 'skipped' && (github.event_name == 'schedule' || github.event.inputs.specs == '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: orchestrator
+          sparse-checkout: scripts/e2e
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fullstack-e2e-shard-*
+          path: shards
+      - name: Gộp Allure các shard
         run: |
-          python3 - <<'PY'
-          import glob, json, os, collections, urllib.request
-          # Gộp theo historyId để retry không bị đếm nhiều lần; lấy lần chạy cuối của mỗi test.
-          by = {}
-          for f in glob.glob('workspace/web/allure-report/data/test-cases/*.json'):
-              d = json.load(open(f, encoding='utf-8'))
-              key = d.get('historyId') or d.get('fullName') or d.get('name')
-              start = (d.get('time') or {}).get('start') or 0
-              if key not in by or start > by[key][0]:
-                  by[key] = (start, d)
-          st = collections.Counter(v[1].get('status') for v in by.values())
-          total = len(by)
-          if total == 0:
-              summary = 'KHÔNG có kết quả test nào (suite không chạy tới Playwright hoặc report rỗng).'
-          else:
-              summary = f"{total} test: pass {st.get('passed',0)}, fail {st.get('failed',0)}, broken {st.get('broken',0)}, skipped {st.get('skipped',0)}"
-          body = f"**E2E đêm** | job: `{os.environ['JOB_STATUS']}`\n\n{summary}\n\nRun: {os.environ['RUN_URL']}"
-          repo = os.environ['REPO']
-          H = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'nightly'}
-          def call(path, data=None):
-              req = urllib.request.Request(f'https://api.github.com/repos/{repo}{path}', headers=H, data=json.dumps(data).encode() if data else None, method='POST' if data else 'GET')
-              return json.loads(urllib.request.urlopen(req).read().decode())
-          TITLE = '[Nightly] Kết quả E2E hằng đêm'
-          issues = call('/issues?state=open&per_page=100')
-          num = next((i['number'] for i in issues if i['title'] == TITLE and 'pull_request' not in i), None)
-          if num is None:
-              num = call('/issues', {'title': TITLE, 'body': 'Issue cố định: mỗi đêm workflow tự thêm một comment kết quả.'})['number']
-          call(f'/issues/{num}/comments', {'body': body})
-          print('Đã ghi kết quả vào issue #', num)
-          PY
+          shopt -s nullglob
+          dirs=(shards/*/allure-results)
+          echo "Kết quả Allure của ${#dirs[@]} shard"
+          if [ ${#dirs[@]} -gt 0 ]; then
+            npx --yes allure-commandline@2.46.1 generate "${dirs[@]}" --clean -o allure-report
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fullstack-allure-dashboard
+          path: |
+            allure-report/
+            shards/*/playwright-report/
+          retention-days: 7
+      - name: Báo kết quả vào Issue cố định
+        if: github.event_name == 'schedule' || github.event.inputs.target_project == 'fullstack-e2e'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ needs.test-fullstack.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: python3 orchestrator/scripts/e2e/nightly_report.py allure-report
 
   # ==========================================
   # JOB 2: TEST ISOLATED WEB UI (PLAYWRIGHT)

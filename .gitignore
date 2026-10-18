@@ -3,3 +3,4 @@
 .ompplan/
 patches/
 scripts/security/__pycache__/
+scripts/e2e/__pycache__/
