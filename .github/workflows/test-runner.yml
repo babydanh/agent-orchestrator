@@ -809,9 +809,10 @@ jobs:
         run: |
           cd android
           [ -f gradlew ] || { echo "::error::Không có gradlew sau build debug"; exit 1; }
-          sh ./gradlew :app:processReleaseManifest :app:mergeReleaseResources --no-daemon --console=plain
+          # bash, không phải sh: gradlew là script bash; sh (dash trên ubuntu) lỗi "Syntax error: (" (run 39101569603).
+          bash ./gradlew :app:processReleaseManifest :app:mergeReleaseResources --no-daemon --console=plain
           cd ..
-          MANIFEST=$(find android/app/build/intermediates -path '*release*' -name AndroidManifest.xml | head -1)
+          MANIFEST=$(find android/app/build/intermediates -path '*merged*manifest*release*' -name AndroidManifest.xml | head -1)
           if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
           echo "Manifest release: $MANIFEST"
           if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
