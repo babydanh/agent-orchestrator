@@ -769,7 +769,8 @@ jobs:
             SPECS_ARR=(integration_test)
           fi
           echo "Thiết bị đang chạy:"; adb devices
-          flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
+          # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
+          timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
           # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
           python3 - app-e2e-report/flutter-test.log <<'PY'
