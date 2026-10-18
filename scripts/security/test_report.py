@@ -45,6 +45,19 @@ class SecurityReportTest(unittest.TestCase):
         self.write('semgrep.json', {'results': [], 'errors': [], 'paths': {'scanned': []}})
         self.assertEqual(report.scan_semgrep(self.rd, self.rd)['status'], report.INFRA)
 
+    def test_parse_errors_report_incomplete_coverage_without_echoing_source(self):
+        (self.rd / 'semgrep.exit').write_text('0')
+        self.write('semgrep.json', {'results': [], 'paths': {'scanned': ['a.ts']},
+                                    'errors': [{'type': 'PartialParsing', 'message': 'PRIVATE_SOURCE_EXCERPT',
+                                                'spans': [{'file': 'a.ts', 'start': {'line': 9}}]}]})
+        scan = report.scan_semgrep(self.rd, self.rd)
+        self.assertEqual(scan['status'], report.INFRA)
+        self.assertEqual(len(scan['rows']), 0)
+        body = report.build_body(self.args, [scan])
+        self.assertIn('SCAN_INCOMPLETE:PartialParsing', body)
+        self.assertIn('a.ts', body)
+        self.assertNotIn('PRIVATE_SOURCE_EXCERPT', body)
+
     def test_public_target_routes_findings_only_to_verified_private_repo(self):
         scans = [report.result('scanner', report.FINDINGS, rows=[{'rule': 'check', 'file': 'a.ts'}])]
         with patch.object(report, 'gh', side_effect=[(0, 'false'), (0, 'true'), (0, '[]'),

@@ -129,7 +129,17 @@ def scan_semgrep(rd: Path, wd: Path):
     errors = data.get("errors") or []
     scanned = (data.get("paths") or {}).get("scanned") or []
     if errors:
-        return result(name, INFRA, f"lỗi phân tích={len(errors)}", rows)
+        diagnostics = []
+        for error in errors:
+            span = next(iter(error.get("spans") or []), {})
+            location = error.get("location") or {}
+            error_type = error.get("type") if isinstance(error.get("type"), str) else "scanner-error"
+            diagnostics.append({
+                "rule": f"SCAN_INCOMPLETE:{error_type}",
+                "file": rel(error.get("path") or location.get("path") or span.get("file"), wd),
+                "line": str((error.get("start") or location.get("start") or span.get("start") or {}).get("line", "")),
+            })
+        return {**result(name, INFRA, f"lỗi phân tích={len(errors)}", rows), "diagnostics": diagnostics}
     if not scanned:
         return result(name, INFRA, "không quét được file nào", rows)
     return result(name, FINDINGS if rows else CLEAN, rows=rows)
@@ -174,7 +184,7 @@ def build_body(a, scans) -> str:
         "|---|---|---|---|",
     ]
     out += [f"| {s['name']} | {s['status']} | {len(s['rows'])} | {esc(s['note'])} |" for s in scans]
-    rows = [(s["name"], r) for s in scans for r in s["rows"]]
+    rows = [(s["name"], r) for s in scans for r in [*s["rows"], *s.get("diagnostics", [])]]
     if rows:
         out += ["", "| Scanner | Quy tắc / advisory | Gói@phiên bản | File | Dòng | Commit |", "|---|---|---|---|---|---|"]
         for name, r in rows[:MAX_ROWS]:

@@ -216,12 +216,13 @@ jobs:
           set -euo pipefail
           cd "$TARGET_DIR"
           find . -name .semgrepignore -not -path './.git/*' -delete
+          # File rỗng thay template ignore mặc định; quét cả code đã track trong tests/dist/vendor.
+          : > .semgrepignore
           rc=0
           timeout 1200 "$RUNNER_TEMP/bin/semgrep" scan \
             --config "$GITHUB_WORKSPACE/scripts/security/rules/semgrep-ts-js.yml" \
             --json --output "$REPORTS/semgrep.json" \
             --metrics=off --disable-version-check --quiet --disable-nosem --no-git-ignore \
-            --exclude node_modules --exclude .git \
             . > "$REPORTS/logs/semgrep.log" 2>&1 || rc=$?
           echo "$rc" > "$REPORTS/semgrep.exit"
 
