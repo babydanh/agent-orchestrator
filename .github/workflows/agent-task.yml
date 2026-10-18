@@ -127,20 +127,24 @@ jobs:
 
           ls -la
 
-      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + Jev + 70+ Skills)
+      - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + luật/skill từ omp-global-config)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GH_PAT: ${{ secrets.GH_PAT }}
           OMP_CODEX_AUTH: ${{ secrets.OMP_CODEX_AUTH }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           mkdir -p ~/.omp/agent
 
-          # Sao chép toàn bộ kho 70+ Skills và Luật Agent từ repo vào ~/.omp/agent
-          echo "Copying 70+ Skills and agent directives..."
-          cp -r skills ~/.omp/agent/
-          cp AGENTS.md ~/.omp/agent/
-          cp APPEND_SYSTEM.md ~/.omp/agent/
-          cp INSTRUCTIONS.md ~/.omp/agent/
+          # Luật + skill lấy thẳng từ repo cấu hình omp của máy (omp-global-config): sửa ở máy là cloud dùng theo,
+          # không còn bản chép cũ lệch nhau. Không clone được thì dừng: chạy với luật/skill cũ là sai lặng lẽ.
+          git clone --depth 1 "https://${GH_PAT}@github.com/${OWNER}/omp-global-config.git" /tmp/omp-global \
+            || { echo "::error::Không clone được ${OWNER}/omp-global-config bằng GH_PAT (cần quyền đọc repo này)."; exit 1; }
+          cp -r /tmp/omp-global/agent/skills ~/.omp/agent/
+          for f in AGENTS.md APPEND_SYSTEM.md INSTRUCTIONS.md ANTI_PATTERNS.md; do
+            cp "/tmp/omp-global/agent/$f" ~/.omp/agent/
+          done
+          echo "Đã đồng bộ $(ls ~/.omp/agent/skills | wc -l) skill + luật từ omp-global-config@$(git -C /tmp/omp-global rev-parse --short HEAD)"
 
           # Khởi tạo cơ sở dữ liệu agent.db đầy đủ schema và tiêm Codex OAuth + OpenRouter API key
           echo "Initializing agent.db with schema and credentials..."
@@ -220,7 +224,8 @@ jobs:
             plan: openai-codex/gpt-6.1-sol:high
             judge: openrouter/poolside/laguna-s-2.1:free
             smol: openrouter/poolside/laguna-s-2.1:free
-            task: openrouter/poolside/laguna-s-2.1:free
+            # Subagent viết code dùng cùng model với agent chính (gói Codex): code viết trên cloud không kém ở máy.
+            task: openai-codex/gpt-6-luna:high
             # Không có model nhìn ảnh miễn phí đã kiểm chứng trên OpenRouter: dùng Codex (gói tháng, không tốn tiền OpenRouter).
             vision: openai-codex/gpt-6-luna:high
             commit: openrouter/poolside/laguna-s-2.1:free
@@ -256,23 +261,40 @@ jobs:
           astEdit:
             enabled: true
           retry:
-            modelFallback: false
+            # Bật dự phòng: Laguna free hết hạn mức ngày (dùng chung khóa OpenRouter với máy) thì chuyển sang model khác
+            # thay vì lỗi 429 làm hỏng subagent. Codex (gói tháng) là nấc cuối.
+            modelFallback: true
             fallbackChains:
               "openai-codex/*":
                 - openrouter/poolside/laguna-s-2.1:free
                 - openrouter/nvidia/nemotron-3.5-lightning:free
               default:
                 - openrouter/poolside/laguna-s-2.1:free
-                - openrouter/nvidia/nemotron-3.5-lightning:free
               plan:
-                - openrouter/poolside/laguna-s-2.1:free
-                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
               smol:
                 - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
               task:
-                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openrouter/poolside/laguna-s-2.1:free
               judge:
                 - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
+              commit:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
+              tiny:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
+              memory:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
+              advisor:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
+              slow:
+                - openrouter/nvidia/nemotron-3.5-lightning:free
+                - openai-codex/gpt-6-luna:high
           providers:
             openrouterVariant: nitro
             cacheWarming: idle
@@ -388,12 +410,21 @@ jobs:
             fi
           fi
 
+          # Kiểm khóa Codex trước khi giao việc: lần 16/10 khóa hỏng nên agent âm thầm chạy cả việc bằng model khác.
+          # --mode json để thấy model thật sự trả lời; có errorMessage nghĩa là Codex lỗi và đã bị chuyển dự phòng.
+          printf 'Trả lời đúng chữ OK.\n' | omp -p --mode json --no-session --tools=read --model openai-codex/gpt-6-luna > /tmp/codex_check.json 2>&1 || true
+          if grep -q '"errorMessage"' /tmp/codex_check.json || ! grep -q '"model":"gpt-6-luna"' /tmp/codex_check.json; then
+            echo "::error::Khóa Codex (secret OMP_CODEX_AUTH) không dùng được: $(grep -o '"errorMessage":"[^"]*' /tmp/codex_check.json | head -1 | cut -c1-200)"
+            exit 1
+          fi
+          echo "Khóa Codex hoạt động."
+
           echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
           cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
-            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/poolside/laguna-s-2.1:free" -p
+            printf "%s\n" "$TASK_PROMPT" | omp --continue -p || printf "%s\n" "$TASK_PROMPT" | omp -p
           else
-            printf "%s\n" "$TASK_PROMPT" | omp -p || printf "%s\n" "$TASK_PROMPT" | omp --model "openrouter/poolside/laguna-s-2.1:free" -p
+            printf "%s\n" "$TASK_PROMPT" | omp -p
           fi
           cd - >/dev/null
       - name: 7. Tự động đẩy code thẳng vào nhánh thực thi & Kích hoạt Test
@@ -402,10 +433,14 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
           ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
           ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
+          MANUAL_BRANCH: ${{ github.event.inputs.target_branch }}
           OWNER: ${{ github.repository_owner }}
         run: |
           cd workspace
           BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
+          if [ -n "$MANUAL_BRANCH" ]; then
+            BRANCH_NAME="$MANUAL_BRANCH"
+          fi
           HANDOFF_BRANCH=$(echo "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
           if [ -n "$HANDOFF_BRANCH" ]; then
             BRANCH_NAME="$HANDOFF_BRANCH"
@@ -416,6 +451,14 @@ jobs:
           for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
             if [ -d "$repo_dir" ]; then
               cd "$repo_dir"
+              # Agent quên commit (hoặc quên tạo nhánh) thì tự commit hộ lên đúng nhánh, để không mất việc đã làm.
+              # Repo trên runner là bản clone sạch nên mọi thay đổi ở đây đều là của agent.
+              if [ -n "$(git status --porcelain)" ]; then
+                [ "$(git branch --show-current)" = "$BRANCH_NAME" ] || git checkout -B "$BRANCH_NAME"
+                git add -A
+                git commit -m "chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE_NUMBER"
+                echo ">>> $repo_dir: agent chưa commit, đã tự commit lên $BRANCH_NAME"
+              fi
               if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
                 echo ">>> PUSH THẲNG CODE CHO $repo_dir LÊN BRANCH $BRANCH_NAME..."
                 git push -u "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$BRANCH_NAME"
@@ -532,7 +575,10 @@ jobs:
             cd backend
             pnpm install --prefer-offline || pnpm install
             pnpm build
-            pnpm db:push
+            # Dựng schema đúng đường deploy (run-prod-migration.js tạo cả extension PostGIS), giống test-runner.yml;
+            # drizzle-kit push không tạo extension nên lỗi 'type geography does not exist'.
+            node run-prod-migration.js
+            node run-prod-migration.js
             pnpm seed:prod
             PORT=3000 pnpm start:prod &
             npx wait-on http://localhost:3000 --timeout 60000
