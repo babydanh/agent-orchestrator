@@ -803,7 +803,7 @@ jobs:
           timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
           T_TEST1=$(date +%s)
-          GRADLE_S=$(grep -oE "Running Gradle task 'assembleDebug'\.\.\. +[0-9.]+s" app-e2e-report/flutter-test.log | awk '{sub(/s$/, "", $NF); s+=$NF} END {printf "%.0f", s}')
+          GRADLE_S=$(grep -oE "assembleDebug'[^0-9]*[0-9]+\.[0-9]+s" app-e2e-report/flutter-test.log | grep -oE "[0-9]+\.[0-9]+" | awk '{s+=$1} END {printf "%.0f", s}')
           echo "MỐC $(date -u +%H:%M:%S) UTC: flutter test xong sau $((T_TEST1 - T_TEST0)) s; Gradle assembleDebug cộng dồn ${GRADLE_S:-0} s (phần còn lại: cài APK và chạy test)"
           # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
           python3 - app-e2e-report/flutter-test.log <<'PY'
