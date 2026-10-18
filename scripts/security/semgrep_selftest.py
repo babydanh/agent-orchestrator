@@ -39,6 +39,7 @@ def run_semgrep(semgrep: str, rules: Path, target: Path, out: Path, log: Path) -
         "--metrics=off",
         "--disable-version-check",
         "--quiet",
+        "--disable-nosem",
         str(target),
     ]
     with log.open("w", encoding="utf-8") as fh:
@@ -80,6 +81,8 @@ def main() -> int:
             rc = run_semgrep(a.semgrep, a.rules, target, out, log)
             if rc != 0:
                 failures.append(f"{kind}: semgrep exit={rc}")
+                # Chỉ fixture công khai, trước khi clone target: chẩn đoán này không chứa code repo private.
+                print(f"Self-test diagnostics ({kind}, public fixtures): {log.read_text(encoding='utf-8', errors='replace')[-3000:]}")
                 continue
             data = json.loads(out.read_text(encoding="utf-8"))
             if data.get("errors"):

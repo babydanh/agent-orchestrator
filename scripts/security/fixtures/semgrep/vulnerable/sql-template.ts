@@ -4,5 +4,5 @@ declare const db: { $queryRawUnsafe: (sql: string) => Promise<unknown> };
 declare const id: string;
 declare const userName: string;
 
-const byTemplate = pool.query(`SELECT * FROM users WHERE id = ${id}`);
+const byTemplate = pool.query(`SELECT * FROM users WHERE id = ${id}`); // nosemgrep
 const byConcat = db.$queryRawUnsafe("SELECT * FROM users WHERE name = '" + userName + "'");

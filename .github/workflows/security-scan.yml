@@ -177,10 +177,11 @@ jobs:
           NOIGN="$RUNNER_TEMP/noignore"
           mkdir -p "$NOIGN"
           : > "$NOIGN/.gitleaksignore"
+          rm -f "$TARGET_DIR/.gitleaksignore"
           rc=0
           timeout 1200 "$RUNNER_TEMP/bin/gitleaks" git "$TARGET_DIR" \
             --config "$GITHUB_WORKSPACE/scripts/security/gitleaks.toml" \
-            --gitleaks-ignore-path "$NOIGN" \
+            --gitleaks-ignore-path "$NOIGN" --ignore-gitleaks-allow \
             --log-opts=--all \
             --redact --no-banner --log-level warn \
             --exit-code 0 \
@@ -214,12 +215,13 @@ jobs:
         run: |
           set -euo pipefail
           cd "$TARGET_DIR"
+          find . -name .semgrepignore -not -path './.git/*' -delete
           rc=0
           timeout 1200 "$RUNNER_TEMP/bin/semgrep" scan \
             --config "$GITHUB_WORKSPACE/scripts/security/rules/semgrep-ts-js.yml" \
             --json --output "$REPORTS/semgrep.json" \
-            --metrics=off --disable-version-check --quiet \
-            --exclude node_modules --exclude dist --exclude build --exclude .next --exclude coverage \
+            --metrics=off --disable-version-check --quiet --disable-nosem --no-git-ignore \
+            --exclude node_modules --exclude .git \
             . > "$REPORTS/logs/semgrep.log" 2>&1 || rc=$?
           echo "$rc" > "$REPORTS/semgrep.exit"
 

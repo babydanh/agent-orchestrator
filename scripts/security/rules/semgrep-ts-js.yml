@@ -18,13 +18,11 @@ rules:
       - metavariable-regex:
           metavariable: $FN
           regex: '^(query|execute|\$queryRawUnsafe|\$executeRawUnsafe)$'
-      - pattern-either:
-          - metavariable-regex:
-              metavariable: $SQL
-              regex: '^`[\s\S]*\$\{'
-          - metavariable-pattern:
-              metavariable: $SQL
-              pattern: $LEFT + $RIGHT
+      - metavariable-pattern:
+          metavariable: $SQL
+          pattern-either:
+            - pattern: $LEFT + $RIGHT
+            - pattern-regex: '^`[\s\S]*\$\{'
 
   - id: js-dynamic-exec
     languages: [javascript, typescript]
@@ -47,13 +45,11 @@ rules:
               - metavariable-regex:
                   metavariable: $FN
                   regex: '^(exec|execSync)$'
-              - pattern-either:
-                  - metavariable-regex:
-                      metavariable: $CMD
-                      regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
-                  - metavariable-pattern:
-                      metavariable: $CMD
-                      pattern: $LEFT + $RIGHT
+              - metavariable-pattern:
+                  metavariable: $CMD
+                  pattern-either:
+                    - pattern: $LEFT + $RIGHT
+                    - pattern-regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
           - patterns:
               - pattern-either:
                   - pattern: $FN($CMD)
@@ -61,13 +57,11 @@ rules:
               - metavariable-regex:
                   metavariable: $FN
                   regex: '^(exec|execSync)$'
-              - pattern-either:
-                  - metavariable-regex:
-                      metavariable: $CMD
-                      regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
-                  - metavariable-pattern:
-                      metavariable: $CMD
-                      pattern: $LEFT + $RIGHT
+              - metavariable-pattern:
+                  metavariable: $CMD
+                  pattern-either:
+                    - pattern: $LEFT + $RIGHT
+                    - pattern-regex: '^[A-Za-z_$]|^`[\s\S]*\$\{'
 
   - id: js-eval
     languages: [javascript, typescript]
