@@ -800,26 +800,21 @@ jobs:
           working-directory: app
           script: bash "$RUNNER_TEMP/run-e2e.sh"
 
-      # Task 2.1: bản release không có ngoại lệ cleartext tới 10.0.2.2/localhost. Đọc manifest và resource đã gộp.
+      # Task 2.1: APK release không có ngoại lệ cleartext tới 10.0.2.2/localhost. Build release rồi đọc bằng aapt.
       - name: 13b. Kiểm cấu hình mạng bản release (task 2.1)
         if: always()
-        working-directory: app/android
+        working-directory: app
         run: |
-          # Repo không có gradlew; flutter test chèn wrapper vào android/ khi build. Nếu không có thì dùng gradle trên PATH.
-          if [ -f gradlew ]; then G="bash gradlew"; else G=gradle; fi
-          $G :app:processReleaseManifest :app:mergeReleaseResources --no-daemon -q
-          MANIFEST=$(find app/build/intermediates -path '*merged_manifest*' -name AndroidManifest.xml | grep -i release | head -1)
-          if [ -z "$MANIFEST" ]; then echo "::error::Không tìm thấy manifest release đã gộp"; exit 1; fi
-          if ! grep -q 'networkSecurityConfig' "$MANIFEST"; then echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; fi
-          echo "Manifest release: $MANIFEST"
-          grep -o 'networkSecurityConfig="[^"]*"' "$MANIFEST"
-          COUNT=0
-          while IFS= read -r f; do
-            COUNT=$((COUNT + 1))
-            echo "Kiểm resource release: $f"
-            if grep -q '10\.0\.2\.2\|localhost' "$f"; then echo "::error::Bản release chứa ngoại lệ debug: $f"; exit 1; fi
-          done < <(find app/build/intermediates -path '*release*' -name 'network_security_config.xml')
-          if [ "$COUNT" -eq 0 ]; then echo "::error::Không thấy network_security_config.xml trong resource release"; exit 1; fi
+          flutter build apk --release --no-pub --target-platform android-x64
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          test -f "$APK" || { echo "::error::Không có APK release: $APK"; exit 1; }
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort | tail -1)
+          test -n "$AAPT" || { echo "::error::Không tìm thấy aapt trong $ANDROID_HOME/build-tools"; exit 1; }
+          MANIFEST=$("$AAPT" dump xmltree "$APK" AndroidManifest.xml)
+          echo "$MANIFEST" | grep -q networkSecurityConfig || { echo "::error::Manifest release thiếu networkSecurityConfig"; exit 1; }
+          XML=$("$AAPT" dump xmltree "$APK" res/xml/network_security_config.xml) || { echo "::error::APK release không có res/xml/network_security_config.xml"; exit 1; }
+          echo "$XML"
+          if echo "$XML" | grep -Eq '10\.0\.2\.2|localhost'; then echo "::error::APK release chứa ngoại lệ cleartext của debug"; exit 1; fi
 
       - name: 14. Gom backend.log vào báo cáo (chạy cả khi lỗi)
         if: always()
