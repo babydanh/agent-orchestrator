@@ -171,6 +171,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-
 
+      # CACHE 4: DB đã migrate + seed (dump schema public). seed:prod tải địa giới hành chính từ Internet (~40 giây) và
+      # cùng migration chạy lại y hệt ở mọi lượt; khoá theo mọi file quyết định nội dung DB nên đổi migration/seed là
+      # dựng lại từ đầu.
+      - name: 5b. Khôi phục cache DB đã migrate + seed
+        id: db-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/db-cache
+          key: db-v1-${{ hashFiles('workspace/backend/src/database/**', 'workspace/backend/run-prod-migration.js', 'workspace/backend/scripts/verify-football-schema.js', 'workspace/backend/package.json', 'workspace/backend/pnpm-lock.yaml') }}-seed-${{ github.event.inputs.seed || 'prod' }}
+
       # Backend (cài, build, migrate, seed: ~60-110 giây, phần lớn chờ mạng) chạy song song với cài gói + Chromium của
       # Web. KHÔNG build Web ở đây: `next build` gọi API Backend lúc tạo trang tĩnh (sitemap, /tournaments...),
       # build khi Backend chưa listen sẽ ra trang rỗng. Build ở bước 7, sau khi Backend đã seed và mở cổng.
@@ -202,21 +212,50 @@ jobs:
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
           pnpm build
 
-          # Dùng đúng đường migration của Backend deploy.yml (đã kiểm chứng), KHÔNG dùng drizzle-kit push.
-          node run-prod-migration.js
-          # Chạy lần hai để xác nhận migration idempotent (như deploy.yml)
-          node run-prod-migration.js
-          pnpm verify:football-schema
+          # Postgres của job chạy trong service container: pg_dump/pg_restore gọi bên trong để cùng bản với server
+          # (pg_dump mới hơn của runner sinh lệnh SET mà Postgres 16 không hiểu).
+          PGC=$(docker ps -q --filter ancestor=postgis/postgis:16-3.4)
+          DB_CACHE="$RUNNER_TEMP/db-cache"
+          export PGPASSWORD=your_password
+          if [ -f "$DB_CACHE/db.dump" ]; then
+            echo "DB: khôi phục bản đã migrate + seed từ cache (khoá: migration/seed của Backend, seed=${{ github.event.inputs.seed || 'prod' }})"
+            while read -r ext; do
+              psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 -qc "CREATE EXTENSION IF NOT EXISTS \"$ext\" CASCADE"
+            done < "$DB_CACHE/extensions.txt"
+            docker cp "$DB_CACHE/db.dump" "$PGC:/tmp/db.dump"
+            # Schema public đã có sẵn (chứa hàm của PostGIS): bỏ lệnh tạo schema, không dùng --clean (sẽ xoá PostGIS).
+            docker exec "$PGC" sh -c "pg_restore -l /tmp/db.dump | grep -vE 'SCHEMA - public|COMMENT - SCHEMA public' > /tmp/db.list"
+            docker exec "$PGC" pg_restore -U postgres -d tournament_db --no-owner --no-privileges --exit-on-error -L /tmp/db.list /tmp/db.dump
+            # Kiểm bản dump khớp migration hiện tại: chạy lại phải bỏ qua hết (Ran: 0).
+            node run-prod-migration.js | tee "$RUNNER_TEMP/migrate.log"
+            grep -q "Ran: 0," "$RUNNER_TEMP/migrate.log" || { echo "::error::Dump trong cache lệch migration (Ran khác 0)"; exit 1; }
+            pnpm verify:football-schema
+          else
+            # Dùng đúng đường migration của Backend deploy.yml (đã kiểm chứng), KHÔNG dùng drizzle-kit push.
+            node run-prod-migration.js
+            # Chạy lần hai để xác nhận migration idempotent (như deploy.yml)
+            node run-prod-migration.js
+            pnpm verify:football-schema
 
-          pnpm seed:prod
+            pnpm seed:prod
 
-          # Dữ liệu mẫu (tuỳ chọn): seed-data-prod.ts chỉ ghi DB của job này (DB_HOST=localhost ở trên), không gọi API,
-          # không xoá gì, chạy lại không tạo trùng (bỏ qua giải đã có).
+            # Dữ liệu mẫu (tuỳ chọn): seed-data-prod.ts chỉ ghi DB của job này (DB_HOST=localhost ở trên), không gọi API,
+            # không xoá gì, chạy lại không tạo trùng (bỏ qua giải đã có).
+            if [ "${{ github.event.inputs.seed }}" = "data" ]; then
+              pnpm seed:data
+            fi
+
+            mkdir -p "$DB_CACHE"
+            psql -h localhost -U postgres -d tournament_db -tAc \
+              "SELECT extname FROM pg_extension WHERE extname <> 'plpgsql' ORDER BY extname" > "$DB_CACHE/extensions.txt"
+            docker exec "$PGC" pg_dump -U postgres -Fc -n public tournament_db > "$DB_CACHE/db.dump"
+            echo "DB: đã dump để lưu cache ($(du -h "$DB_CACHE/db.dump" | cut -f1), extension: $(tr '\n' ' ' < "$DB_CACHE/extensions.txt"))"
+          fi
+
           if [ "${{ github.event.inputs.seed }}" = "data" ]; then
-            pnpm seed:data
-            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -c \
+            psql -h localhost -U postgres -d tournament_db -c \
               "SELECT status, count(*) AS so_giai FROM tournaments GROUP BY status ORDER BY status;"
-            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -tAc \
+            psql -h localhost -U postgres -d tournament_db -tAc \
               "SELECT 'tran: ' || count(*) || ', da xong: ' || count(*) FILTER (WHERE status = 'COMPLETED') FROM matches;"
           fi
 
@@ -231,6 +270,15 @@ jobs:
           if [ "$WEB_OK" != 0 ]; then
             echo "::error::Cài gói Web lỗi (exit $WEB_OK), xem nhóm log 'Log cài gói Web'"; exit 1
           fi
+
+      # Lưu ngay sau khi dựng DB (trước bước test): test đỏ vẫn có cache cho lượt sau. Nhiều shard cùng lưu một khoá
+      # thì shard đầu thắng, shard khác chỉ báo cảnh báo.
+      - name: 6b. Lưu cache DB đã migrate + seed
+        if: steps.db-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/db-cache
+          key: ${{ steps.db-cache.outputs.cache-primary-key }}
 
       # CHỜ CẢ 2 CỔNG SẴN SÀNG VÀ CHẠY PLAYWRIGHT E2E
       - name: 7. Wait for Backend & Run Playwright E2E UI Tests
