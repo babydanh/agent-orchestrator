@@ -97,6 +97,12 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           ~/.local/bin/ripwire --version || ripwire --version || echo "Ripwire ready or skipped"
 
+      - name: 3.2 Cài đặt codebase-memory MCP (đồ thị code, bản Linux tĩnh)
+        continue-on-error: true
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash -s -- --skip-config || true
+          ~/.local/bin/codebase-memory-mcp --version || echo "codebase-memory chưa cài được, mcp.json sẽ bỏ qua nó"
+
       - name: 4. Clone các Repositories của dự án
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
@@ -301,32 +307,27 @@ jobs:
             cacheRetention: long
           EOF
 
-          # Tạo file mcp.json cho OMP
-          cat << EOF > ~/.omp/agent/mcp.json
-          {
-            "mcpServers": {
-              "github": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-github"],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "$GH_PAT"
-                }
-              },
-              "ripwire": {
-                "command": "ripwire",
-                "args": [
-                  "--mcp",
-                  "--top-k=150",
-                  "--max-file-size=2M",
-                  "--exclude=node_modules",
-                  "--exclude=.git",
-                  "--exclude=.next",
-                  "--exclude=.dart_tool",
-                  "--exclude=coverage",
-                  "--exclude=.cache"
-                ]
-              }
-          EOF
+          # Tạo mcp.json bằng Python để JSON luôn hợp lệ (bản heredoc cũ thiếu 2 dấu "}" nên omp không nạp MCP nào).
+          # Chỉ khai báo server có lệnh trên runner: bước cài lỗi thì bỏ server đó thay vì để omp lỗi khi gọi.
+          PATH="$HOME/.local/bin:$PATH" python3 - <<'PY'
+          import json, os, shutil
+          servers = {
+              "github": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"],
+                         "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": os.environ.get("GH_PAT", "")}},
+              "ripwire": {"command": "ripwire", "args": ["--mcp", "--top-k=150", "--max-file-size=2M",
+                          "--exclude=node_modules", "--exclude=.git", "--exclude=.next", "--exclude=.dart_tool",
+                          "--exclude=coverage", "--exclude=.cache"]},
+              "codebase-memory": {"command": "codebase-memory-mcp"},
+          }
+          found = {name: s for name, s in servers.items() if shutil.which(s["command"])}
+          for name in sorted(set(servers) - set(found)):
+              print(f"::warning::MCP {name}: không thấy lệnh {servers[name]['command']}, bỏ qua")
+          path = os.path.expanduser("~/.omp/agent/mcp.json")
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump({"mcpServers": found}, f, indent=2)
+          json.load(open(path, encoding="utf-8"))  # đọc lại: lỗi thì bước này đỏ ngay
+          print("mcp.json: " + ", ".join(sorted(found)))
+          PY
 
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
         env:
@@ -678,8 +679,20 @@ jobs:
             git add .
             if ! git diff --cached --quiet; then
               git commit -m "chore(session): update session state for issue #$ISSUE_NUMBER"
-              git push origin omp-sync/sessions || echo "Warning: Push to omp-sync/sessions skipped or blocked by repository rules."
-              echo "Đã xử lý lưu session lên branch omp-sync/sessions!"
+              # Nhiều run xong cùng lúc cùng đẩy vào nhánh này: bị từ chối thì kéo bản mới về, ghép lên rồi đẩy lại.
+              # Mỗi run chỉ ghi thư mục issue-<số> của mình nên ghép không đụng nhau.
+              pushed=false
+              for attempt in 1 2 3 4 5 6 7 8; do
+                if git push origin HEAD:omp-sync/sessions; then pushed=true; break; fi
+                sleep $((attempt * 2 + RANDOM % 6))  # lệch giờ ngẫu nhiên để các run không đụng nhau lần nữa
+                git pull --rebase -q origin omp-sync/sessions || { git rebase --abort 2>/dev/null; break; }
+              done
+              if [ "$pushed" = true ]; then
+                echo "Đã lưu session lên branch omp-sync/sessions!"
+              else
+                echo "::error::Không đẩy được session lên omp-sync/sessions sau 8 lần: session của issue #$ISSUE_NUMBER chưa được lưu."
+                exit 1
+              fi
             else
               echo "Không có thay đổi trong session, bỏ qua push."
             fi
