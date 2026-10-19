@@ -143,6 +143,7 @@ jobs:
           fi
           echo "pnpm_store=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
           echo "playwright=$(grep -m1 -oE '^  playwright-core@[0-9.]+' web/pnpm-lock.yaml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+          echo "backend_sha=$(git -C backend rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # CACHE 1: PNPM store. Khoá cũ cố định (pnpm-store-v1) không bao giờ lưu lại nên store cũ không dùng được
       # (log: "reused 0", tải lại toàn bộ gói mỗi lượt).
@@ -179,7 +180,16 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/db-cache
-          key: db-v1-${{ hashFiles('workspace/backend/src/database/**', 'workspace/backend/run-prod-migration.js', 'workspace/backend/scripts/verify-football-schema.js', 'workspace/backend/package.json', 'workspace/backend/pnpm-lock.yaml') }}-seed-${{ github.event.inputs.seed || 'prod' }}
+          key: db-v2-${{ hashFiles('workspace/backend/src/database/**', 'workspace/backend/run-prod-migration.js', 'workspace/backend/scripts/verify-football-schema.js', 'workspace/backend/package.json', 'workspace/backend/pnpm-lock.yaml') }}-seed-${{ github.event.inputs.seed || 'prod' }}
+
+      # CACHE 5: bản build Backend (`nest build` ~25 giây) theo đúng commit Backend: cổng gộp của Web dùng lại `main`
+      # Backend nhiều lượt liền, cùng commit thì cùng kết quả build.
+      - name: 5c. Khôi phục cache build Backend
+        id: backend-dist
+        uses: actions/cache/restore@v4
+        with:
+          path: workspace/backend/dist
+          key: backend-dist-v1-${{ steps.clone.outputs.backend_sha }}
 
       # Backend (cài, build, migrate, seed: ~60-110 giây, phần lớn chờ mạng) chạy song song với cài gói + Chromium của
       # Web. KHÔNG build Web ở đây: `next build` gọi API Backend lúc tạo trang tĩnh (sitemap, /tournaments...),
@@ -210,7 +220,11 @@ jobs:
 
           cd workspace/backend
           pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
-          pnpm build
+          if [ "${{ steps.backend-dist.outputs.cache-hit }}" = "true" ] && [ -f dist/main.js ]; then
+            echo "Backend: dùng bản build trong cache (commit ${{ steps.clone.outputs.backend_sha }})"
+          else
+            pnpm build
+          fi
 
           # Postgres của job chạy trong service container: pg_dump/pg_restore gọi bên trong để cùng bản với server
           # (pg_dump mới hơn của runner sinh lệnh SET mà Postgres 16 không hiểu).
@@ -255,6 +269,14 @@ jobs:
             echo "DB: đã dump để lưu cache ($(du -h "$DB_CACHE/db.dump" | cut -f1), extension: $(tr '\n' ' ' < "$DB_CACHE/extensions.txt"))"
           fi
 
+          # Dấu vân tay dữ liệu để so lượt dựng mới với lượt nạp từ cache: phải giống nhau. `wards` mồ côi là phường
+          # Bình Dương (74) / Bình Thuận (60) do migration nạp khi tắt trigger khoá ngoại (run-prod-migration.js
+          # session_replication_role = replica), tỉnh v2 không còn mã đó.
+          psql -h localhost -U postgres -d tournament_db -tAc "SELECT 'DB vân tay: tổng dòng ' || sum((xpath('/row/c/text()',
+            query_to_xml(format('SELECT count(*) AS c FROM %I', tablename), false, true, '')))[1]::text::bigint)
+            || ', bảng ' || count(*) || ', wards mồ côi ' || (SELECT count(*) FROM wards w WHERE NOT EXISTS
+            (SELECT 1 FROM provinces p WHERE p.code = w.province_code)) FROM pg_tables WHERE schemaname = 'public'"
+
           if [ "${{ github.event.inputs.seed }}" = "data" ]; then
             psql -h localhost -U postgres -d tournament_db -c \
               "SELECT status, count(*) AS so_giai FROM tournaments GROUP BY status ORDER BY status;"
@@ -282,6 +304,13 @@ jobs:
         with:
           path: ${{ runner.temp }}/db-cache
           key: ${{ steps.db-cache.outputs.cache-primary-key }}
+
+      - name: 6c. Lưu cache build Backend
+        if: steps.backend-dist.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: workspace/backend/dist
+          key: ${{ steps.backend-dist.outputs.cache-primary-key }}
 
       # CHỜ CẢ 2 CỔNG SẴN SÀNG VÀ CHẠY PLAYWRIGHT E2E
       - name: 7. Wait for Backend & Run Playwright E2E UI Tests
