@@ -218,17 +218,20 @@ jobs:
           DB_CACHE="$RUNNER_TEMP/db-cache"
           export PGPASSWORD=your_password
           if [ -f "$DB_CACHE/db.dump" ]; then
-            echo "DB: khôi phục bản đã migrate + seed từ cache (khoá: migration/seed của Backend, seed=${{ github.event.inputs.seed || 'prod' }})"
-            while read -r ext; do
-              psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 -qc "CREATE EXTENSION IF NOT EXISTS \"$ext\" CASCADE"
-            done < "$DB_CACHE/extensions.txt"
+            echo "DB: dựng schema bằng migration, nạp dữ liệu đã seed từ cache (khoá: migration/seed của Backend, seed=${{ github.event.inputs.seed || 'prod' }})"
+            # Schema dựng bằng chính migration (vài giây), không phục hồi schema từ dump: seed để lại dòng `wards` trỏ tới
+            # tỉnh không tồn tại, phục hồi cả schema thì khoá ngoại bị kiểm lại và hỏng (run 39228959972).
+            node run-prod-migration.js
+            # Xoá dữ liệu migration tự nạp (vd. phường Bình Dương) để nạp đúng bản đã seed, giữ bảng ghi migration đã chạy.
+            psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 -qc "DO \$\$ DECLARE t text; BEGIN
+              SELECT string_agg(format('%I', tablename), ', ') INTO t FROM pg_tables
+              WHERE schemaname = 'public' AND tablename NOT IN ('__drizzle_migrations', 'spatial_ref_sys');
+              IF t IS NOT NULL THEN EXECUTE 'TRUNCATE ' || t || ' RESTART IDENTITY CASCADE'; END IF; END \$\$"
             docker cp "$DB_CACHE/db.dump" "$PGC:/tmp/db.dump"
-            # Schema public đã có sẵn (chứa hàm của PostGIS): bỏ lệnh tạo schema, không dùng --clean (sẽ xoá PostGIS).
-            docker exec "$PGC" sh -c "pg_restore -l /tmp/db.dump | grep -vE 'SCHEMA - public|COMMENT - SCHEMA public' > /tmp/db.list"
-            docker exec "$PGC" pg_restore -U postgres -d tournament_db --no-owner --no-privileges --exit-on-error -L /tmp/db.list /tmp/db.dump
-            # Kiểm bản dump khớp migration hiện tại: chạy lại phải bỏ qua hết (Ran: 0).
-            node run-prod-migration.js | tee "$RUNNER_TEMP/migrate.log"
-            grep -q "Ran: 0," "$RUNNER_TEMP/migrate.log" || { echo "::error::Dump trong cache lệch migration (Ran khác 0)"; exit 1; }
+            docker exec "$PGC" sh -c "pg_restore -l /tmp/db.dump | grep -vE '__drizzle_migrations|spatial_ref_sys' > /tmp/db.list"
+            # --disable-triggers: nạp như lúc seed (không kiểm khoá ngoại từng dòng); khoá ngoại có sẵn từ migration.
+            docker exec "$PGC" pg_restore -U postgres -d tournament_db --data-only --disable-triggers --no-owner \
+              --no-privileges --exit-on-error -L /tmp/db.list /tmp/db.dump
             pnpm verify:football-schema
           else
             # Dùng đúng đường migration của Backend deploy.yml (đã kiểm chứng), KHÔNG dùng drizzle-kit push.
