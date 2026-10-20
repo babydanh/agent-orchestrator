@@ -122,31 +122,21 @@ jobs:
           cd workspace
           git config --global user.name "OMP Orchestrator Agent"
           git config --global user.email "agent@oh-my-pi.local"
-
-          echo "Cloning Backend repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongBackendApi_QuanlyGiaiDau.git backend || echo "Backend repo not accessible or already cloned"
-
-          echo "Cloning Frontend App repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndApp_QLgiaidau.git app || echo "App repo not accessible or already cloned"
-
-          echo "Cloning Frontend Web repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/HethongFrontEndWeb_QLgiaidau.git web || echo "Web repo not accessible or already cloned"
-
-          echo "Cloning AICheckVAR repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/AICheckVAR.git aicheckvar || echo "AICheckVAR repo not accessible or already cloned"
-
-          echo "Cloning Auto3Dvideo repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/Auto3Dvideo.git auto3dvideo || echo "Auto3Dvideo repo not accessible or already cloned"
-
-          echo "Cloning Auto25D-Remotion repo..."
-          git clone https://${GH_PAT}@github.com/$OWNER/Auto25D-Remotion.git auto25d-remotion || echo "Auto25D-Remotion repo not accessible or already cloned"
-
-          # Bỏ token khỏi URL remote: agent từng đọc `git remote -v`, coi token là credential bị lộ rồi dừng việc.
-          # Git lấy token qua credential helper đọc biến môi trường GH_PAT lúc chạy (chuỗi trong config không chứa token).
-          git config --global credential.helper '!f() { echo username=x-access-token; echo "password=${GH_PAT}"; }; f'
-          for d in backend app web aicheckvar auto3dvideo auto25d-remotion; do
-            [ -d "$d/.git" ] && git -C "$d" remote set-url origin "https://github.com/$OWNER/$(git -C "$d" remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git"
-          done
+          # Token KHÔNG nằm trong URL: git bỏ token trong URL khi GitHub trả chuyển hướng (#18 "could not read
+          # Username"), và agent từng đọc `git remote -v` rồi dừng việc vì thấy token. Credential helper đọc biến môi
+          # trường GH_PAT lúc chạy (config không chứa token), CHỈ trả lời cho https://github.com. Đặt trước mọi clone;
+          # các bước sau (5, 6, 7, 8.5) dùng chung, miễn bước đó có env GH_PAT.
+          git config --global 'credential.https://github.com.helper' '!f() { echo username=x-access-token; echo "password=${GH_PAT}"; }; f'
+          clone() {  # clone <tên repo> <thư mục>
+            echo "Cloning $1..."
+            git clone -q "https://github.com/$OWNER/$1.git" "$2" || echo "$1: không clone được (không có quyền hoặc không tồn tại)"
+          }
+          clone HethongBackendApi_QuanlyGiaiDau backend
+          clone HethongFrontEndApp_QLgiaidau app
+          clone HethongFrontEndWeb_QLgiaidau web
+          clone AICheckVAR aicheckvar
+          clone Auto3Dvideo auto3dvideo
+          clone Auto25D-Remotion auto25d-remotion
           ls -la
 
       - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + luật/skill từ omp-global-config)
@@ -434,7 +424,7 @@ jobs:
           if [ -n "$SESSION_ID" ]; then
             echo "Phát hiện Handoff Session ID: $SESSION_ID. Đang tải từ branch omp-sync/sessions..."
             mkdir -p /tmp/sync_sessions
-            git clone --branch omp-sync/sessions --depth 1 "https://${GH_PAT:-$GITHUB_TOKEN}@github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
+            git clone --branch omp-sync/sessions --depth 1 "https://github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
             if [ -d "/tmp/sync_sessions/$SESSION_ID" ]; then
               echo "Khôi phục phiên làm việc $SESSION_ID vào ~/.omp/agent/sessions/..."
               mkdir -p ~/.omp/agent/sessions
@@ -677,10 +667,10 @@ jobs:
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
             rm -rf /tmp/session_repo
-            git clone --branch omp-sync/sessions "https://${GH_PAT}@github.com/${{ github.repository }}.git" /tmp/session_repo || {
+            git clone --branch omp-sync/sessions "https://github.com/${{ github.repository }}.git" /tmp/session_repo || {
               mkdir -p /tmp/session_repo && cd /tmp/session_repo
               git init && git checkout -b omp-sync/sessions
-              git remote add origin "https://${GH_PAT}@github.com/${{ github.repository }}.git"
+              git remote add origin "https://github.com/${{ github.repository }}.git"
             }
 
             cd /tmp/session_repo

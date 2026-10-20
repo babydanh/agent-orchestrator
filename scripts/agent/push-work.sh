@@ -46,13 +46,25 @@ push_repo() {  # chạy trong thư mục repo; in các dòng báo cáo ra fd 3
     git worktree add -q "$tmp_wt" "$BRANCH" && target_wt="$tmp_wt"
   }
 
-  # 1a. Việc dở ở thư mục clone mà nhánh chưa ở đâu cả: chuyển việc đó sang nhánh mới tại chỗ.
+  # 1a. Việc dở ở thư mục clone mà nhánh chưa ở đâu cả: chuyển việc đó sang nhánh tại chỗ. Nhánh đã có (commit của
+  # agent) thì KHÔNG reset nó (checkout -B sẽ xoá các commit đó): đưa việc dở sang nhánh tạm, bước 1c gộp vào.
   if [ -n "$(git status --porcelain)" ] && [ -z "$target_wt" ]; then
-    git checkout -q -B "$BRANCH"
-    target_wt=$(holder_of "$BRANCH")
+    if git rev-parse -q --verify "refs/heads/$BRANCH" >/dev/null; then
+      git checkout -q -b "$BRANCH-wip-$RUN"
+    else
+      git checkout -q -b "$BRANCH"
+      target_wt=$(holder_of "$BRANCH")
+    fi
   fi
-  # 1b. Commit mọi việc dở: thư mục clone + mọi worktree.
-  while IFS= read -r wt; do commit_dirty "$wt"; done < <(worktrees)
+  # 1b. Commit mọi việc dở: thư mục clone + mọi worktree. Commit hỏng (hook, quyền...) là việc chưa được lưu:
+  # báo lỗi, không coi repo là đã gom xong.
+  while IFS= read -r wt; do
+    if ! commit_dirty "$wt" || [ -n "$(git -C "$wt" status --porcelain)" ]; then
+      warn "$repo: KHÔNG commit được việc dở trong $wt, việc này chưa được đẩy"
+      echo "- $repo: việc dở trong \`$wt\` KHÔNG commit được, chưa được lưu (xem log)" >&3
+      FAILED=1
+    fi
+  done < <(worktrees)
   # 1c. Việc ở worktree khác nhánh: gộp vào nhánh cần đẩy.
   while IFS= read -r wt; do
     [ "$wt" = "$target_wt" ] || [ "$wt" = "$tmp_wt" ] && continue

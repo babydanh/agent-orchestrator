@@ -120,6 +120,28 @@ class PushWorkTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("KHÔNG khác main", r.stdout)
 
+    def test_nhanh_da_co_commit_cua_agent_khong_bi_reset_khi_thu_muc_clone_con_viec_do(self):
+        # Agent commit lên nhánh rồi quay về main và sửa tiếp: checkout -B cũ sẽ xoá commit trên nhánh.
+        git(self.repo, "checkout", "-q", "-b", BRANCH)
+        write(f"{self.repo}/commit1.ts", "1\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "agent commit")
+        git(self.repo, "checkout", "-q", "main")
+        write(f"{self.repo}/dirty.ts", "2\n")
+        r = self.run_script()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.remote_file(BRANCH, "commit1.ts"), "1")
+        self.assertEqual(self.remote_file(BRANCH, "dirty.ts"), "2")
+
+    def test_commit_viec_do_loi_thi_bao_loi_khong_bao_xong(self):
+        git(self.repo, "checkout", "-q", "-b", BRANCH)
+        write(f"{self.repo}/.git/hooks/pre-commit", "#!/bin/sh\nexit 1\n")
+        os.chmod(f"{self.repo}/.git/hooks/pre-commit", 0o755)
+        write(f"{self.repo}/code.ts", "agent\n")
+        r = self.run_script()
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("KHÔNG commit được", self.github_env())
+
 
 if __name__ == "__main__":
     unittest.main()

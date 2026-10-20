@@ -44,9 +44,10 @@ def should_persist(injected_b64: str | None, current: str | None) -> tuple[bool,
         return False, "agent.db không có tài khoản openai-codex đang dùng"
     try:
         injected = base64.b64decode(injected_b64 or "").decode("utf-8")
-    except ValueError:
-        injected = ""
-    if injected and json.dumps(json.loads(injected), sort_keys=True) == json.dumps(json.loads(current), sort_keys=True):
+        same = bool(injected) and json.loads(injected) == json.loads(current)
+    except ValueError:  # secret/DB hỏng (base64, UTF-8, JSON): bước 9 chỉ là đồng bộ phụ, bỏ qua chứ không làm đỏ job
+        return False, "token đã tiêm hoặc token trong agent.db không đọc được"
+    if same:
         return False, "token không đổi trong run này"
     if _expires(current) <= _expires(injected):
         return False, "token trong agent.db không mới hơn token đã tiêm (không ghi đè bản mới hơn của run khác)"
