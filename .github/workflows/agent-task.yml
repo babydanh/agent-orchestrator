@@ -131,6 +131,12 @@ jobs:
           echo "Cloning Auto25D-Remotion repo..."
           git clone https://${GH_PAT}@github.com/$OWNER/Auto25D-Remotion.git auto25d-remotion || echo "Auto25D-Remotion repo not accessible or already cloned"
 
+          # Bỏ token khỏi URL remote: agent từng đọc `git remote -v`, coi token là credential bị lộ rồi dừng việc.
+          # Git lấy token qua credential helper đọc biến môi trường GH_PAT lúc chạy (chuỗi trong config không chứa token).
+          git config --global credential.helper '!f() { echo username=x-access-token; echo "password=${GH_PAT}"; }; f'
+          for d in backend app web aicheckvar auto3dvideo auto25d-remotion; do
+            [ -d "$d/.git" ] && git -C "$d" remote set-url origin "https://github.com/$OWNER/$(git -C "$d" remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git"
+          done
           ls -la
 
       - name: 5. Đồng bộ cấu hình OMP hoàn chỉnh (Codex + OpenRouter + luật/skill từ omp-global-config)
@@ -332,6 +338,8 @@ jobs:
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Credential helper (bước 4) đọc biến này khi git fetch/pull; URL remote không còn chứa token.
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
           ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
@@ -374,6 +382,7 @@ jobs:
           Quy trình bắt buộc (Tuân thủ nghiêm ngặt Điều luật 16 Regression-Guard):
           1. Di chuyển vào đúng thư mục dự án liên quan (backend, app hoặc web).
           2. Tạo hoặc chuyển sang branch '$BRANCH_NAME' bằng lệnh: git checkout -B $BRANCH_NAME
+             Nếu bạn làm trong git worktree (quy trình AGENTS.md), worktree đó phải ở nhánh '$BRANCH_NAME' và commit hết vào nhánh này. KHÔNG push và KHÔNG merge main: bước sau của workflow tự push nhánh '$BRANCH_NAME' (kể cả việc còn trong worktree).
           3. ĐỌC TEST CŨ TRƯỚC: Mở và khảo sát toàn bộ các file test cũ (trong test/e2e/, tests/, *_test.dart) để nắm rõ UI selector và assertions, đảm bảo không phá vỡ logic cũ.
           4. Đọc kỹ mục 'Các việc CẦN LÀM TIẾP (Pending Checklist)' trong yêu cầu trên và hoàn thành toàn bộ.
           5. CHẠY TEST THẬT & ALLURE: Chạy đúng test liên quan tới việc này (Web: 'pnpm test:e2e <các spec trong trường E2E specs của issue hoặc spec bạn vừa thêm/sửa>'; Backend: 'pnpm test'; App: 'flutter test <file>') để đảm bảo tính năng mới chạy chuẩn và test liên quan vẫn pass. Spec mới viết cho việc này đặt trong test/e2e/ để bước E2E tự động chạy lại.
@@ -455,12 +464,38 @@ jobs:
               cd "$repo_dir"
               # Agent quên commit (hoặc quên tạo nhánh) thì tự commit hộ lên đúng nhánh, để không mất việc đã làm.
               # Repo trên runner là bản clone sạch nên mọi thay đổi ở đây đều là của agent.
+              # Worktree đang giữ nhánh cần push (có thể là chính thư mục clone, hoặc worktree agent tạo bằng git-wt).
+              holder_of() { git worktree list --porcelain | awk -v b="branch refs/heads/$1" '/^worktree /{w=substr($0,10)} $0==b{print w}'; }
+              TARGET_WT=$(holder_of "$BRANCH_NAME")
               if [ -n "$(git status --porcelain)" ]; then
-                [ "$(git branch --show-current)" = "$BRANCH_NAME" ] || git checkout -B "$BRANCH_NAME"
-                git add -A
-                git commit -m "chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE_NUMBER"
-                echo ">>> $repo_dir: agent chưa commit, đã tự commit lên $BRANCH_NAME"
+                if [ -z "$TARGET_WT" ]; then git checkout -B "$BRANCH_NAME"; TARGET_WT=$(pwd); fi
+                if [ "$(git branch --show-current)" = "$BRANCH_NAME" ]; then
+                  git add -A
+                  git commit -m "chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE_NUMBER"
+                  echo ">>> $repo_dir: agent chưa commit, đã tự commit lên $BRANCH_NAME"
+                else
+                  echo "::warning::$repo_dir: thư mục clone có thay đổi nhưng nhánh $BRANCH_NAME đang ở worktree $TARGET_WT; chỉ gom việc trong worktree."
+                fi
               fi
+              # Việc trong các worktree khác (issue #19 mất việc vì chỉ kiểm thư mục clone): commit tại chỗ, rồi gộp vào nhánh cần push.
+              for wt in $(git worktree list --porcelain | awk '/^worktree /{print substr($0,10)}' | tail -n +2); do
+                if [ -n "$(git -C "$wt" status --porcelain)" ]; then
+                  git -C "$wt" add -A
+                  git -C "$wt" commit -m "chore(agent): tự commit phần agent chưa commit trong worktree cho issue #$ISSUE_NUMBER"
+                  echo ">>> $repo_dir: đã tự commit việc dở trong worktree $wt"
+                fi
+                [ "$wt" = "$TARGET_WT" ] && continue
+                WT_HEAD=$(git -C "$wt" rev-parse HEAD)
+                if [ -z "$TARGET_WT" ]; then git checkout -B "$BRANCH_NAME"; TARGET_WT=$(pwd); fi
+                git -C "$TARGET_WT" merge-base --is-ancestor "$WT_HEAD" HEAD && continue
+                if git -C "$TARGET_WT" merge --no-edit "$WT_HEAD"; then
+                  echo ">>> $repo_dir: đã gộp việc trong worktree $wt vào $BRANCH_NAME"
+                else
+                  git -C "$TARGET_WT" merge --abort || true
+                  git push "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$WT_HEAD:refs/heads/$BRANCH_NAME-worktree-$(basename "$wt")"
+                  echo "::warning::$repo_dir: worktree $wt xung đột với $BRANCH_NAME, đã đẩy riêng lên $BRANCH_NAME-worktree-$(basename "$wt")"
+                fi
+              done
               if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
                 echo ">>> PUSH THẲNG CODE CHO $repo_dir LÊN BRANCH $BRANCH_NAME..."
                 git push -u "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$BRANCH_NAME"
