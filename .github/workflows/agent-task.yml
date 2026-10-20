@@ -18,12 +18,22 @@ on:
         required: false
         default: ''
 
+# Mỗi issue chỉ một run tại một thời điểm; lần kích hoạt thêm xếp hàng (không huỷ run đang làm: huỷ là mất việc
+# vì bước 7 không chạy). 20/10: relabel 3 lần + mở issue kèm nhãn sinh nhiều run song song cùng nhánh, cùng token.
+concurrency:
+  group: agent-task-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   run-agent:
     # CHỈ CHÍNH CHỦ (babydanh) MỚI ĐƯỢC PHÉP CHẠY.
+    # Issue: chạy khi MỞ issue (nếu chưa gắn nhãn agent-task) hoặc khi GẮN nhãn agent-task (cách chạy lại một issue).
+    # Gắn nhãn khác (bug, enhancement...) không còn kích hoạt cả một run mới.
     if: |
       (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'issues' && github.event.issue.user.login == github.repository_owner)
+      (github.event_name == 'issues' && github.event.issue.user.login == github.repository_owner && (
+        (github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'agent-task')) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'agent-task')))
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
 
@@ -150,13 +160,22 @@ jobs:
 
           # Luật + skill lấy thẳng từ repo cấu hình omp của máy (omp-global-config): sửa ở máy là cloud dùng theo,
           # không còn bản chép cũ lệch nhau. Không clone được thì dừng: chạy với luật/skill cũ là sai lặng lẽ.
-          git clone --depth 1 "https://${GH_PAT}@github.com/${OWNER}/omp-global-config.git" /tmp/omp-global \
-            || { echo "::error::Không clone được ${OWNER}/omp-global-config bằng GH_PAT (cần quyền đọc repo này)."; exit 1; }
+          # Clone qua credential helper của bước 4 (token không nằm trong URL nên không còn trong .git/config của
+          # /tmp/omp-global, agent không đọc được). Token trong URL còn bị git BỎ khi GitHub trả chuyển hướng
+          # ("warning: redirecting to ..."): run 39293628190 (#18) chết vì "could not read Username".
+          [ -n "$GH_PAT" ] || { echo "::error::Secret GH_PAT rỗng: không clone được ${OWNER}/omp-global-config."; exit 1; }
+          for attempt in 1 2 3; do
+            git clone -q --depth 1 "https://github.com/${OWNER}/omp-global-config.git" /tmp/omp-global && break
+            rm -rf /tmp/omp-global
+            [ "$attempt" = 3 ] && { echo "::error::Không clone được ${OWNER}/omp-global-config bằng GH_PAT (cần quyền đọc repo này)."; exit 1; }
+            sleep $((attempt * 10))
+          done
           cp -r /tmp/omp-global/agent/skills ~/.omp/agent/
           for f in AGENTS.md APPEND_SYSTEM.md INSTRUCTIONS.md ANTI_PATTERNS.md; do
             cp "/tmp/omp-global/agent/$f" ~/.omp/agent/
           done
           echo "Đã đồng bộ $(ls ~/.omp/agent/skills | wc -l) skill + luật từ omp-global-config@$(git -C /tmp/omp-global rev-parse --short HEAD)"
+          rm -rf /tmp/omp-global
 
           # Khởi tạo cơ sở dữ liệu agent.db đầy đủ schema và tiêm Codex OAuth + OpenRouter API key
           echo "Initializing agent.db with schema and credentials..."
@@ -336,6 +355,9 @@ jobs:
           PY
 
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
+        # Chừa ~45 phút trong 360 phút của job cho bước 7 (đẩy code) + báo cáo: agent chạy quá giờ thì bước này hỏng,
+        # còn job vẫn sống để đẩy phần đã làm. Trước đây hết giờ là cả job bị huỷ, mất hết việc.
+        timeout-minutes: 300
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # Chỉ dùng cho fetch nhánh handoff ở đầu bước (credential helper bước 4 đọc biến này); unset trước khi gọi omp.
@@ -425,7 +447,9 @@ jobs:
           printf 'Trả lời đúng chữ OK.\n' | omp -p --mode json --no-session --tools=read --model openai-codex/gpt-6-luna > /tmp/codex_check.json 2>&1 || true
           if grep -q '"errorMessage"' /tmp/codex_check.json || ! grep -q '"model":"gpt-6-luna"' /tmp/codex_check.json; then
             echo "::error::Khóa Codex (secret OMP_CODEX_AUTH) không dùng được. Ở máy chạy: powershell ~/.omp/scripts/sync-codex-token.ps1"
-            grep -v '^\s*$' /tmp/codex_check.json | tail -5 | cut -c1-300
+            # Lỗi thật của Codex (trước chỉ in 5 dòng cuối, là lỗi của model dự phòng nên không biết vì sao Codex hỏng).
+            grep -o '"errorMessage":"[^"]*"' /tmp/codex_check.json | sort -u | head -5 | cut -c1-300
+            grep -v '^\s*$' /tmp/codex_check.json | tail -3 | cut -c1-300
             exit 1
           fi
           echo "Khóa Codex hoạt động."
@@ -441,6 +465,8 @@ jobs:
           fi
           cd - >/dev/null
       - name: 7. Tự động đẩy code thẳng vào nhánh thực thi & Kích hoạt Test
+        # Chạy cả khi bước 6 hỏng/quá giờ: phần agent đã làm vẫn được đẩy (bị huỷ tay thì thôi).
+        if: ${{ !cancelled() }}
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
@@ -458,56 +484,10 @@ jobs:
           if [ -n "$HANDOFF_BRANCH" ]; then
             BRANCH_NAME="$HANDOFF_BRANCH"
           fi
-          PUSHED_REPOS=""
-
-          # Danh sách 6 repo cần kiểm tra và push thẳng
-          for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
-            if [ -d "$repo_dir" ]; then
-              cd "$repo_dir"
-              # Agent quên commit (hoặc quên tạo nhánh) thì tự commit hộ lên đúng nhánh, để không mất việc đã làm.
-              # Repo trên runner là bản clone sạch nên mọi thay đổi ở đây đều là của agent.
-              # Worktree đang giữ nhánh cần push (có thể là chính thư mục clone, hoặc worktree agent tạo bằng git-wt).
-              holder_of() { git worktree list --porcelain | awk -v b="branch refs/heads/$1" '/^worktree /{w=substr($0,10)} $0==b{print w}'; }
-              TARGET_WT=$(holder_of "$BRANCH_NAME")
-              if [ -n "$(git status --porcelain)" ]; then
-                if [ -z "$TARGET_WT" ]; then git checkout -B "$BRANCH_NAME"; TARGET_WT=$(pwd); fi
-                if [ "$(git branch --show-current)" = "$BRANCH_NAME" ]; then
-                  git add -A
-                  git commit -m "chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE_NUMBER"
-                  echo ">>> $repo_dir: agent chưa commit, đã tự commit lên $BRANCH_NAME"
-                else
-                  echo "::warning::$repo_dir: thư mục clone có thay đổi nhưng nhánh $BRANCH_NAME đang ở worktree $TARGET_WT; chỉ gom việc trong worktree."
-                fi
-              fi
-              # Việc trong các worktree khác (issue #19 mất việc vì chỉ kiểm thư mục clone): commit tại chỗ, rồi gộp vào nhánh cần push.
-              for wt in $(git worktree list --porcelain | awk '/^worktree /{print substr($0,10)}' | tail -n +2); do
-                if [ -n "$(git -C "$wt" status --porcelain)" ]; then
-                  git -C "$wt" add -A
-                  git -C "$wt" commit -m "chore(agent): tự commit phần agent chưa commit trong worktree cho issue #$ISSUE_NUMBER"
-                  echo ">>> $repo_dir: đã tự commit việc dở trong worktree $wt"
-                fi
-                [ "$wt" = "$TARGET_WT" ] && continue
-                WT_HEAD=$(git -C "$wt" rev-parse HEAD)
-                if [ -z "$TARGET_WT" ]; then git checkout -B "$BRANCH_NAME"; TARGET_WT=$(pwd); fi
-                git -C "$TARGET_WT" merge-base --is-ancestor "$WT_HEAD" HEAD && continue
-                if git -C "$TARGET_WT" merge --no-edit "$WT_HEAD"; then
-                  echo ">>> $repo_dir: đã gộp việc trong worktree $wt vào $BRANCH_NAME"
-                else
-                  git -C "$TARGET_WT" merge --abort || true
-                  git push "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$WT_HEAD:refs/heads/$BRANCH_NAME-worktree-$(basename "$wt")"
-                  echo "::warning::$repo_dir: worktree $wt xung đột với $BRANCH_NAME, đã đẩy riêng lên $BRANCH_NAME-worktree-$(basename "$wt")"
-                fi
-              done
-              if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-                echo ">>> PUSH THẲNG CODE CHO $repo_dir LÊN BRANCH $BRANCH_NAME..."
-                git push -u "https://${GH_PAT}@github.com/${OWNER}/$(git remote get-url origin | sed -e 's/.*\///' -e 's/\.git$//').git" "$BRANCH_NAME"
-                PUSHED_REPOS="$PUSHED_REPOS\n- $repo_dir: branch \`$BRANCH_NAME\`"
-              fi
-              cd ..
-            fi
-          done
-
-          echo "PUSHED_REPOS=$PUSHED_REPOS" >> $GITHUB_ENV
+          # Gom việc ở thư mục clone + mọi git worktree, gộp commit mới trên origin trong lúc agent chạy (không force,
+          # xung đột thì đẩy sang nhánh riêng), báo số file khác main. Có test: scripts/agent/test_push_work.py.
+          RUN_ID="${{ github.run_id }}" bash "$GITHUB_WORKSPACE/scripts/agent/push-work.sh" "$BRANCH_NAME" \
+            backend app web aicheckvar auto3dvideo auto25d-remotion
 
       - name: 7.2 Tự động kích hoạt chuỗi Playwright UI E2E (Chỉ chạy khi có yêu cầu Web/UI)
         if: always()
@@ -736,69 +716,12 @@ jobs:
           fi
 
       - name: 9. Tự động đồng bộ & lưu mới Token Codex OAuth vào GitHub Secrets (Auto-Persist)
-        if: always()
+        # Không chạy ở run bị huỷ; chỉ ghi khi run này thật sự làm mới token (xem scripts/agent/persist_codex_token.py).
+        if: ${{ !cancelled() }}
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
           REPO: ${{ github.repository }}
+          OMP_CODEX_AUTH: ${{ secrets.OMP_CODEX_AUTH }}
         run: |
-          echo "Kiểm tra và cập nhật Token Codex OAuth mới nhất từ agent.db..."
           pip install --quiet pynacl requests
-          python3 -c "
-          import sqlite3, base64, os, sys, requests
-          from nacl import encoding, public
-
-          token = os.environ.get('GH_PAT')
-          repo = os.environ.get('REPO')
-          if not token or not repo:
-              print('Thiếu GH_PAT hoặc REPO, bỏ qua auto-update secret.')
-              sys.exit(0)
-
-          db_path = os.path.expanduser('~/.omp/agent/agent.db')
-          if not os.path.exists(db_path):
-              print('Không tìm thấy agent.db.')
-              sys.exit(0)
-
-          con = sqlite3.connect(db_path)
-          cur = con.cursor()
-          cur.execute(\"SELECT data FROM auth_credentials WHERE provider = 'openai-codex'\")
-          row = cur.fetchone()
-          if not row or not row[0]:
-              print('Không tìm thấy bản ghi oauth openai-codex trong db.')
-              sys.exit(0)
-
-          new_data = row[0]
-          b64_new_auth = base64.b64encode(new_data.encode('utf-8')).decode('utf-8')
-
-          # Lấy repo public key từ GitHub API
-          headers = {
-              'Authorization': f'Bearer {token}',
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28'
-          }
-          pk_res = requests.get(f'https://api.github.com/repos/{repo}/actions/secrets/public-key', headers=headers)
-          if pk_res.status_code != 200:
-              print(f'Lỗi lấy public key: {pk_res.status_code} {pk_res.text}')
-              sys.exit(0)
-
-          pk_data = pk_res.json()
-          public_key = pk_data['key']
-          key_id = pk_data['key_id']
-
-          # Mã hóa secret theo chuẩn Libsodium SealedBox của GitHub
-          public_key_obj = public.PublicKey(public_key.encode('utf-8'), encoding.Base64Encoder)
-          sealed_box = public.SealedBox(public_key_obj)
-          encrypted = sealed_box.encrypt(b64_new_auth.encode('utf-8'))
-          encrypted_value = base64.b64encode(encrypted).decode('utf-8')
-
-          # Cập nhật Secret OMP_CODEX_AUTH
-          put_res = requests.put(
-              f'https://api.github.com/repos/{repo}/actions/secrets/OMP_CODEX_AUTH',
-              headers=headers,
-              json={'encrypted_value': encrypted_value, 'key_id': key_id}
-          )
-
-          if put_res.status_code in [201, 204]:
-              print('ĐÃ TỰ ĐỘNG CẬP NHẬT SECRET OMP_CODEX_AUTH THÀNH CÔNG! Token Codex sống vĩnh viễn!')
-          else:
-              print(f'Lỗi cập nhật secret: {put_res.status_code} {put_res.text}')
-          "
+          python3 scripts/agent/persist_codex_token.py
