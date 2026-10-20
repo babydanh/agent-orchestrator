@@ -338,7 +338,7 @@ jobs:
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          # Credential helper (bước 4) đọc biến này khi git fetch/pull; URL remote không còn chứa token.
+          # Chỉ dùng cho fetch nhánh handoff ở đầu bước (credential helper bước 4 đọc biến này); unset trước khi gọi omp.
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
@@ -430,6 +430,8 @@ jobs:
           fi
           echo "Khóa Codex hoạt động."
 
+          # Agent không cần token: push do bước 7 làm. Không để shell của agent đọc được GH_PAT.
+          unset GH_PAT
           echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
           cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
