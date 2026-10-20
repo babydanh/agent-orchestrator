@@ -13,6 +13,8 @@
 #
 # Đẩy qua remote `origin` (bước 4 đặt credential helper đọc $GH_PAT, URL remote không chứa token).
 # Ghi PUSHED_REPOS (nhiều dòng) vào $GITHUB_ENV nếu có. Exit 1 nếu có repo không đẩy được; repo khác vẫn được xử lý.
+# Việc dở KHÔNG commit được (kể cả khi đã bỏ qua hook): chép nguyên các file đó vào $RECOVER_DIR (mặc định
+# $RUNNER_TEMP/agent-recover) để workflow tải lên thành artifact `agent-recover`, không mất khi runner tắt.
 set -uo pipefail
 
 BRANCH="${1:?thiếu tên nhánh}"
@@ -20,6 +22,7 @@ shift
 ISSUE="${ISSUE_NUMBER:-?}"
 RUN="${RUN_ID:-${GITHUB_RUN_ID:-local}}"
 BASE="${BASE_REF:-origin/main}"
+RECOVER_DIR="${RECOVER_DIR:-${RUNNER_TEMP:-/tmp}/agent-recover}"
 ALL_REPORT=()
 FAILED=0
 
@@ -28,10 +31,28 @@ warn() { printf '::warning::%s\n' "$*"; }
 worktrees() { git worktree list --porcelain | awk '/^worktree /{print substr($0,10)}'; }
 holder_of() { git worktree list --porcelain | awk -v b="branch refs/heads/$1" '/^worktree /{w=substr($0,10)} $0==b{print w}'; }
 
-commit_dirty() {  # $1 = thư mục: commit mọi thay đổi chưa commit
+commit_dirty() {  # $1 = thư mục: commit mọi thay đổi chưa commit; hook chặn thì thử lại bỏ qua hook
   [ -z "$(git -C "$1" status --porcelain)" ] && return 0
-  git -C "$1" add -A
-  git -C "$1" commit -q -m "chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE" && say ">>> đã tự commit việc dở trong $1"
+  local msg="chore(agent): tự commit phần agent chưa commit cho issue #$ISSUE"
+  git -C "$1" add -A || return 1
+  if git -C "$1" commit -q -m "$msg"; then
+    say ">>> đã tự commit việc dở trong $1"
+  elif git -C "$1" commit -q --no-verify -m "$msg"; then
+    warn "hook commit chặn việc dở trong $1: đã commit bỏ qua hook (--no-verify), cần kiểm lại trước khi gộp"
+  else
+    return 1
+  fi
+}
+
+backup_dirty() {  # $1 = repo, $2 = thư mục: chép file đang đổi/chưa track vào RECOVER_DIR, giữ nguyên đường dẫn
+  local dest="$RECOVER_DIR/$1/$(basename "$2")" f
+  mkdir -p "$dest"
+  git -C "$2" status --porcelain=v1 -z --untracked-files=all --no-renames \
+    | tr '\0' '\n' | cut -c4- | while IFS= read -r f; do
+      [ -n "$f" ] && [ -e "$2/$f" ] && mkdir -p "$dest/$(dirname "$f")" && cp -p "$2/$f" "$dest/$f"
+    done
+  git -C "$2" diff HEAD --binary > "$dest/tracked.patch" 2>/dev/null || true
+  printf '%s\n' "$dest"
 }
 
 push_repo() {  # chạy trong thư mục repo; in các dòng báo cáo ra fd 3
@@ -56,12 +77,13 @@ push_repo() {  # chạy trong thư mục repo; in các dòng báo cáo ra fd 3
       target_wt=$(holder_of "$BRANCH")
     fi
   fi
-  # 1b. Commit mọi việc dở: thư mục clone + mọi worktree. Commit hỏng (hook, quyền...) là việc chưa được lưu:
-  # báo lỗi, không coi repo là đã gom xong.
+  # 1b. Commit mọi việc dở: thư mục clone + mọi worktree. Không commit được: sao lưu file ra artifact, báo lỗi,
+  # không coi repo là đã gom xong.
   while IFS= read -r wt; do
     if ! commit_dirty "$wt" || [ -n "$(git -C "$wt" status --porcelain)" ]; then
-      warn "$repo: KHÔNG commit được việc dở trong $wt, việc này chưa được đẩy"
-      echo "- $repo: việc dở trong \`$wt\` KHÔNG commit được, chưa được lưu (xem log)" >&3
+      saved=$(backup_dirty "$repo" "$wt")
+      warn "$repo: KHÔNG commit được việc dở trong $wt; đã chép các file đó vào artifact agent-recover ($saved)"
+      echo "- $repo: việc dở trong \`$wt\` KHÔNG commit được, bản sao nằm trong artifact \`agent-recover\`" >&3
       FAILED=1
     fi
   done < <(worktrees)

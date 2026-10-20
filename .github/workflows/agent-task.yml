@@ -632,6 +632,16 @@ jobs:
             workspace/web/playwright-report/
           retention-days: 7
 
+      - name: 7.7 Tải lên bản sao việc dở không commit được (agent-recover)
+        # push-work.sh chép file dở vào đây khi commit hỏng cả khi bỏ qua hook; không có thì bỏ qua.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-recover
+          path: ${{ runner.temp }}/agent-recover
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
         if: always() && github.event_name == 'issues'
         env:

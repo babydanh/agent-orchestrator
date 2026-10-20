@@ -50,7 +50,8 @@ class PushWorkTest(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def run_script(self):
-        env = {**os.environ, "ISSUE_NUMBER": "17", "RUN_ID": "99", "GITHUB_ENV": f"{self.tmp}/github_env"}
+        env = {**os.environ, "ISSUE_NUMBER": "17", "RUN_ID": "99", "GITHUB_ENV": f"{self.tmp}/github_env",
+               "RECOVER_DIR": f"{self.tmp}/recover"}
         return subprocess.run([BASH, SCRIPT, BRANCH, "web", "app"], cwd=self.ws, env=env,
                               capture_output=True, text=True, encoding="utf-8", errors="replace")
 
@@ -133,14 +134,31 @@ class PushWorkTest(unittest.TestCase):
         self.assertEqual(self.remote_file(BRANCH, "commit1.ts"), "1")
         self.assertEqual(self.remote_file(BRANCH, "dirty.ts"), "2")
 
-    def test_commit_viec_do_loi_thi_bao_loi_khong_bao_xong(self):
+    def test_hook_commit_chan_thi_van_commit_bo_qua_hook_va_day(self):
         git(self.repo, "checkout", "-q", "-b", BRANCH)
         write(f"{self.repo}/.git/hooks/pre-commit", "#!/bin/sh\nexit 1\n")
         os.chmod(f"{self.repo}/.git/hooks/pre-commit", 0o755)
         write(f"{self.repo}/code.ts", "agent\n")
         r = self.run_script()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.remote_file(BRANCH, "code.ts"), "agent")
+        self.assertIn("--no-verify", r.stdout)
+
+    def test_khong_commit_duoc_thi_sao_luu_file_do_va_bao_loi(self):
+        # index.lock bị kẹt: add/commit đều hỏng. File dở phải có bản sao để workflow tải lên artifact.
+        git(self.repo, "checkout", "-q", "-b", BRANCH)
+        write(f"{self.repo}/src/code.ts", "agent\n")
+        write(f"{self.repo}/a.txt", "1\nsua\n3\n")
+        write(f"{self.repo}/.git/index.lock", "")
+        r = self.run_script()
+        os.remove(f"{self.repo}/.git/index.lock")
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
-        self.assertIn("KHÔNG commit được", self.github_env())
+        self.assertIn("agent-recover", self.github_env())
+        saved = f"{self.tmp}/recover/web/web"
+        with open(f"{saved}/src/code.ts", encoding="utf-8") as f:
+            self.assertEqual(f.read(), "agent\n")
+        with open(f"{saved}/a.txt", encoding="utf-8") as f:
+            self.assertEqual(f.read(), "1\nsua\n3\n")
 
 
 if __name__ == "__main__":
