@@ -662,7 +662,8 @@ jobs:
         with:
           name: openapi-spec
           path: contract/
-          retention-days: 7
+          # Repo public: spec của Backend private chỉ giữ 1 ngày (đủ để lấy baseline openapi.json).
+          retention-days: 1
 
   # ==========================================
   # JOB 4: TEST FLUTTER APP (ANALYZE & TEST)
