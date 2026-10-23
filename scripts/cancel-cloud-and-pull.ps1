@@ -79,7 +79,7 @@ if ($Branch) {
 }
 
 # 3. Keo phien Session JSONL ve de OMP tiep tuc mach chat
-$repoUrl = "https://github.com/babydanh/agent-orchestrator.git"
+$repoUrl = "https://github.com/babydanh/omp-sessions.git"
 $tempDir = Join-Path $env:TEMP ("omp-pull-sync-" + (Get-Random))
 
 try {

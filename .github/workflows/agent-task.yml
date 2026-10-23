@@ -424,7 +424,8 @@ jobs:
           if [ -n "$SESSION_ID" ]; then
             echo "Phát hiện Handoff Session ID: $SESSION_ID. Đang tải từ branch omp-sync/sessions..."
             mkdir -p /tmp/sync_sessions
-            git clone --branch omp-sync/sessions --depth 1 "https://github.com/${{ github.repository }}.git" /tmp/sync_sessions || true
+            # Phiên lưu ở repo PRIVATE omp-sessions (từ 2026-10-23): log phiên chứa nguyên văn code repo private.
+            git clone --branch omp-sync/sessions --depth 1 "https://github.com/${{ github.repository_owner }}/omp-sessions.git" /tmp/sync_sessions || true
             if [ -d "/tmp/sync_sessions/$SESSION_ID" ]; then
               echo "Khôi phục phiên làm việc $SESSION_ID vào ~/.omp/agent/sessions/..."
               mkdir -p ~/.omp/agent/sessions
@@ -678,10 +679,10 @@ jobs:
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
             rm -rf /tmp/session_repo
-            git clone --branch omp-sync/sessions "https://github.com/${{ github.repository }}.git" /tmp/session_repo || {
+            git clone --branch omp-sync/sessions "https://github.com/${{ github.repository_owner }}/omp-sessions.git" /tmp/session_repo || {
               mkdir -p /tmp/session_repo && cd /tmp/session_repo
               git init && git checkout -b omp-sync/sessions
-              git remote add origin "https://github.com/${{ github.repository }}.git"
+              git remote add origin "https://github.com/${{ github.repository_owner }}/omp-sessions.git"
             }
 
             cd /tmp/session_repo
@@ -692,7 +693,7 @@ jobs:
             if [ -n "$GH_PAT" ]; then
               grep -rl "$GH_PAT" "issue-$ISSUE_NUMBER" 2>/dev/null | xargs sed -i "s/$GH_PAT/***/g" 2>/dev/null || true
             fi
-            find "issue-$ISSUE_NUMBER" -type f \( -name "*.json" -o -name "*.jsonl" -o -name "*.txt" -o -name "*.log" \) -exec sed -i -E 's/ghp_[a-zA-Z0-9]{36}/***/g; s/github_pat_[a-zA-Z0-9_]{82}/***/g; s/sk-or-v1-[a-f0-9]{64}/***/g' {} + 2>/dev/null || true
+            find "issue-$ISSUE_NUMBER" -type f \( -name "*.json" -o -name "*.jsonl" -o -name "*.txt" -o -name "*.log" \) -exec sed -i -E 's/ghp_[a-zA-Z0-9]{36}/***/g; s/github_pat_[a-zA-Z0-9_]{82}/***/g; s/sk-or-v1-[a-f0-9]{64}/***/g; s/(^|[^A-Za-z0-9_+\/-])sk-[A-Za-z0-9_-]{20,}/\1***/g' {} + 2>/dev/null || true
 
             git add .
             if ! git diff --cached --quiet; then

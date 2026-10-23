@@ -37,7 +37,7 @@ if ($Branch) {
 # 2. Keo toan bo lich su session tu branch omp-sync/sessions tren GitHub ve local
 if ($IssueNumber -or $SessionId) {
     $tempDir = Join-Path $env:TEMP ("omp-pull-" + (Get-Random))
-    $repoUrl = "https://github.com/babydanh/agent-orchestrator.git"
+    $repoUrl = "https://github.com/babydanh/omp-sessions.git"
 
     try {
         Write-Host ">>> Dang ket noi toi branch omp-sync/sessions tren GitHub..." -ForegroundColor Yellow

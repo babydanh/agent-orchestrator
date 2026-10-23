@@ -73,7 +73,7 @@ try {
 
 # 3. Dong bo Session JSONL len branch omp-sync/sessions tren GitHub
 $tempDir = Join-Path $env:TEMP ("omp-sync-" + (Get-Random))
-$repoUrl = "https://github.com/babydanh/agent-orchestrator.git"
+$repoUrl = "https://github.com/babydanh/omp-sessions.git"
 
 try {
     Write-Host ">>> Dang dong bo session len branch omp-sync/sessions tren GitHub..." -ForegroundColor Yellow

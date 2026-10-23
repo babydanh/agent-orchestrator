@@ -27,7 +27,7 @@ jobs:
           # Dọn dẹp session folder trên branch omp-sync/sessions nếu có liên quan
           echo "Kiểm tra và dọn dẹp session tương ứng trên branch omp-sync/sessions..."
           rm -rf /tmp/session_clean
-          git clone --branch omp-sync/sessions "https://${GH_PAT}@github.com/${{ github.repository }}.git" /tmp/session_clean || true
+          git clone --branch omp-sync/sessions "https://${GH_PAT}@github.com/${{ github.repository_owner }}/omp-sessions.git" /tmp/session_clean || true
           if [ -d "/tmp/session_clean" ]; then
             cd /tmp/session_clean
             # Trích xuất số issue nếu branch dạng omp/issue-123

@@ -50,7 +50,7 @@ if ($latestSession) {
 
 # 4. Push session truc tiep bang 1 lenh git push (clone depth 1)
 $tempDir = Join-Path $env:TEMP ("fast-sync-" + (Get-Random))
-$repoUrl = "https://github.com/babydanh/agent-orchestrator.git"
+$repoUrl = "https://github.com/babydanh/omp-sessions.git"
 
 try {
     Write-Host ">>> Dong bo session $sessionId len branch omp-sync/sessions..." -ForegroundColor Yellow
