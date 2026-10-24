@@ -1,7 +1,7 @@
 # Nạp trước mỗi script chạy trên VPS (scripts/deploy/remote.sh ghép lib.sh + script, chép lên VPS rồi chạy):
 #   bash scripts/deploy/remote.sh <script>.sh <tham số...>
-# Log Actions của repo này là công khai. Output thô (SQL migrate, log container, cấu hình) ghi vào file trên VPS
-# (/var/log/sporto-deploy, quyền 700); log Actions chỉ có OK/LỖI kèm tối đa 15 dòng error/fail đã cắt ngắn.
+# Log Actions của repo này là công khai. Output thô (SQL migrate, dữ liệu DB, log container, cấu hình) chỉ ghi vào
+# file trên VPS (/var/log/sporto-deploy, quyền 700); log Actions chỉ có tên bước, OK/LỖI và exit code.
 set -euo pipefail
 
 DEPLOY_LOG_DIR=/var/log/sporto-deploy
@@ -16,12 +16,7 @@ init_log() {
   echo "Log đầy đủ trên VPS: $DEPLOY_LOG"
 }
 
-# fail_tail: in các dòng lỗi cuối của log (đã cắt), không in log thô.
-fail_tail() {
-  grep -iE 'error|fail' "$DEPLOY_LOG" | tail -n 15 | cut -c1-200 || true
-}
-
-# logged <tên bước> <lệnh...>: chạy lệnh, output vào log VPS. Lỗi thì in dòng lỗi và trả mã lỗi của lệnh.
+# logged <tên bước> <lệnh...>: chạy lệnh, output vào log VPS. Lỗi thì in tên bước + exit code, trả mã lỗi của lệnh.
 logged() {
   local name="$1"
   shift
@@ -31,8 +26,7 @@ logged() {
     return 0
   }
   local code=$?
-  echo "LỖI  $name (exit $code)"
-  fail_tail
+  echo "LỖI  $name (exit $code); chi tiết trong $DEPLOY_LOG trên VPS"
   return "$code"
 }
 
@@ -46,8 +40,7 @@ pull_retry() {
     fi
     echo "Pull $image lần $attempt/3 lỗi."
   done
-  echo "LỖI  pull $image sau 3 lần"
-  fail_tail
+  echo "LỖI  pull $image sau 3 lần; chi tiết trong $DEPLOY_LOG trên VPS"
   return 1
 }
 
