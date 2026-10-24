@@ -113,21 +113,25 @@ jobs:
       DB_PASSWORD: postgres
       DB_DATABASE: tournament_db
       DB_SSL: 'false'
-    services:
-      postgres:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tournament_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres -d tournament_db"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
     steps:
+      # Không dùng `services:`: GitHub in log của service container ở bước "Stop containers", và Postgres ghi kèm
+      # câu SQL (STATEMENT: CREATE TABLE ...) của mỗi lỗi, tức lộ schema Backend ra log công khai. Container tự dựng
+      # tắt việc ghi câu lệnh và không bị in log.
+      - name: Dựng PostgreSQL + PostGIS tạm
+        run: |
+          docker run -d --name pg -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=tournament_db postgis/postgis:16-3.4 \
+            -c log_min_messages=fatal -c log_min_error_statement=panic >/dev/null
+          # -h 127.0.0.1: chỉ báo sẵn sàng khi server thật nghe TCP (server tạm lúc init chỉ nghe socket).
+          for _ in $(seq 1 60); do
+            if docker exec pg pg_isready -h 127.0.0.1 -U postgres -d tournament_db >/dev/null 2>&1; then
+              echo "OK    postgres sẵn sàng"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Postgres không sẵn sàng sau 120 giây"
+          exit 1
       - uses: actions/checkout@v4
         with:
           sparse-checkout: scripts/deploy
