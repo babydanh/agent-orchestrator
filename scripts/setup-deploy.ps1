@@ -10,7 +10,7 @@
 #   3. VPS_KNOWN_HOSTS: ssh-keyscan một lần, in fingerprint để bạn đối chiếu.
 #   4. Hỏi bạn: khoá SSH deploy, mật khẩu Basic staging, NEXT_PUBLIC_APP_API_KEY (không hiện khi gõ, không lưu ra đĩa).
 #   5. Mở trang package GHCR của Backend và Web để bạn cấp quyền Write cho repo này (GitHub không có API cho bước này).
-# Giá trị đi vào `gh secret set --body` (argv của tiến trình gh trên máy bạn, vài giây), không ghi file, không in.
+# Giá trị secret đi qua stdin của `gh secret set` (không vào argv), không ghi file, không in. Cần pwsh 7.
 param(
     [string]$BackendRepo = "V:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau"
 )
@@ -26,12 +26,23 @@ function Get-SecretNames([string]$EnvName) {
     return @($out)
 }
 
+# Giá trị đi qua stdin của `gh secret set` (đúng từng byte, không thêm xuống dòng), không nằm trong argv/process list.
 function Set-Secret([string]$Name, [string]$Value, [string]$EnvName) {
     if ([string]::IsNullOrWhiteSpace($Value)) { throw "Giá trị $Name rỗng" }
-    $ghArgs = @("secret", "set", $Name, "-R", $Repo, "--body", $Value)
-    if ($EnvName) { $ghArgs += @("--env", $EnvName) }
-    & gh @ghArgs | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Không đặt được secret $Name ($EnvName)" }
+    $psi = [Diagnostics.ProcessStartInfo]::new("gh")
+    foreach ($a in @("secret", "set", $Name, "-R", $Repo)) { $psi.ArgumentList.Add($a) }
+    if ($EnvName) { $psi.ArgumentList.Add("--env"); $psi.ArgumentList.Add($EnvName) }
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $p = [Diagnostics.Process]::Start($psi)
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes($Value)
+    $p.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+    $p.StandardInput.Close()
+    $err = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    if ($p.ExitCode -ne 0) { throw "Không đặt được secret $Name ($EnvName): $err" }
     Write-Host "  Đã đặt $Name$(if ($EnvName) { " ($EnvName)" })"
 }
 
