@@ -121,7 +121,17 @@ if ($needKey) {
 } else { Write-Host "  VPS_SSH_KEY: đã có." }
 
 if ((Get-SecretNames "staging") -notcontains "STAGING_BASIC_AUTH") {
-    Set-Secret "STAGING_BASIC_AUTH" (Read-Hidden "  Mật khẩu Basic của staging.sporto.asia, dạng user:matkhau") "staging"
+    # Cùng luật với deploy/staging/bootstrap.sh của Backend: sai thì báo ngay ở đây, không đợi deploy đỏ.
+    while ($true) {
+        $auth = Read-Hidden "  Tên đăng nhập + mật khẩu staging trên MỘT dòng, nối bằng dấu hai chấm (vd admin:MatKhau)"
+        $i = $auth.IndexOf(":")
+        if ($i -lt 0) { Write-Host "    Thiếu dấu ':' giữa tên đăng nhập và mật khẩu ($($auth.Length) ký tự đã nhập). Nhập lại."; continue }
+        if ($auth.Substring(0, $i) -notmatch '^[A-Za-z0-9._@-]+$') { Write-Host "    Tên đăng nhập (phần trước ':') rỗng hoặc có ký tự ngoài chữ, số, . _ @ -. Nhập lại."; continue }
+        if ($i -eq $auth.Length - 1) { Write-Host "    Mật khẩu (phần sau ':') đang rỗng. Nhập lại."; continue }
+        break
+    }
+    Set-Secret "STAGING_BASIC_AUTH" $auth "staging"
+    $auth = $null
 } else { Write-Host "  STAGING_BASIC_AUTH: đã có." }
 
 if ((Get-SecretNames "") -notcontains "NEXT_PUBLIC_APP_API_KEY") {
