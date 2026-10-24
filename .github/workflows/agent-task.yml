@@ -624,25 +624,17 @@ jobs:
             cd ..
           fi
 
-      - name: 7.5 Xuất Báo Cáo Allure Report nếu có kiểm thử Web
+      # Repo này public: không upload allure-report/playwright-report (ảnh, video, trace chứa giao diện,
+      # request/response của repo private). Chỉ in số test theo trạng thái; xem chi tiết thì chạy lại ở máy.
+      - name: 7.5 Tổng kết E2E (không đăng báo cáo)
         if: always()
         run: |
-          cd workspace
-          if [ -d "web/allure-results" ] && [ "$(ls -A web/allure-results 2>/dev/null)" ]; then
-            cd web
-            npx allure generate allure-results --clean -o allure-report || echo "Allure generation finished"
-            cd ..
+          d=workspace/web/allure-results
+          if [ -d "$d" ] && ls "$d"/*-result.json >/dev/null 2>&1; then
+            echo "E2E theo trạng thái: $(jq -r '.status' "$d"/*-result.json | sort | uniq -c | tr -s ' \n' ' ')"
+          else
+            echo "E2E: không có kết quả"
           fi
-
-      - name: 7.6 Tải lên Artifact Báo Cáo Allure & Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloud-agent-allure-dashboard
-          path: |
-            workspace/web/allure-report/
-            workspace/web/playwright-report/
-          retention-days: 7
 
       - name: 8. Phản hồi và tổng kết vào Issue gốc (nếu kích hoạt từ Issue)
         if: always() && github.event_name == 'issues'
