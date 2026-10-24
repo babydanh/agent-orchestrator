@@ -345,9 +345,11 @@ jobs:
           PY
 
       - name: 6. Thực thi nhiệm vụ với OMP Agent (Headless Non-interactive Mode)
+        id: agent
         # Chừa ~45 phút trong 360 phút của job cho bước 7 (đẩy code) + báo cáo: agent chạy quá giờ thì bước này hỏng,
-        # còn job vẫn sống để đẩy phần đã làm. Trước đây hết giờ là cả job bị huỷ, mất hết việc.
-        timeout-minutes: 300
+        # còn job vẫn sống để đẩy phần đã làm, rồi bước 8.6 tự chạy tiếp. Nhãn `thu-noi-tiep` chỉ để thử chuỗi nối
+        # tiếp: cắt agent sau 4 phút thay vì chờ 5 tiếng.
+        timeout-minutes: ${{ contains(github.event.issue.labels.*.name, 'thu-noi-tiep') && 4 || 300 }}
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # Chỉ dùng cho fetch nhánh handoff ở đầu bước (credential helper bước 4 đọc biến này); unset trước khi gọi omp.
@@ -357,6 +359,8 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
           MANUAL_BRANCH: ${{ github.event.inputs.target_branch }}
+          # Chỉ để đếm lượt nối tiếp (đọc bình luận issue); unset trước khi gọi omp, như GH_PAT.
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd workspace
           BRANCH_NAME="omp/issue-$ISSUE_NUMBER"
@@ -379,6 +383,33 @@ jobs:
             BRANCH_NAME="$HANDOFF_BRANCH"
           fi
 
+          # Lượt nối tiếp (bước 8.6 gắn lại nhãn agent-task khi lượt trước bị cắt/lỗi giữa chừng): số lượt = số bình luận
+          # mang dấu omp-auto-continue. Nhánh đã có trên origin thì làm tiếp trên đó, không bắt đầu lại từ main
+          # (lệnh `git checkout -B` trong prompt giữ nguyên HEAD khi đang đứng trên đúng nhánh).
+          CONTINUE_ROUND=0
+          if [ "$EVENT_NAME" = "issues" ]; then
+            # Đọc hỏng (mạng, API) thì coi như lượt đầu: bash của Actions chạy -e -o pipefail, không được làm hỏng bước 6.
+            CONTINUE_ROUND=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" --paginate \
+              --jq '[.[] | select(.body | contains("<!-- omp-auto-continue -->"))] | length' 2>/dev/null | awk '{s+=$1} END {print s+0}') \
+              || CONTINUE_ROUND=0
+          fi
+          echo "Lượt nối tiếp: $CONTINUE_ROUND"
+          if [ -z "$HANDOFF_BRANCH" ]; then
+            for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
+              [ -d "$repo_dir/.git" ] || continue
+              if git -C "$repo_dir" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+                git -C "$repo_dir" fetch -q origin "$BRANCH_NAME:$BRANCH_NAME" && git -C "$repo_dir" checkout -q "$BRANCH_NAME" \
+                  && echo "$repo_dir: làm tiếp trên nhánh $BRANCH_NAME đã có"
+              fi
+            done
+          fi
+          # Đầu nhánh trước khi agent chạy: bước 8.6 so với sau bước 7 để biết lượt này có tiến triển không.
+          echo "AGENT_BRANCH=$BRANCH_NAME" >> "$GITHUB_ENV"
+          for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
+            [ -d "$repo_dir/.git" ] || continue
+            echo "$repo_dir $(git -C "$repo_dir" rev-parse -q --verify "refs/heads/$BRANCH_NAME" || echo none)"
+          done > "$RUNNER_TEMP/heads-before.txt"
+
           TASK_PROMPT="Nhiệm vụ: $ISSUE_TITLE
           Chi tiết bàn giao / yêu cầu:
           $ISSUE_BODY
@@ -400,8 +431,15 @@ jobs:
           5. CHẠY TEST THẬT & ALLURE: Chạy đúng test liên quan tới việc này (Web: 'pnpm test:e2e <các spec trong trường E2E specs của issue hoặc spec bạn vừa thêm/sửa>'; Backend: 'pnpm test'; App: 'flutter test <file>') để đảm bảo tính năng mới chạy chuẩn và test liên quan vẫn pass. Spec mới viết cho việc này đặt trong test/e2e/ để bước E2E tự động chạy lại.
           6. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
+          if [ "$CONTINUE_ROUND" -gt 0 ]; then
+            TASK_PROMPT="$TASK_PROMPT
+
+          LƯỢT NỐI TIẾP $CONTINUE_ROUND: lượt trước bị dừng giữa chừng (quá giờ hoặc lỗi) và phần làm dở đã được đẩy lên nhánh '$BRANCH_NAME'; bạn đang đứng trên nhánh đó. Trước khi làm: trong từng repo có nhánh này, xem 'git log --oneline origin/main..HEAD' và 'git diff --stat origin/main...HEAD' để biết đã làm gì. Chỉ làm tiếp phần còn thiếu: không làm lại từ đầu, không xoá hay viết lại phần đã có trừ khi nó sai."
+          fi
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
           SESSION_ID=$(echo "$ISSUE_BODY" | grep -oP 'Session-ID\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+          # Lượt nối tiếp: phiên mới nhất là phiên lượt trước, bước 8.5 lưu ở thư mục issue-<số>.
+          if [ "$CONTINUE_ROUND" -gt 0 ]; then SESSION_ID="issue-$ISSUE_NUMBER"; fi
           TARGET_REPO=$(echo "$ISSUE_BODY" | grep -oP 'Repo mục tiêu\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
           
           # Tự động nhảy vào đúng repo mục tiêu nếu có
@@ -445,8 +483,8 @@ jobs:
           fi
           echo "Khóa Codex hoạt động."
 
-          # Agent không cần token: push do bước 7 làm. Không để shell của agent đọc được GH_PAT.
-          unset GH_PAT
+          # Agent không cần token: push do bước 7 làm. Không để shell của agent đọc được GH_PAT/GH_TOKEN.
+          unset GH_PAT GH_TOKEN
           echo "Executing OMP in Headless Mode inside $EXEC_DIR..."
           cd "$EXEC_DIR"
           if [ -n "$SESSION_ID" ]; then
@@ -660,6 +698,7 @@ jobs:
           Để kéo code và session về máy: \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
 
       - name: 8.5 Lưu và đồng bộ phiên làm việc (Session Sync) lên branch omp-sync/sessions
+        id: sessions
         if: always()
         env:
           GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
@@ -708,6 +747,62 @@ jobs:
               echo "Không có thay đổi trong session, bỏ qua push."
             fi
           fi
+
+      - name: 8.6 Tự chạy tiếp khi agent bị dừng giữa chừng (quá giờ / lỗi), tối đa 3 lượt
+        # Chỉ khi bước 6 hỏng (cắt vì quá giờ hoặc lỗi), KHÔNG khi agent tự xong hay người dùng huỷ. Nối tiếp = gắn lại
+        # nhãn agent-task trên CHÍNH issue này: run mới đọc lại nguyên đề, làm tiếp trên nhánh và phiên đã lưu, nên
+        # không phải chép đề sang issue mới. Repo này CÔNG KHAI: bình luận chỉ ghi số lượt và lý do, không ghi tên repo,
+        # nhánh, file hay nội dung việc. Nhãn phải gắn bằng GH_PAT: sự kiện do GITHUB_TOKEN tạo không kích hoạt workflow.
+        if: ${{ !cancelled() && github.event_name == 'issues' && steps.agent.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          SESSION_SAVED: ${{ steps.sessions.outcome }}
+          MAX_ROUNDS: 3
+        run: |
+          MARK='<!-- omp-auto-continue -->'
+          PULL='Kéo về máy: `powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1`'
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::Thiếu secret GH_PAT: nhãn gắn bằng GITHUB_TOKEN không kích hoạt run mới, không tự chạy tiếp được."
+            exit 0
+          fi
+          # Không đếm được số lượt đã chạy thì KHÔNG chạy tiếp: thà dừng còn hơn nối tiếp không giới hạn.
+          done_rounds=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" --paginate \
+            --jq "[.[] | select(.body | contains(\"$MARK\"))] | length" | awk '{s+=$1} END {print s+0}') \
+            || done_rounds=$MAX_ROUNDS
+          # Lượt này có tiến triển không: đầu nhánh sau bước 7 khác đầu nhánh lúc agent bắt đầu, ở ít nhất một repo.
+          # Không tiến triển (khoá Codex hỏng, lỗi lặp lại, agent không làm được gì) thì chạy tiếp chỉ tốn thêm lượt.
+          progressed=false
+          if [ -f "$RUNNER_TEMP/heads-before.txt" ] && [ -n "${AGENT_BRANCH:-}" ]; then
+            while read -r dir before; do
+              now=$(git -C "workspace/$dir" rev-parse -q --verify "refs/heads/$AGENT_BRANCH" || echo none)
+              if [ "$now" != none ] && [ "$now" != "$before" ]; then progressed=true; fi
+            done < "$RUNNER_TEMP/heads-before.txt"
+          fi
+          stop=""
+          if [ "$done_rounds" -ge "$MAX_ROUNDS" ]; then
+            stop="đã tự chạy tiếp đủ $MAX_ROUNDS lượt"
+          elif printf '%s' "${PUSHED_REPOS:-}" | grep -qE 'gộp tay|bị từ chối|KHÔNG commit được'; then
+            stop="có phần việc không vào được nhánh chính của việc (xung đột hoặc không commit được), cần gộp tay"
+          elif [ "$progressed" != true ]; then
+            stop="lượt này không có commit mới (lỗi lặp lại hoặc agent không làm được gì)"
+          elif [ "$SESSION_SAVED" != success ]; then
+            stop="chưa lưu được phiên làm việc, chạy tiếp sẽ mất ngữ cảnh"
+          fi
+          if [ -n "$stop" ]; then
+            echo "Không tự chạy tiếp: $stop"
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --body "**OMP Orchestrator:** agent dừng giữa chừng nhưng KHÔNG tự chạy tiếp: $stop. Phần đã làm đã được lưu. $PULL"
+            exit 0
+          fi
+          next=$((done_rounds + 1))
+          # Bình luận mang dấu trước, gắn nhãn sau: run mới đếm dấu này để biết mình là lượt thứ mấy.
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$MARK
+          **OMP Orchestrator:** agent dừng giữa chừng (quá giờ hoặc lỗi), phần đã làm và phiên làm việc đã được lưu. Tự chạy tiếp lượt $next/$MAX_ROUNDS, làm tiếp đúng chỗ đang dở."
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --remove-label agent-task >/dev/null 2>&1 || true
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label agent-task
+          echo "Đã gắn lại nhãn agent-task: lượt $next/$MAX_ROUNDS sẽ chạy sau khi run này kết thúc."
 
       - name: 9. Tự động đồng bộ & lưu mới Token Codex OAuth vào GitHub Secrets (Auto-Persist)
         # Không chạy ở run bị huỷ; chỉ ghi khi run này thật sự làm mới token (xem scripts/agent/persist_codex_token.py).
