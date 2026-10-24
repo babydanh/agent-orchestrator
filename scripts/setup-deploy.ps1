@@ -63,8 +63,9 @@ if ($LASTEXITCODE -ne 0) { throw "Chưa đăng nhập gh. Chạy: gh auth login"
 
 Write-Host "== 1. Environment production / staging (chỉ nhánh main)"
 foreach ($e in $Envs) {
-    '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' |
-        gh api -X PUT "repos/$Repo/environments/$e" --input - | Out-Null
+    gh api -X PUT "repos/$Repo/environments/$e" -F "deployment_branch_policy[protected_branches]=false" `
+        -F "deployment_branch_policy[custom_branch_policies]=true" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Không tạo được environment $e" }
     $policies = gh api "repos/$Repo/environments/$e/deployment-branch-policies" --jq ".branch_policies[].name"
     if (@($policies) -notcontains "main") {
         gh api -X POST "repos/$Repo/environments/$e/deployment-branch-policies" -f name=main -f type=branch | Out-Null

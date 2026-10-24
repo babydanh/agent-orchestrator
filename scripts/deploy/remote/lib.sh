@@ -44,6 +44,18 @@ pull_retry() {
   return 1
 }
 
+# check_app_key <file env> <sha256 khoá đã build>: khoá Web build vào image (NEXT_PUBLIC_APP_API_KEY, ưu tiên hơn
+# /runtime-config) phải bằng APP_API_KEY của Backend, nếu không mọi API trả 403. So bằng sha256, không in khoá.
+check_app_key() {
+  local actual
+  actual="$(sed -n 's/^APP_API_KEY=//p' "$1" | tail -n 1 | tr -d "\"'\r" | tr -d '\n' | sha256sum | cut -d' ' -f1)"
+  if [[ "$actual" != "$2" ]]; then
+    echo "LỖI  NEXT_PUBLIC_APP_API_KEY (secret repo orchestrator) khác APP_API_KEY trong $(basename "$1"); dừng trước khi thay frontend"
+    exit 1
+  fi
+  echo "OK    khoá x-app-key của bản build khớp APP_API_KEY trên VPS"
+}
+
 # api_get <url>: GET kèm x-app-key (đọc từ biến APP_API_KEY). Header đi qua --config để khoá không nằm trong argv (ps).
 api_get() {
   curl --fail --silent --show-error --max-time 15 \

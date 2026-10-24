@@ -319,14 +319,19 @@ jobs:
         run: bash scripts/deploy/remote.sh backend-seed-regions.sh "$APP_DIR" "$SHA"
 
       # ---- Web ----
-      - name: Web production - pull, thay container
+      # Khoá build vào image phải khớp APP_API_KEY trên VPS (so sha256 ở VPS, không in khoá); lệch thì dừng trước khi thay.
+      - name: Web production - kiểm khoá, pull, thay container
         if: inputs.project == 'web' && inputs.env == 'production'
         timeout-minutes: 40
-        run: bash scripts/deploy/remote.sh web-production.sh "$APP_DIR" "$SHA"
-      - name: Web staging - pull, tạo lại frontend staging, smoke
+        env:
+          APP_KEY: ${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
+        run: bash scripts/deploy/remote.sh web-production.sh "$APP_DIR" "$SHA" "$(printf '%s' "$APP_KEY" | sha256sum | cut -d' ' -f1)"
+      - name: Web staging - kiểm khoá, pull, tạo lại frontend staging, smoke
         if: inputs.project == 'web' && inputs.env == 'staging'
         timeout-minutes: 40
-        run: bash scripts/deploy/remote.sh web-staging.sh "$APP_DIR" "$SHA"
+        env:
+          APP_KEY: ${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
+        run: bash scripts/deploy/remote.sh web-staging.sh "$APP_DIR" "$SHA" "$(printf '%s' "$APP_KEY" | sha256sum | cut -d' ' -f1)"
 
       # ---- Backend staging (chuyển từ deploy-staging.yml của repo Backend) ----
       - name: Backend staging - ghi nhận container prod trước deploy

@@ -1,11 +1,12 @@
-# Chạy trên VPS (sau lib.sh). Tham số: <thư mục app prod> <sha>.
+# Chạy trên VPS (sau lib.sh). Tham số: <thư mục app prod> <sha> <sha256 của NEXT_PUBLIC_APP_API_KEY đã build vào image>.
 # Chuyển từ deploy.yml của repo Web: kéo :latest, thay container frontend.
 APP_DIR="$1"
 SHA="$2"
+KEY_SHA="$3"
 IMAGE=ghcr.io/babydanh/hethongfrontendweb_qlgiaidau:latest
 init_log "web-production-${SHA:0:8}"
 cd "$APP_DIR"
-
+check_app_key "$APP_DIR/.env" "$KEY_SHA"
 pull_retry "$IMAGE"
 
 remove_old_frontend() {

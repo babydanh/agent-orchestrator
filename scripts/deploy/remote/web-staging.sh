@@ -1,7 +1,8 @@
-# Chạy trên VPS (sau lib.sh). Tham số: <thư mục staging> <sha>.
+# Chạy trên VPS (sau lib.sh). Tham số: <thư mục staging> <sha> <sha256 của NEXT_PUBLIC_APP_API_KEY đã build vào image>.
 # Chuyển từ deploy-staging.yml của repo Web: kéo :staging, tạo lại frontend của compose staging, giữ nguyên prod.
 STAGING_DIR="$1"
 SHA="$2"
+KEY_SHA="$3"
 COMPOSE_FILE="$STAGING_DIR/docker-compose.yml"
 ENV_FILE="$STAGING_DIR/.env.staging"
 IMAGE=ghcr.io/babydanh/hethongfrontendweb_qlgiaidau:staging
@@ -16,6 +17,7 @@ for f in "$COMPOSE_FILE" "$ENV_FILE"; do
     exit 1
   fi
 done
+check_app_key "$ENV_FILE" "$KEY_SHA"
 staging_compose() {
   docker compose -p sporto-staging -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"
 }
