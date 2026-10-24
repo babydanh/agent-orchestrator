@@ -103,7 +103,8 @@ jobs:
   backend-checks:
     name: Backend - schema trên DB sạch + unit test
     needs: verify
-    if: inputs.project == 'backend' && inputs.env == 'production'
+    # Cả staging: ci.yml của repo Backend (private) không chạy được khi hết phút Actions.
+    if: inputs.project == 'backend'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -455,3 +456,10 @@ jobs:
             exit 1
           fi
           echo "OK    container prod qlgiaidau-backend giữ nguyên ID"
+      # Token GITHUB_TOKEN hết hạn khi job xong, nhưng không để nó nằm lại trong ~/.docker/config.json trên VPS.
+      - name: Đăng xuất GHCR trên VPS
+        if: always()
+        run: |
+          if [[ -x "$RUNNER_TEMP/ssh-vps" ]]; then
+            "$RUNNER_TEMP/ssh-vps" "docker logout ghcr.io >/dev/null 2>&1 || true" && echo "OK    docker logout ghcr.io trên VPS"
+          fi
