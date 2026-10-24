@@ -99,9 +99,11 @@ if ($needKnown) {
     $tmp = New-TemporaryFile
     try {
         Set-Content -Path $tmp -Value $scan -Encoding ascii
-        Write-Host "  Fingerprint máy chủ (đối chiếu với trang quản lý VPS nếu có):"
+        Write-Host "  Fingerprint máy chủ. Đối chiếu nếu được: console nhà cung cấp VPS, lệnh"
+        Write-Host "  ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub (ssh-keyscan không tự xác thực máy chủ):"
         ssh-keygen -lf $tmp | ForEach-Object { Write-Host "    $_" }
     } finally { Remove-Item $tmp -Force }
+    if ((Read-Host "  Ghim các khoá này cho deploy? (y/n)") -ne "y") { throw "Dừng: chưa ghim known_hosts." }
     foreach ($e in $needKnown) { Set-Secret "VPS_KNOWN_HOSTS" $scan $e }
 } else { Write-Host "  Đã có ở cả hai environment." }
 
