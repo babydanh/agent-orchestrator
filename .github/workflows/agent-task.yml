@@ -348,8 +348,8 @@ jobs:
         id: agent
         # Chừa ~45 phút trong 360 phút của job cho bước 7 (đẩy code) + báo cáo: agent chạy quá giờ thì bước này hỏng,
         # còn job vẫn sống để đẩy phần đã làm, rồi bước 8.6 tự chạy tiếp. Nhãn `thu-noi-tiep` chỉ để thử chuỗi nối
-        # tiếp: cắt agent sau 4 phút thay vì chờ 5 tiếng.
-        timeout-minutes: ${{ contains(github.event.issue.labels.*.name, 'thu-noi-tiep') && 4 || 300 }}
+        # tiếp: cắt agent sau 8 phút (đủ kiểm khoá Codex, khởi động omp, làm một việc nhỏ) thay vì chờ 5 tiếng.
+        timeout-minutes: ${{ contains(github.event.issue.labels.*.name, 'thu-noi-tiep') && 8 || 300 }}
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # Chỉ dùng cho fetch nhánh handoff ở đầu bước (credential helper bước 4 đọc biến này); unset trước khi gọi omp.
