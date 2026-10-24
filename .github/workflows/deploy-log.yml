@@ -1,0 +1,55 @@
+name: Xem dòng lỗi của lượt deploy trên VPS
+
+# Log đầy đủ của deploy nằm trên VPS (/var/log/sporto-deploy, xem scripts/deploy/remote/lib.sh). Repo này public nên
+# workflow chỉ in tiêu đề bước (`== <bước>`) và dòng lỗi do script deploy tự viết (`[<script>] LỖI: ...`,
+# vd bootstrap.sh, refresh-db.sh), không in output thô (SQL, log container, cấu hình).
+#   gh workflow run deploy-log.yml -R babydanh/agent-orchestrator -f env=staging -f log=<tên file .log in ở run deploy>
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Environment của lượt deploy'
+        required: true
+        type: choice
+        options: [staging, production]
+      log:
+        description: 'Tên file log (dòng "Log đầy đủ trên VPS" / "chi tiết trong" của run deploy), vd backend-staging-bootstrap-c9d34ea2-20261024-162808.log'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    name: Dòng lỗi của ${{ inputs.log }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.env }}
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+    steps:
+      - name: Kiểm tên file
+        env:
+          LOG: ${{ inputs.log }}
+        run: |
+          if [[ ! "$LOG" =~ ^[a-z0-9-]+\.log$ ]]; then
+            echo "::error::Tên file chỉ gồm chữ thường, số, dấu - và đuôi .log."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Chuẩn bị SSH
+        run: bash scripts/deploy/ssh-setup.sh
+      - name: Dòng lỗi
+        env:
+          LOG: ${{ inputs.log }}
+        run: |
+          "$RUNNER_TEMP/ssh-vps" "f=/var/log/sporto-deploy/$LOG; test -f \$f || { echo 'Không có file này'; exit 1; };
+            grep -E '^(== |\[[a-z-]+\] LỖI)' \$f | cut -c1-200 | tail -n 40"
