@@ -1,0 +1,453 @@
+name: Deploy QuanLyGiaiDau
+
+# Deploy Backend/Web của dự án giải đấu lên VPS: production = sporto.asia, staging = staging.sporto.asia.
+# Chạy ở repo này (public: runner chuẩn không tính phút) thay cho deploy.yml / deploy-staging.yml trong repo
+# Backend/Web (repo private bị chặn khi hết phút Actions). Gọi tự động: merge-lane.py sau khi push main,
+# staging-sync.py sau khi push staging (qua ~/.omp/scripts/orchestrator-deploy.py). Gọi tay:
+#   gh workflow run deploy.yml -R babydanh/agent-orchestrator -f project=backend -f env=staging -f sha=<40 ký tự>
+#
+# Repo public nên log ai cũng đọc:
+# - Địa chỉ, cổng, user, thư mục trên VPS, khoá SSH, known_hosts là secret của environment (GitHub che trong log).
+# - Output thô của install/test/build/migrate/container không vào log (scripts/deploy/quiet.sh, remote/lib.sh);
+#   log đầy đủ của phần chạy trên VPS nằm ở /var/log/sporto-deploy.
+# - Không upload artifact. Cache build nằm trong package GHCR private (tag buildcache), không dùng cache Actions.
+run-name: "deploy ${{ inputs.project }} ${{ inputs.env }} @${{ inputs.sha }}${{ inputs.dry_run && ' (dry-run)' || '' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Repo cần deploy'
+        required: true
+        type: choice
+        options: [backend, web]
+      env:
+        description: 'production = sporto.asia (SHA phải nằm trên main); staging = staging.sporto.asia (SHA nằm trên staging)'
+        required: true
+        type: choice
+        options: [staging, production]
+      sha:
+        description: 'SHA đủ 40 ký tự của repo đích'
+        required: true
+        type: string
+      refresh_db:
+        description: 'Backend staging: chép đè DB staging từ prod (mất dữ liệu staging hiện có)'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Chỉ kiểm + build image, không push image, không deploy'
+        type: boolean
+        default: false
+
+# Mỗi đích một hàng đợi. Backend không huỷ lượt đang chạy (huỷ giữa migrate/thay container có thể để backend tắt);
+# Web huỷ lượt cũ như workflow gốc của repo Web.
+concurrency:
+  group: deploy-${{ inputs.project }}-${{ inputs.env }}
+  cancel-in-progress: ${{ inputs.project == 'web' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Kiểm commit đích
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.check.outputs.repo }}
+      image: ${{ steps.check.outputs.image }}
+      refresh_db: ${{ steps.check.outputs.refresh_db }}
+    steps:
+      - name: SHA nằm trên nhánh của môi trường
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          OWNER: ${{ github.repository_owner }}
+          PROJECT: ${{ inputs.project }}
+          DEPLOY_ENV: ${{ inputs.env }}
+          SHA: ${{ inputs.sha }}
+          REFRESH_INPUT: ${{ inputs.refresh_db }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha phải là 40 ký tự hex thường."
+            exit 1
+          fi
+          case "$PROJECT" in
+            backend) repo=HethongBackendApi_QuanlyGiaiDau ;;
+            web) repo=HethongFrontEndWeb_QLgiaidau ;;
+          esac
+          branch=staging
+          [[ "$DEPLOY_ENV" == production ]] && branch=main
+          # compare/<sha>...<nhánh>: "ahead"/"identical" nghĩa là nhánh chứa SHA (deploy lại bản cũ hơn vẫn được).
+          status="$(gh api "repos/$OWNER/$repo/compare/$SHA...$branch" --jq .status)"
+          case "$status" in
+            identical | ahead) echo "OK    $SHA nằm trên $branch ($status)" ;;
+            *)
+              echo "::error::$SHA không nằm trên nhánh $branch của $repo (compare: $status)."
+              exit 1
+              ;;
+          esac
+          refresh=false
+          if [[ "$PROJECT" == backend && "$DEPLOY_ENV" == staging ]]; then
+            message="$(gh api "repos/$OWNER/$repo/commits/$SHA" --jq .commit.message)"
+            if [[ "$REFRESH_INPUT" == true || "$message" == *"[refresh-db]"* ]]; then
+              refresh=true
+            fi
+          fi
+          {
+            echo "repo=$repo"
+            echo "image=ghcr.io/$OWNER/${repo,,}"
+            echo "refresh_db=$refresh"
+          } >>"$GITHUB_OUTPUT"
+
+  backend-checks:
+    name: Backend - schema trên DB sạch + unit test
+    needs: verify
+    if: inputs.project == 'backend' && inputs.env == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: tournament_db
+      DB_SSL: 'false'
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tournament_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d tournament_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ needs.verify.outputs.repo }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cài dependency
+        working-directory: src
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          bash ../scripts/deploy/quiet.sh "pnpm install" pnpm install --frozen-lockfile
+      - name: Migrate DB sạch hai lần (idempotent) + kiểm schema bóng đá
+        working-directory: src
+        run: |
+          bash ../scripts/deploy/quiet.sh "migrate lần 1" node run-prod-migration.js
+          bash ../scripts/deploy/quiet.sh "migrate lần 2 (idempotent)" node run-prod-migration.js
+          bash ../scripts/deploy/quiet.sh "verify football schema" pnpm verify:football-schema
+      - name: Unit test
+        working-directory: src
+        env:
+          QUIET_SUMMARY: '^(Test Suites|Tests):'
+        run: bash ../scripts/deploy/quiet.sh "pnpm test" pnpm test --runInBand --passWithNoTests
+
+  web-checks:
+    name: Web - typecheck + i18n
+    needs: verify
+    if: inputs.project == 'web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ needs.verify.outputs.repo }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Typecheck + i18n
+        working-directory: src
+        run: |
+          bash ../scripts/deploy/quiet.sh "pnpm install" pnpm install --frozen-lockfile
+          bash ../scripts/deploy/quiet.sh "tsc --noEmit" pnpm tsc --noEmit
+          bash ../scripts/deploy/quiet.sh "i18n:check" pnpm i18n:check
+
+  build:
+    name: Build image${{ !inputs.dry_run && ' + push GHCR' || '' }}
+    needs: [verify, backend-checks, web-checks]
+    # backend-checks/web-checks bị bỏ qua (skipped) với tổ hợp không cần; chỉ dừng khi một job lỗi hoặc bị huỷ.
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ needs.verify.outputs.repo }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Đăng nhập GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin >/dev/null && echo "OK    docker login ghcr.io"
+      - name: Build
+        env:
+          IMAGE: ${{ needs.verify.outputs.image }}
+          PROJECT: ${{ inputs.project }}
+          DEPLOY_ENV: ${{ inputs.env }}
+          SHA: ${{ inputs.sha }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          NEXT_PUBLIC_APP_API_KEY: ${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_ENV" == production ]]; then
+            tags=(-t "$IMAGE:latest" -t "$IMAGE:$SHA")
+            site=https://sporto.asia
+          else
+            tags=(-t "$IMAGE:staging" -t "$IMAGE:staging-$SHA")
+            site=https://staging.sporto.asia
+          fi
+          args=()
+          if [[ "$PROJECT" == web ]]; then
+            if [[ -z "$NEXT_PUBLIC_APP_API_KEY" ]]; then
+              echo "::error::Thiếu secret NEXT_PUBLIC_APP_API_KEY (chạy scripts/setup-deploy.ps1)."
+              exit 1
+            fi
+            args+=(--build-arg "NEXT_PUBLIC_API_URL=$site/api/v1" --build-arg "NEXT_PUBLIC_SITE_URL=$site")
+            if [[ "$DEPLOY_ENV" == staging ]]; then
+              args+=(--build-arg "NEXT_PUBLIC_APP_URL=$site" --build-arg NEXT_PUBLIC_ENV=staging
+                --build-arg "NEXT_PUBLIC_BUILD_SHA=$SHA")
+            fi
+            args+=(--build-arg "NEXT_PUBLIC_APP_API_KEY=$NEXT_PUBLIC_APP_API_KEY")
+          fi
+          cache=(--cache-from "type=registry,ref=$IMAGE:buildcache")
+          if [[ "$DRY_RUN" == true ]]; then
+            out=(--output type=cacheonly)
+          else
+            out=(--push)
+            cache+=(--cache-to "type=registry,ref=$IMAGE:buildcache,mode=max")
+          fi
+          bash scripts/deploy/quiet.sh "docker build $PROJECT ($DEPLOY_ENV)" \
+            docker buildx build src --progress=plain "${tags[@]}" "${args[@]}" "${cache[@]}" "${out[@]}"
+          [[ "$DRY_RUN" == true ]] || echo "OK    đã push ${tags[1]} và ${tags[3]}"
+
+  deploy:
+    name: Deploy lên VPS (${{ inputs.env }})
+    needs: [verify, build]
+    if: ${{ !failure() && !cancelled() && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.env }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+      SHA: ${{ inputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Lấy file deploy/staging của Backend
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ needs.verify.outputs.repo }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          sparse-checkout: deploy/staging
+          persist-credentials: false
+      - name: Chuẩn bị SSH
+        run: |
+          if [[ -z "$APP_DIR" ]]; then
+            echo "::error::Thiếu secret APP_DIR của environment này (chạy scripts/setup-deploy.ps1)."
+            exit 1
+          fi
+          bash scripts/deploy/ssh-setup.sh
+      - name: Đăng nhập GHCR trên VPS
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$TOKEN" | "$RUNNER_TEMP/ssh-vps" "docker login ghcr.io -u '$ACTOR' --password-stdin >/dev/null"
+          echo "OK    docker login ghcr.io trên VPS"
+
+      # ---- Backend production ----
+      - name: Backend production - pull, migrate, thay container, smoke
+        if: inputs.project == 'backend' && inputs.env == 'production'
+        run: bash scripts/deploy/remote.sh backend-production.sh "$APP_DIR" "$SHA"
+      - name: Backend production - nạp provinces/wards v2
+        if: inputs.project == 'backend' && inputs.env == 'production'
+        timeout-minutes: 45
+        run: bash scripts/deploy/remote.sh backend-seed-regions.sh "$APP_DIR" "$SHA"
+
+      # ---- Web ----
+      - name: Web production - pull, thay container
+        if: inputs.project == 'web' && inputs.env == 'production'
+        timeout-minutes: 40
+        run: bash scripts/deploy/remote.sh web-production.sh "$APP_DIR" "$SHA"
+      - name: Web staging - pull, tạo lại frontend staging, smoke
+        if: inputs.project == 'web' && inputs.env == 'staging'
+        timeout-minutes: 40
+        run: bash scripts/deploy/remote.sh web-staging.sh "$APP_DIR" "$SHA"
+
+      # ---- Backend staging (chuyển từ deploy-staging.yml của repo Backend) ----
+      - name: Backend staging - ghi nhận container prod trước deploy
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        run: |
+          set -euo pipefail
+          id="$("$RUNNER_TEMP/ssh-vps" "docker inspect -f '{{.Id}}' qlgiaidau-backend 2>/dev/null || echo none")"
+          echo "PROD_BACKEND_ID_BEFORE=$id" >>"$GITHUB_ENV"
+          echo "Container prod qlgiaidau-backend: $id"
+      - name: Backend staging - đồng bộ file deploy lên VPS
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/ssh-vps" "mkdir -p '$APP_DIR/deploy' '$APP_DIR/tmp'"
+          "$RUNNER_TEMP/scp-vps" src/deploy/staging/docker-compose.yml src/deploy/staging/staging.sporto.asia.conf \
+            src/deploy/staging/bootstrap.sh src/deploy/staging/refresh-db.sh "$APP_DIR/deploy/"
+          echo "OK    đã chép compose, vhost, bootstrap.sh, refresh-db.sh"
+      - name: Backend staging - bootstrap cấu hình
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        env:
+          STAGING_BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$STAGING_BASIC_AUTH" ]]; then
+            echo "::error::Thiếu secret STAGING_BASIC_AUTH của environment staging."
+            exit 1
+          fi
+          # Secret đi qua stdin vào file quyền 600 trên VPS, không vào argv (ps) hay log; script remote xoá file khi xong.
+          secrets_file="$APP_DIR/tmp/secrets.env"
+          printf 'export STAGING_BASIC_AUTH=%q\n' "$STAGING_BASIC_AUTH" \
+            | "$RUNNER_TEMP/ssh-vps" "umask 077; cat > '$secrets_file'"
+          bash scripts/deploy/remote.sh backend-staging-bootstrap.sh "$APP_DIR" "$SHA" "$secrets_file"
+      # Chạy TRƯỚC khi chép DB prod và bật backend: khoá hỏng thì dữ liệu chưa từng lên staging.
+      # LiteSpeed trả 401 trước khi proxy nên kiểm được cả khi backend chưa chạy.
+      - name: Backend staging - kiểm khoá truy cập từ bên ngoài (chưa có dữ liệu)
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        run: |
+          set -uo pipefail
+          HOST=staging.sporto.asia
+          ip="$(getent ahostsv4 "$HOST" | awk 'NR == 1 { print $1; exit }' || true)"
+          if [[ "$ip" != "$VPS_HOST" ]]; then
+            echo "::error::DNS $HOST chưa trỏ về VPS; không chép dữ liệu khi chưa kiểm được khoá."
+            exit 1
+          fi
+          failures=0
+          hdr="$(mktemp)"
+          trap 'rm -f "$hdr"' EXIT
+          # want_challenge=1: chỉ trang web gửi thách thức Basic. /api/, /socket.io/, /hls/ vẫn khoá (401) nhưng bỏ
+          # WWW-Authenticate, để 401 của Backend (hết phiên) không bật lại hộp mật khẩu staging.
+          check_locked() {
+            local name="$1" want_challenge="$2"
+            shift 2
+            local code challenge=0
+            code="$(curl -s -o /dev/null -D "$hdr" -w '%{http_code}' --max-time 20 "$@" || true)"
+            grep -qi '^www-authenticate: *basic' "$hdr" && challenge=1
+            if [[ "$code" == "401" && "$challenge" == "$want_challenge" ]]; then
+              echo "OK    $name: 401 (thách thức Basic=$challenge)"
+            else
+              echo "FAIL  $name: mong đợi 401 với thách thức Basic=$want_challenge, nhận $code (thách thức Basic=$challenge)"
+              failures=$((failures + 1))
+            fi
+            grep -qi '^x-robots-tag: .*noindex' "$hdr" || echo "::warning::$name thiếu X-Robots-Tag noindex"
+          }
+          check_locked "trang web" 1 "https://$HOST/"
+          check_locked "API công khai" 0 "https://$HOST/api/v1/categories"
+          check_locked "socket.io polling" 0 "https://$HOST/socket.io/?EIO=4&transport=polling"
+          check_locked "HLS" 0 "https://$HOST/hls/test.m3u8"
+          # Vhost không có khối websocket nên OLS từ chối upgrade trước khi tới backend.
+          # Đạt khi bị từ chối bằng 401/403/404; trượt khi 101 (mở tunnel) hoặc 000 (bị chuyển tiếp rồi treo).
+          code_ws="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 --http1.1 -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+            -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+            "https://$HOST/socket.io/?EIO=4&transport=websocket" || true)"
+          case "$code_ws" in
+            401 | 403 | 404) echo "OK    WebSocket upgrade bị từ chối: $code_ws" ;;
+            *)
+              echo "FAIL  WebSocket upgrade: nhận $code_ws"
+              failures=$((failures + 1))
+              ;;
+          esac
+          code_bad="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -u 'sai:matkhausai' "https://$HOST/api/v1/categories" || true)"
+          if [[ "$code_bad" == "401" ]]; then
+            echo "OK    sai mật khẩu: 401"
+          else
+            echo "FAIL  sai mật khẩu: nhận $code_bad"
+            failures=$((failures + 1))
+          fi
+          if ((failures > 0)); then
+            echo "::error::Khoá staging chưa kín ($failures lỗi). Dừng trước khi chép dữ liệu prod."
+            exit 1
+          fi
+          echo "Khoá staging kín."
+      - name: Backend staging - pull, DB, migrate, bật backend, smoke
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        timeout-minutes: 45
+        env:
+          REFRESH_DB: ${{ needs.verify.outputs.refresh_db }}
+        run: bash scripts/deploy/remote.sh backend-staging.sh "$APP_DIR" "$SHA" "$REFRESH_DB"
+      - name: Backend staging - kiểm truy cập có mật khẩu
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+        run: |
+          set -uo pipefail
+          HOST=staging.sporto.asia
+          code_api="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -u "$BASIC_AUTH" "https://$HOST/api/v1/categories" || true)"
+          if [[ "$code_api" != "200" ]]; then
+            echo "::error::API staging có mật khẩu trả $code_api (mong đợi 200)."
+            exit 1
+          fi
+          echo "OK    API có mật khẩu: 200"
+          code_web="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -u "$BASIC_AUTH" "https://$HOST/" || true)"
+          case "$code_web" in
+            200) echo "OK    trang web có mật khẩu: 200" ;;
+            502 | 503) echo "::warning::Frontend staging chưa chạy ($code_web); deploy Web staging." ;;
+            *)
+              echo "::error::Trang web staging có mật khẩu trả $code_web."
+              exit 1
+              ;;
+          esac
+      - name: Backend staging - container prod không đổi
+        if: inputs.project == 'backend' && inputs.env == 'staging'
+        run: |
+          set -euo pipefail
+          after="$("$RUNNER_TEMP/ssh-vps" "docker inspect -f '{{.Id}}' qlgiaidau-backend 2>/dev/null || echo none")"
+          if [[ "$after" != "$PROD_BACKEND_ID_BEFORE" ]]; then
+            echo "::error::Container prod qlgiaidau-backend đổi ID trong lúc deploy staging."
+            exit 1
+          fi
+          echo "OK    container prod qlgiaidau-backend giữ nguyên ID"

@@ -68,11 +68,25 @@ Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở
 - `GH_PAT` cần Contents read trên 3 repo mục tiêu và Issues read/write trên Web và `omp-global-config`. Không ghi được báo cáo private thì job báo lỗi hạ tầng, không bỏ qua.
 - Gitleaks quét cả lịch sử, nên secret đã xoá khỏi nhánh hiện tại vẫn bị báo nếu còn trong commit cũ.
 
+## Deploy Backend / Web lên VPS (`deploy.yml`, `staging-refresh-db.yml`)
+
+- Thay `deploy.yml` / `deploy-staging.yml` / `staging-refresh-db.yml` trong repo Backend và Web: repo private hết phút Actions thì bị chặn, repo này public nên runner chuẩn không tính phút. Image vẫn ở GHCR cũ (`hethongbackendapi_quanlygiaidau`, `hethongfrontendweb_qlgiaidau`), compose trên VPS không đổi.
+- Gọi tự động: `merge-lane.py --push` lên `main` gọi deploy production đúng SHA vừa push; `staging-sync.py` gọi deploy staging sau khi push `staging` (cả hai qua `~/.omp/scripts/orchestrator-deploy.py`). Gọi tay:
+  - `python ~/.omp/scripts/orchestrator-deploy.py <repo Backend|Web> --env staging|production [--sha <sha>] [--refresh-db] [--dry-run] [--watch]`
+  - hoặc `gh workflow run deploy.yml -f project=backend|web -f env=staging|production -f sha=<40 ký tự>`.
+- Luồng: kiểm SHA nằm trên `main` (production) hoặc `staging` (staging) của repo đích → Backend production chạy migrate trên PostGIS sạch hai lần + `pnpm test`; Web chạy `tsc` + `i18n:check` → build image, push GHCR (cache build ở tag `buildcache` của chính package) → SSH lên VPS làm đúng các bước của workflow cũ (pull, migrate, thay container, smoke; staging còn kiểm khoá Basic và container prod không đổi ID). `dry_run=true`: dừng sau build, không push.
+- Log công khai: không có địa chỉ/cổng/thư mục VPS (secret của environment), không có output thô của install/test/build/migrate (`scripts/deploy/quiet.sh` chỉ in OK hoặc dòng error/fail đã cắt). Log đầy đủ phần chạy trên VPS: `/var/log/sporto-deploy/` trên VPS. Không upload artifact.
+- Danh tính máy chủ kiểm bằng `VPS_KNOWN_HOSTS` ghim lúc thiết lập (`StrictHostKeyChecking=yes`), không `ssh-keyscan` mỗi lượt.
+- Thiết lập một lần: `pwsh -File scripts\setup-deploy.ps1` (tạo environment, đặt secret, hỏi khoá SSH / mật khẩu staging / khoá API Web, mở trang cấp quyền package). Chạy lại được, bước đã xong thì bỏ qua.
+
 ## Secrets cần có (Settings -> Secrets and variables -> Actions)
 
 - `GH_PAT`: kéo/đẩy code vào các repo dự án (cần Contents, Actions, Issues).
 - `OPENROUTER_API_KEY`: model dự phòng cho OMP.
 - `OMP_CODEX_AUTH`: token Codex OAuth cho OMP.
+- `NEXT_PUBLIC_APP_API_KEY`: build-arg của image Web (deploy.yml).
+- Environment `production` và `staging` (chỉ chạy từ `main`), mỗi cái có: `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`, `VPS_HOST`, `VPS_PORT`, `VPS_USER`, `APP_DIR` (thư mục compose prod hoặc staging trên VPS). `staging` thêm `STAGING_BASIC_AUTH` (`user:matkhau`). Job khác trong repo (vd `agent-task.yml`) không khai environment nên không đọc được các secret này.
+- Package GHCR của Backend và Web: Manage Actions access → thêm `agent-orchestrator` quyền Write (để `GITHUB_TOKEN` của repo này push image và VPS kéo image).
 
 ## Lưu ý đã biết
 

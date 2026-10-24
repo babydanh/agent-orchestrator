@@ -1,0 +1,128 @@
+# Thiết lập deploy QuanLyGiaiDau qua repo này (.github/workflows/deploy.yml). Chạy lại bao nhiêu lần cũng được:
+# bước nào đã xong (environment có sẵn, secret đã đặt) thì bỏ qua.
+#
+#   pwsh -File scripts\setup-deploy.ps1 [-BackendRepo <đường dẫn clone Backend>]
+#
+# Làm gì:
+#   1. Tạo environment `production` và `staging`, chỉ cho chạy từ nhánh main của repo này.
+#   2. Secret hạ tầng (VPS_HOST, VPS_PORT, VPS_USER, APP_DIR) đọc từ workflow cũ của repo Backend
+#      (origin/main deploy.yml, origin/staging deploy-staging.yml); không in giá trị.
+#   3. VPS_KNOWN_HOSTS: ssh-keyscan một lần, in fingerprint để bạn đối chiếu.
+#   4. Hỏi bạn: khoá SSH deploy, mật khẩu Basic staging, NEXT_PUBLIC_APP_API_KEY (không hiện khi gõ, không lưu ra đĩa).
+#   5. Mở trang package GHCR của Backend và Web để bạn cấp quyền Write cho repo này (GitHub không có API cho bước này).
+# Giá trị đi vào `gh secret set --body` (argv của tiến trình gh trên máy bạn, vài giây), không ghi file, không in.
+param(
+    [string]$BackendRepo = "V:\Duancanhan\Project_QuanLyGiaiDau\HethongBackendApi_QuanlyGiaiDau"
+)
+$ErrorActionPreference = "Stop"
+$Repo = "babydanh/agent-orchestrator"
+$Envs = @("production", "staging")
+
+function Get-SecretNames([string]$EnvName) {
+    $ghArgs = @("secret", "list", "-R", $Repo, "--json", "name", "--jq", ".[].name")
+    if ($EnvName) { $ghArgs += @("--env", $EnvName) }
+    $out = & gh @ghArgs
+    if ($LASTEXITCODE -ne 0) { throw "gh secret list lỗi ($EnvName)" }
+    return @($out)
+}
+
+function Set-Secret([string]$Name, [string]$Value, [string]$EnvName) {
+    if ([string]::IsNullOrWhiteSpace($Value)) { throw "Giá trị $Name rỗng" }
+    $ghArgs = @("secret", "set", $Name, "-R", $Repo, "--body", $Value)
+    if ($EnvName) { $ghArgs += @("--env", $EnvName) }
+    & gh @ghArgs | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Không đặt được secret $Name ($EnvName)" }
+    Write-Host "  Đã đặt $Name$(if ($EnvName) { " ($EnvName)" })"
+}
+
+function Read-Hidden([string]$Prompt) {
+    $s = Read-Host -AsSecureString $Prompt
+    $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)
+    try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
+}
+
+function Get-Match([string]$Text, [string]$Pattern, [string]$What) {
+    $m = [regex]::Match($Text, $Pattern)
+    if (-not $m.Success) { throw "Không tìm thấy $What trong workflow cũ của Backend" }
+    return $m.Groups[1].Value
+}
+
+cmd /c "gh auth status >nul 2>nul"
+if ($LASTEXITCODE -ne 0) { throw "Chưa đăng nhập gh. Chạy: gh auth login" }
+
+Write-Host "== 1. Environment production / staging (chỉ nhánh main)"
+foreach ($e in $Envs) {
+    '{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' |
+        gh api -X PUT "repos/$Repo/environments/$e" --input - | Out-Null
+    $policies = gh api "repos/$Repo/environments/$e/deployment-branch-policies" --jq ".branch_policies[].name"
+    if (@($policies) -notcontains "main") {
+        gh api -X POST "repos/$Repo/environments/$e/deployment-branch-policies" -f name=main -f type=branch | Out-Null
+    }
+    Write-Host "  ${e}: OK"
+}
+
+Write-Host "== 2. Secret hạ tầng (đọc từ workflow cũ của Backend)"
+git -C $BackendRepo fetch -q origin main staging
+$prodYml = (git -C $BackendRepo show origin/main:.github/workflows/deploy.yml) -join "`n"
+$stagingYml = (git -C $BackendRepo show origin/staging:.github/workflows/deploy-staging.yml) -join "`n"
+$infra = @{
+    VPS_HOST = Get-Match $stagingYml '(?m)^\s*VPS_HOST:\s*(\S+)' "VPS_HOST"
+    VPS_PORT = Get-Match $stagingYml '(?m)^\s*VPS_PORT:\s*"?(\d+)"?' "VPS_PORT"
+    VPS_USER = Get-Match $prodYml 'StrictHostKeyChecking=no\s+(\w+)@' "user SSH"
+}
+$appDir = @{
+    production = Get-Match $prodYml '(?m)^\s*cd\s+(/usr/local/lsws/\S+)\s*$' "thư mục prod"
+    staging    = Get-Match $stagingYml '(?m)^\s*STAGING_DIR:\s*(\S+)' "thư mục staging"
+}
+foreach ($e in $Envs) {
+    $have = Get-SecretNames $e
+    foreach ($k in $infra.Keys) { if ($have -notcontains $k) { Set-Secret $k $infra[$k] $e } }
+    if ($have -notcontains "APP_DIR") { Set-Secret "APP_DIR" $appDir[$e] $e }
+}
+
+Write-Host "== 3. VPS_KNOWN_HOSTS"
+$needKnown = $Envs | Where-Object { (Get-SecretNames $_) -notcontains "VPS_KNOWN_HOSTS" }
+if ($needKnown) {
+    $scan = (cmd /c "ssh-keyscan -p $($infra.VPS_PORT) $($infra.VPS_HOST) 2>nul") -join "`n"
+    if (-not $scan) { throw "ssh-keyscan không lấy được khoá máy chủ (mạng chặn cổng SSH?)" }
+    $tmp = New-TemporaryFile
+    try {
+        Set-Content -Path $tmp -Value $scan -Encoding ascii
+        Write-Host "  Fingerprint máy chủ (đối chiếu với trang quản lý VPS nếu có):"
+        ssh-keygen -lf $tmp | ForEach-Object { Write-Host "    $_" }
+    } finally { Remove-Item $tmp -Force }
+    foreach ($e in $needKnown) { Set-Secret "VPS_KNOWN_HOSTS" $scan $e }
+} else { Write-Host "  Đã có ở cả hai environment." }
+
+Write-Host "== 4. Secret bạn giữ"
+$needKey = $Envs | Where-Object { (Get-SecretNames $_) -notcontains "VPS_SSH_KEY" }
+if ($needKey) {
+    Write-Host "  Khoá SSH riêng (private key) đăng nhập được VPS với user $($infra.VPS_USER)."
+    $keyPath = Read-Host "  Đường dẫn file khoá (vd C:\Users\<bạn>\.ssh\id_ed25519)"
+    if (-not (Test-Path $keyPath)) { throw "Không thấy file $keyPath" }
+    $key = Get-Content -Raw $keyPath
+    if ($key -notmatch 'PRIVATE KEY') { throw "File không phải private key" }
+    foreach ($e in $needKey) { Set-Secret "VPS_SSH_KEY" $key $e }
+    $key = $null
+} else { Write-Host "  VPS_SSH_KEY: đã có." }
+
+if ((Get-SecretNames "staging") -notcontains "STAGING_BASIC_AUTH") {
+    Set-Secret "STAGING_BASIC_AUTH" (Read-Hidden "  Mật khẩu Basic của staging.sporto.asia, dạng user:matkhau") "staging"
+} else { Write-Host "  STAGING_BASIC_AUTH: đã có." }
+
+if ((Get-SecretNames "") -notcontains "NEXT_PUBLIC_APP_API_KEY") {
+    Set-Secret "NEXT_PUBLIC_APP_API_KEY" (Read-Hidden "  NEXT_PUBLIC_APP_API_KEY (khoá x-app-key Web gửi lên API)") ""
+} else { Write-Host "  NEXT_PUBLIC_APP_API_KEY: đã có." }
+
+Write-Host "== 5. Cấp quyền package GHCR cho repo này"
+foreach ($pkg in @("hethongbackendapi_quanlygiaidau", "hethongfrontendweb_qlgiaidau")) {
+    $url = "https://github.com/users/babydanh/packages/container/$pkg/settings"
+    Write-Host "  Mở $url"
+    Write-Host "    Manage Actions access -> Add Repository -> agent-orchestrator -> Role: Write"
+    Start-Process $url
+    Read-Host "    Xong thì bấm Enter" | Out-Null
+}
+
+Write-Host ""
+Write-Host "Xong. Thử deploy staging (chờ kết quả):"
+Write-Host "  python $HOME\.omp\scripts\orchestrator-deploy.py $BackendRepo --env staging --watch"

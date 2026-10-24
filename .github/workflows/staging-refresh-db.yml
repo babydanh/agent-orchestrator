@@ -1,0 +1,66 @@
+name: Staging - làm mới DB từ prod
+
+# Xoá DB staging và chép lại từ bản sao prod. Chỉ chạy tay; phải gõ REFRESH để xác nhận.
+# Chuyển từ staging-refresh-db.yml của repo Backend (nhánh staging). Chung hàng đợi với deploy backend staging
+# (deploy.yml) để không chạy chồng. Muốn chép DB kèm deploy: deploy.yml với refresh_db=true.
+#   gh workflow run staging-refresh-db.yml -R babydanh/agent-orchestrator -f confirm=REFRESH
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Gõ REFRESH để xác nhận (xoá dữ liệu staging hiện có)'
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-backend-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Làm mới DB staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: staging
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+    steps:
+      - name: Kiểm xác nhận
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [[ "$CONFIRM" != "REFRESH" ]]; then
+            echo "::error::Chưa gõ REFRESH để xác nhận; dừng."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Lấy refresh-db.sh (repo Backend, nhánh staging)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau
+          ref: staging
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          sparse-checkout: deploy/staging
+          persist-credentials: false
+      - name: Chuẩn bị SSH
+        run: bash scripts/deploy/ssh-setup.sh
+      - name: Đồng bộ refresh-db.sh lên VPS
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/ssh-vps" "mkdir -p '$APP_DIR/deploy' '$APP_DIR/tmp'"
+          "$RUNNER_TEMP/scp-vps" src/deploy/staging/refresh-db.sh "$APP_DIR/deploy/"
+          echo "OK    đã chép refresh-db.sh"
+      - name: Chạy refresh-db.sh trên VPS
+        run: bash scripts/deploy/remote.sh staging-refresh-db.sh "$APP_DIR"
