@@ -543,6 +543,10 @@ jobs:
           JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
           FRONTEND_URL: http://localhost:3001
+          # Giống test-runner.yml (đang xanh): Web build/chạy trỏ API local, Playwright mở Web ở 3001.
+          PLAYWRIGHT_BASE_URL: http://localhost:3001
+          NEXT_API_URL: http://localhost:3000/api/v1
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
           CI: true
           # Trước đây bước này KHÔNG có 3 biến dưới => luôn [SKIP], Playwright chưa từng chạy (run 38157761530, 38326505271, 38597746643: 0 dòng "Running N tests").
           ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
@@ -640,12 +644,32 @@ jobs:
             node run-prod-migration.js
             pnpm seed:prod
             PORT=3000 pnpm start:prod &
-            npx wait-on http://localhost:3000 --timeout 60000
+            # Backend có globalPrefix /api/v1, GET / luôn 404 nên wait-on http:// không bao giờ xong (10/11 run hỏng
+            # 21–24/10 đều dừng ở đây, Playwright chưa chạy). Chờ cổng TCP: Nest chỉ listen() khi khởi tạo xong.
+            npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 120000
+            # seed:prod không tạo tài khoản spec dùng (test/e2e/p0/fixtures.ts): tạo qua API register, 409 = đã có.
+            for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player"; do
+              email="${account%%:*}"; name="${account#*:}"
+              code=$(curl -s -o /tmp/register.json -w '%{http_code}' -X POST http://localhost:3000/api/v1/auth/register \
+                -H 'Content-Type: application/json' \
+                -d "{\"email\":\"$email\",\"password\":\"123456\",\"fullName\":\"$name\"}")
+              if [ "$code" != "201" ] && [ "$code" != "409" ]; then
+                echo "::error::Tạo tài khoản E2E $email lỗi HTTP $code"; exit 1
+              fi
+            done
+            # Register chỉ cho role PLAYER, email chưa xác thực; admin1 là Ban tổ chức của spec.
+            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 <<'SQL'
+          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com');
+          INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
+          INSERT INTO user_to_roles (user_id, role_id)
+            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
+            ON CONFLICT DO NOTHING;
+          SQL
             cd ../web
             pnpm install --prefer-offline || pnpm install
             PORT=3001 pnpm build
             PORT=3001 pnpm start &
-            npx wait-on http://localhost:3001 --timeout 60000
+            npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
             echo ">>> BẮT ĐẦU CHẠY PLAYWRIGHT E2E & XUẤT ALLURE DATA..."
             # shellcheck disable=SC2086
             pnpm test:e2e $SPECS
