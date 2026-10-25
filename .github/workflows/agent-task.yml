@@ -825,7 +825,7 @@ jobs:
           if [ -z "$GH_TOKEN" ]; then echo "::error::Thiếu secret GH_PAT, không gọi được test-runner.yml"; exit 1; fi
           REQ="agent-${{ github.run_id }}-${{ github.run_attempt }}"
           gh workflow run test-runner.yml --repo "$REPO" -f target_project=fullstack-e2e \
-            -f web_ref="$WEB_REF" -f backend_ref="$BACKEND_REF" -f specs="$SPECS" -f request_id="$REQ"
+            -f web_ref="$WEB_REF" -f backend_ref="$BACKEND_REF" -f specs="$SPECS" -f request_id="$REQ" -f no_report=true
           id=""
           for _ in $(seq 1 30); do
             sleep 10

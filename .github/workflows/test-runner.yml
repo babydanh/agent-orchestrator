@@ -57,6 +57,10 @@ on:
         description: 'Dữ liệu mẫu cho fullstack-e2e. "data" = chạy thêm `pnpm seed:data` của Backend (seed-data-prod.ts: 13 giải 4 thể thức ở trạng thái mở đăng ký/đang đấu/đã kết thúc, 24 VĐV mật khẩu Player@123, BTC macter.970 & hxlinh1683 / Test@123, admin vndcsport@gmail.com / Admin@123). Để trống = chỉ seed:prod như cũ'
         required: false
         default: ''
+      no_report:
+        description: 'true = không tải báo cáo Playwright/Allure (ảnh, video, trace giao diện repo riêng) lên artifact; agent-task.yml dùng. Kết quả vẫn có trong log'
+        required: false
+        default: 'false'
 
 # Mỗi yêu cầu một nhóm riêng: nhiều session chạy SONG SONG (repo public: tới 20 job cùng lúc), không lượt nào huỷ lượt
 # của session khác. Mỗi job tự dựng Postgres/Backend/Web riêng trên máy của nó nên không giẫm nhau.
@@ -412,7 +416,7 @@ jobs:
 
       # 1 shard: dashboard đã dựng sẵn (tên artifact cũ). Nhiều shard: kết quả thô để job report-fullstack gộp.
       - name: 9. Upload Allure & Playwright Reports
-        if: always()
+        if: always() && github.event.inputs.no_report != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ strategy.job-total == 1 && 'fullstack-allure-dashboard' || format('fullstack-e2e-shard-{0}', matrix.shard) }}
@@ -436,7 +440,7 @@ jobs:
     name: 📊 Gộp kết quả E2E các shard
     needs: test-fullstack
     # Cùng điều kiện "cả bộ" với matrix của test-fullstack.
-    if: always() && needs.test-fullstack.result != 'skipped' && (github.event_name == 'schedule' || github.event.inputs.specs == '')
+    if: always() && needs.test-fullstack.result != 'skipped' && github.event.inputs.no_report != 'true' && (github.event_name == 'schedule' || github.event.inputs.specs == '')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
