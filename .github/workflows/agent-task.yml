@@ -630,9 +630,6 @@ jobs:
           echo ">>> [TRIGGER] BẮT ĐẦU CHUỖI PLAYWRIGHT UI TEST & ALLURE..."
           echo "=========================================================="
 
-          # Tải Chromium khi thực sự cần chạy UI test
-          npx playwright install --with-deps chromium
-
           if [ -d "backend" ] && [ -d "web" ]; then
             echo ">>> KHỞI ĐỘNG DATABASE & BACKEND CHO CHUỖI E2E..."
             cd backend
@@ -667,6 +664,9 @@ jobs:
           SQL
             cd ../web
             pnpm install --prefer-offline || pnpm install
+            # Cài trình duyệt TRONG web/ sau pnpm install: chạy ở thư mục cha thì npx lấy Playwright mới nhất, tải sai
+            # bản Chromium ("Executable doesn't exist", 25/25 test đỏ ở run 40162289345).
+            npx playwright install --with-deps chromium
             PORT=3001 pnpm build
             PORT=3001 pnpm start &
             npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
@@ -678,6 +678,7 @@ jobs:
             echo ">>> CHẠY ISOLATED PLAYWRIGHT E2E CHO WEB..."
             cd web
             pnpm install --prefer-offline || pnpm install
+            npx playwright install --with-deps chromium
             PORT=3000 pnpm build
             PORT=3000 pnpm start &
             npx wait-on http://localhost:3000 --timeout 60000
