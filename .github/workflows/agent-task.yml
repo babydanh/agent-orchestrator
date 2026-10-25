@@ -36,6 +36,13 @@ jobs:
         (github.event.action == 'labeled' && github.event.label.name == 'agent-task')))
     runs-on: ubuntu-latest
     timeout-minutes: 360 # Giới hạn tối đa 6 tiếng theo quy định GitHub Actions
+    # Cho job e2e: chỉ chạy E2E khi agent tự xong (agent bị cắt/lỗi thì bước 8.6 lo chạy tiếp, E2E phần dở là phí).
+    outputs:
+      agent_ok: ${{ steps.agent.outcome == 'success' }}
+      need_e2e: ${{ steps.e2e-plan.outputs.need }}
+      specs: ${{ steps.e2e-plan.outputs.specs }}
+      web_ref: ${{ steps.e2e-plan.outputs.web_ref }}
+      backend_ref: ${{ steps.e2e-plan.outputs.backend_ref }}
 
     # CUNG CẤP DATABASE POSTGRESQL & REDIS CHO CHUỖI E2E TEST
     services:
@@ -432,9 +439,29 @@ jobs:
           6. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
           if [ "$CONTINUE_ROUND" -gt 0 ]; then
-            TASK_PROMPT="$TASK_PROMPT
+            # Lượt do job e2e gọi: bình luận dấu cuối có e2e-run:<id>. Tên test đỏ và lỗi đọc thẳng từ log run E2E
+            # (không chép vào issue công khai). Đọc bằng GH_PAT, trước khi unset.
+            E2E_RUN=$(GH_TOKEN="$GH_PAT" gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" --paginate \
+              --jq '[.[] | select(.body | contains("<!-- omp-auto-continue -->")) | .body] | last // ""' 2>/dev/null \
+              | grep -oE 'e2e-run:[0-9]+' | tail -n 1 | cut -d: -f2) || E2E_RUN=""
+            if [ -n "$E2E_RUN" ]; then
+              E2E_LOG=$(GH_TOKEN="$GH_PAT" gh run view "$E2E_RUN" --repo "$GITHUB_REPOSITORY" --log 2>/dev/null | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ //') || E2E_LOG=""
+              E2E_FAILED=$(printf '%s\n' "$E2E_LOG" | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u | head -n 20)
+              E2E_ERRORS=$(printf '%s\n' "$E2E_LOG" | grep -a -A 14 -E '^ +[0-9]+\) \[[a-z]+\] ›' | head -n 150)
+              TASK_PROMPT="$TASK_PROMPT
+
+          LƯỢT SỬA E2E $CONTINUE_ROUND: phần việc đã được đẩy lên nhánh '$BRANCH_NAME' (bạn đang đứng trên nhánh đó), nhưng E2E chạy trên nhánh này (run test-runner $E2E_RUN) có test đỏ:
+          $E2E_FAILED
+
+          Lỗi Playwright:
+          $E2E_ERRORS
+
+          Việc của lượt này: xem 'git diff --stat origin/main...HEAD' để biết nhánh đã sửa gì, rồi sửa để các test trên xanh. Nếu một test đỏ KHÔNG liên quan tới phần nhánh này sửa (màn hình/API test dùng không bị đụng), đó là lỗi có sẵn trên main: KHÔNG sửa, ghi rõ trong báo cáo cuối. Không xoá, không bỏ qua (skip) test để cho xanh."
+            else
+              TASK_PROMPT="$TASK_PROMPT
 
           LƯỢT NỐI TIẾP $CONTINUE_ROUND: lượt trước bị dừng giữa chừng (quá giờ hoặc lỗi) và phần làm dở đã được đẩy lên nhánh '$BRANCH_NAME'; bạn đang đứng trên nhánh đó. Trước khi làm: trong từng repo có nhánh này, xem 'git log --oneline origin/main..HEAD' và 'git diff --stat origin/main...HEAD' để biết đã làm gì. Chỉ làm tiếp phần còn thiếu: không làm lại từ đầu, không xoá hay viết lại phần đã có trừ khi nó sai."
+            fi
           fi
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
           SESSION_ID=$(echo "$ISSUE_BODY" | grep -oP 'Session-ID\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
@@ -529,30 +556,19 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: 7.2 Tự động kích hoạt chuỗi Playwright UI E2E (Chỉ chạy khi có yêu cầu Web/UI)
-        if: always()
+      - name: 7.2 Chọn spec E2E cho job e2e (chạy bằng test-runner.yml, không dựng ở đây)
+        # Trước 25/10 bước này tự dựng Backend + Web rồi chạy Playwright trong job agent: bản chép lệch test-runner.yml
+        # (chờ sai cổng, sai bản Chromium) nên 10/11 run hỏng ở đây. Giờ chỉ quyết định chạy spec nào; job `e2e` gọi
+        # test-runner.yml (bộ dựng đang xanh: cache DB, tài khoản E2E) và E2E đỏ thì gọi agent sửa tiếp.
+        id: e2e-plan
+        if: ${{ !cancelled() }}
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USERNAME: postgres
-          DB_PASSWORD: your_password
-          DB_DATABASE: tournament_db
-          DB_SSL: false
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          JWT_ACCESS_SECRET: test-jwt-access-secret-key-32chars
-          JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
-          FRONTEND_URL: http://localhost:3001
-          # Giống test-runner.yml (đang xanh): Web build/chạy trỏ API local, Playwright mở Web ở 3001.
-          PLAYWRIGHT_BASE_URL: http://localhost:3001
-          NEXT_API_URL: http://localhost:3000/api/v1
-          NEXT_PUBLIC_API_URL: http://localhost:3000/api/v1
-          CI: true
-          # Trước đây bước này KHÔNG có 3 biến dưới => luôn [SKIP], Playwright chưa từng chạy (run 38157761530, 38326505271, 38597746643: 0 dòng "Running N tests").
           ISSUE_TITLE: ${{ github.event.issue.title || github.event.inputs.task_title }}
           ISSUE_BODY: ${{ github.event.issue.body || github.event.inputs.task_body }}
           ISSUE_NUMBER: ${{ github.event.issue.number || github.run_number }}
           MANUAL_BRANCH: ${{ github.event.inputs.target_branch }}
+          # ls-remote repo riêng đi qua credential helper của bước 4 (đọc GH_PAT).
+          GH_PAT: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           cd workspace
           # Cùng nhánh bước 6/7 đã dùng.
@@ -589,10 +605,7 @@ jobs:
 
           # NẾU KHÔNG CẦN TEST WEB UI: BỎ QUA ĐỂ TIẾT KIỆM THỜI GIAN & TÀI NGUYÊN
           if [ "$NEED_E2E" != "true" ]; then
-            echo "=========================================================="
             echo ">>> [SKIP] Nhiệm vụ này KHÔNG liên quan đến Web UI / Playwright."
-            echo ">>> Bỏ qua bước E2E để hoàn thành tác vụ siêu tốc (tiết kiệm thời gian & RAM)!"
-            echo "=========================================================="
             exit 0
           fi
 
@@ -626,66 +639,15 @@ jobs:
             echo ">>> E2E chỉ chạy: $SPECS"
           fi
 
-          echo "=========================================================="
-          echo ">>> [TRIGGER] BẮT ĐẦU CHUỖI PLAYWRIGHT UI TEST & ALLURE..."
-          echo "=========================================================="
-
-          if [ -d "backend" ] && [ -d "web" ]; then
-            echo ">>> KHỞI ĐỘNG DATABASE & BACKEND CHO CHUỖI E2E..."
-            cd backend
-            pnpm install --prefer-offline || pnpm install
-            pnpm build
-            # Dựng schema đúng đường deploy (run-prod-migration.js tạo cả extension PostGIS), giống test-runner.yml;
-            # drizzle-kit push không tạo extension nên lỗi 'type geography does not exist'.
-            node run-prod-migration.js
-            node run-prod-migration.js
-            pnpm seed:prod
-            PORT=3000 pnpm start:prod &
-            # Backend có globalPrefix /api/v1, GET / luôn 404 nên wait-on http:// không bao giờ xong (10/11 run hỏng
-            # 21–24/10 đều dừng ở đây, Playwright chưa chạy). Chờ cổng TCP: Nest chỉ listen() khi khởi tạo xong.
-            npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 120000
-            # seed:prod không tạo tài khoản spec dùng (test/e2e/p0/fixtures.ts): tạo qua API register, 409 = đã có.
-            for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player"; do
-              email="${account%%:*}"; name="${account#*:}"
-              code=$(curl -s -o /tmp/register.json -w '%{http_code}' -X POST http://localhost:3000/api/v1/auth/register \
-                -H 'Content-Type: application/json' \
-                -d "{\"email\":\"$email\",\"password\":\"123456\",\"fullName\":\"$name\"}")
-              if [ "$code" != "201" ] && [ "$code" != "409" ]; then
-                echo "::error::Tạo tài khoản E2E $email lỗi HTTP $code"; exit 1
-              fi
-            done
-            # Register chỉ cho role PLAYER, email chưa xác thực; admin1 là Ban tổ chức của spec.
-            PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 <<'SQL'
-          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com');
-          INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
-          INSERT INTO user_to_roles (user_id, role_id)
-            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
-            ON CONFLICT DO NOTHING;
-          SQL
-            cd ../web
-            pnpm install --prefer-offline || pnpm install
-            # Cài trình duyệt TRONG web/ sau pnpm install: chạy ở thư mục cha thì npx lấy Playwright mới nhất, tải sai
-            # bản Chromium ("Executable doesn't exist", 25/25 test đỏ ở run 40162289345).
-            npx playwright install --with-deps chromium
-            PORT=3001 pnpm build
-            PORT=3001 pnpm start &
-            npx --yes wait-on@9.5.1 http-get://localhost:3001 --timeout 90000
-            echo ">>> BẮT ĐẦU CHẠY PLAYWRIGHT E2E & XUẤT ALLURE DATA..."
-            # shellcheck disable=SC2086
-            pnpm test:e2e $SPECS
-            cd ../..
-          elif [ -d "web" ]; then
-            echo ">>> CHẠY ISOLATED PLAYWRIGHT E2E CHO WEB..."
-            cd web
-            pnpm install --prefer-offline || pnpm install
-            npx playwright install --with-deps chromium
-            PORT=3000 pnpm build
-            PORT=3000 pnpm start &
-            npx wait-on http://localhost:3000 --timeout 60000
-            # shellcheck disable=SC2086
-            pnpm test:e2e $SPECS
-            cd ..
-          fi
+          # Nhánh chỉ có ở repo nào thì repo đó dùng nhánh, repo còn lại dùng main (test-runner fetch ref không có là hỏng).
+          ref_of() { git -C "$1" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1 && echo "$BRANCH_NAME" || true; }
+          {
+            echo "need=true"
+            echo "specs=$SPECS"
+            echo "web_ref=$( [ -d web ] && ref_of web )"
+            echo "backend_ref=$( [ -d backend ] && ref_of backend )"
+          } >> "$GITHUB_OUTPUT"
+          echo ">>> E2E sẽ chạy ở job e2e (test-runner.yml), web_ref=$(ref_of web) backend_ref=$(ref_of backend)"
 
       # Repo này public: không upload allure-report/playwright-report (ảnh, video, trace chứa giao diện,
       # request/response của repo private). Chỉ in số test theo trạng thái; xem chi tiết thì chạy lại ở máy.
@@ -839,3 +801,99 @@ jobs:
         run: |
           pip install --quiet pynacl requests
           python3 scripts/agent/persist_codex_token.py
+
+  # E2E chạy bằng test-runner.yml (bộ dựng đang xanh) thành một run riêng, job này chờ kết quả. Đỏ vì test thì gọi agent
+  # sửa tiếp (chung giới hạn 3 lượt với bước 8.6, đếm bằng dấu omp-auto-continue). Repo CÔNG KHAI: bình luận chỉ ghi
+  # số lượt, số test đỏ và mã run; tên test và dòng lỗi lượt sau tự đọc từ log run E2E.
+  e2e:
+    needs: run-agent
+    if: ${{ !cancelled() && needs.run-agent.outputs.agent_ok == 'true' && needs.run-agent.outputs.need_e2e == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+      REPO: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      SPECS: ${{ needs.run-agent.outputs.specs }}
+      WEB_REF: ${{ needs.run-agent.outputs.web_ref }}
+      BACKEND_REF: ${{ needs.run-agent.outputs.backend_ref }}
+      MAX_ROUNDS: 3
+    steps:
+      - name: 1. Chạy E2E bằng test-runner.yml và chờ kết quả
+        id: run
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "::error::Thiếu secret GH_PAT, không gọi được test-runner.yml"; exit 1; fi
+          REQ="agent-${{ github.run_id }}-${{ github.run_attempt }}"
+          gh workflow run test-runner.yml --repo "$REPO" -f target_project=fullstack-e2e \
+            -f web_ref="$WEB_REF" -f backend_ref="$BACKEND_REF" -f specs="$SPECS" -f request_id="$REQ"
+          id=""
+          for _ in $(seq 1 30); do
+            sleep 10
+            id=$(gh run list --repo "$REPO" --workflow test-runner.yml --limit 30 --json databaseId,displayTitle \
+              --jq ".[] | select(.displayTitle | endswith(\"#$REQ\")) | .databaseId" | head -n 1)
+            [ -n "$id" ] && break
+          done
+          if [ -z "$id" ]; then echo "::error::Không thấy run test-runner của yêu cầu $REQ"; exit 1; fi
+          echo "run_id=$id" >> "$GITHUB_OUTPUT"
+          echo "Run E2E: ${{ github.server_url }}/$REPO/actions/runs/$id"
+          # Hỏi trạng thái mỗi phút thay vì `gh run watch`: watch rớt mạng là thoát sớm khi run còn chạy.
+          status=""
+          for _ in $(seq 1 140); do
+            status=$(gh run view "$id" --repo "$REPO" --json status --jq .status 2>/dev/null || echo unknown)
+            [ "$status" = completed ] && break
+            sleep 60
+          done
+          conclusion=$(gh run view "$id" --repo "$REPO" --json conclusion --jq .conclusion 2>/dev/null || echo unknown)
+          [ "$status" = completed ] || conclusion="timed_out_waiting"
+          # Test đỏ = dòng ✘ của Playwright (gồm cả lượt chạy lại). Không có dòng nào mà run vẫn đỏ: lỗi dựng môi trường.
+          gh run view "$id" --repo "$REPO" --log 2>/dev/null \
+            | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u > failed.txt || true
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+          echo "failed=$(wc -l < failed.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=$(sha256sum failed.txt | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          echo "E2E: $conclusion, $(wc -l < failed.txt | tr -d ' ') test đỏ"
+
+      - name: 2. E2E đỏ thì gọi agent sửa tiếp (tối đa 3 lượt), xanh thì báo
+        if: ${{ !cancelled() && github.event_name == 'issues' && steps.run.outputs.run_id != '' }}
+        env:
+          RUN_ID: ${{ steps.run.outputs.run_id }}
+          CONCLUSION: ${{ steps.run.outputs.conclusion }}
+          FAILED: ${{ steps.run.outputs.failed }}
+          FINGERPRINT: ${{ steps.run.outputs.fingerprint }}
+        run: |
+          MARK='<!-- omp-auto-continue -->'
+          URL="${{ github.server_url }}/$REPO/actions/runs/$RUN_ID"
+          say() { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$1"; }
+          if [ "$CONCLUSION" = success ]; then
+            say "**OMP Orchestrator:** E2E xanh ($URL)."
+            exit 0
+          fi
+          if [ "${FAILED:-0}" = 0 ]; then
+            say "**OMP Orchestrator:** E2E hỏng ($CONCLUSION) nhưng không có test nào đỏ: lỗi dựng môi trường, không gọi agent sửa. $URL"
+            exit 1
+          fi
+          markers=$(gh api "repos/$REPO/issues/$ISSUE_NUMBER/comments" --paginate --jq "[.[] | select(.body | contains(\"$MARK\")) | .body]" \
+            | jq -s 'add // []') || markers='null'
+          if [ "$markers" = null ]; then
+            say "**OMP Orchestrator:** E2E đỏ ($FAILED test, $URL), không đọc được số lượt đã chạy nên KHÔNG tự sửa tiếp."
+            exit 1
+          fi
+          done_rounds=$(printf '%s' "$markers" | jq 'length')
+          last_fp=$(printf '%s' "$markers" | jq -r '[.[] | capture("e2e-fp:(?<f>[0-9a-f]+)")? | .f] | last // ""')
+          stop=""
+          if [ "$done_rounds" -ge "$MAX_ROUNDS" ]; then
+            stop="đã tự chạy tiếp đủ $MAX_ROUNDS lượt"
+          elif [ "$FINGERPRINT" = "$last_fp" ]; then
+            stop="đúng các test đỏ y như lượt trước, sửa thêm không ăn thua (có thể là lỗi có sẵn trên main)"
+          fi
+          if [ -n "$stop" ]; then
+            say "**OMP Orchestrator:** E2E đỏ ($FAILED test, $URL), KHÔNG tự sửa tiếp: $stop. Kéo về máy: \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
+            exit 1
+          fi
+          next=$((done_rounds + 1))
+          say "$MARK
+          <!-- e2e-run:$RUN_ID e2e-fp:$FINGERPRINT -->
+          **OMP Orchestrator:** E2E đỏ ($FAILED test, $URL). Tự chạy tiếp lượt $next/$MAX_ROUNDS để agent sửa."
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --remove-label agent-task >/dev/null 2>&1 || true
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label agent-task
+          exit 1
