@@ -448,6 +448,8 @@ jobs:
               E2E_LOG=$(GH_TOKEN="$GH_PAT" gh run view "$E2E_RUN" --repo "$GITHUB_REPOSITORY" --log 2>/dev/null | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ //') || E2E_LOG=""
               E2E_FAILED=$(printf '%s\n' "$E2E_LOG" | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u | head -n 20)
               E2E_ERRORS=$(printf '%s\n' "$E2E_LOG" | grep -a -A 14 -E '^ +[0-9]+\) \[[a-z]+\] ›' | head -n 150)
+              # Chỉ in số đếm (log công khai): để biết lượt sửa có nhận được ngữ cảnh E2E thật không.
+              echo "Lượt sửa E2E: run $E2E_RUN, $(printf '%s' "$E2E_FAILED" | grep -c . ) test đỏ, $(printf '%s' "$E2E_ERRORS" | grep -c . ) dòng lỗi đưa vào đề"
               TASK_PROMPT="$TASK_PROMPT
 
           LƯỢT SỬA E2E $CONTINUE_ROUND: phần việc đã được đẩy lên nhánh '$BRANCH_NAME' (bạn đang đứng trên nhánh đó), nhưng E2E chạy trên nhánh này (run test-runner $E2E_RUN) có test đỏ:
@@ -667,10 +669,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           JOB_STATUS: ${{ job.status }}
+          # Job e2e chạy SAU job này: còn E2E thì chưa được nói "xanh" (issue #52: báo xanh rồi 7 phút sau E2E đỏ).
+          E2E_PENDING: ${{ steps.agent.outcome == 'success' && steps.e2e-plan.outputs.need == 'true' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if [ "$JOB_STATUS" = "success" ]; then
-            HEADLINE="Run hoàn tất, các step đều xanh."
+          if [ "$JOB_STATUS" = "success" ] && [ "$E2E_PENDING" = "true" ]; then
+            HEADLINE="Agent đã xong, code đã đẩy. E2E ĐANG CHẠY: kết quả sẽ có trong bình luận tiếp theo, chưa dùng code vội."
+          elif [ "$JOB_STATUS" = "success" ]; then
+            HEADLINE="Run hoàn tất, các step đều xanh (việc này không cần E2E)."
           else
             HEADLINE="Run KẾT THÚC VỚI TRẠNG THÁI: $JOB_STATUS. Có step bị lỗi, xem log trước khi dùng code."
           fi
