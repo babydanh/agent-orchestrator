@@ -200,6 +200,8 @@ jobs:
       # build khi Backend chưa listen sẽ ra trang rỗng. Build ở bước 7, sau khi Backend đã seed và mở cổng.
       - name: 6. Dựng Backend (migrate, seed, start), song song cài gói Web
         env:
+          # Backend bắt buộc NODE_ENV (env.validation: required, không còn mặc định); thiếu là NestJS dừng lúc khởi động.
+          NODE_ENV: test
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USERNAME: postgres
@@ -799,6 +801,7 @@ jobs:
       # Backend giống test-fullstack. Luôn nạp seed:data: tài khoản ADMIN (vndcsport) chỉ có trong seed:data và app-e2e cần nó để duyệt giải qua API.
       - name: 6. Backend migrate, seed, khởi động NestJS
         env:
+          NODE_ENV: test
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USERNAME: postgres
