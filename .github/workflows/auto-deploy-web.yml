@@ -1,7 +1,7 @@
 name: Auto deploy Web main
 
-# Repo Web (private) khong chay duoc Actions khi het phut, nen push main khong con tu deploy production.
-# Workflow nay chay o repo public nay (runner mien phi): moi 5 phut so SHA moi nhat cua main Web voi cac lan
+# Repo Web/Backend (private) khong chay duoc Actions khi het phut, nen push main khong con tu deploy production.
+# Workflow nay chay o repo public nay (runner mien phi): moi 5 phut so SHA moi nhat cua main Web va Backend voi cac lan
 # deploy.yml da chay; SHA chua deploy thi goi deploy.yml (project=web, env=production) cho dung SHA do.
 # Chay thu khong deploy: gh workflow run auto-deploy-web.yml -R babydanh/agent-orchestrator -f dry_run=true
 run-name: "auto-deploy web main${{ inputs.dry_run && ' (dry-run)' || '' }}"
@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   watch:
-    name: So main Web voi lan deploy cuoi
+    name: So main Web/Backend voi lan deploy cuoi
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -39,26 +39,29 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          web="$OWNER/HethongFrontEndWeb_QLgiaidau"
-          sha="$(gh api "repos/$web/commits/main" --jq .sha)"
-          committed="$(gh api "repos/$web/commits/$sha" --jq .commit.committer.date)"
-          # merge-lane.py goi deploy ngay sau khi push; cho 3 phut de khong deploy trung va huy lan dang chay.
-          age=$(( $(date +%s) - $(date -d "$committed" +%s) ))
-          if (( age < 180 )); then
-            echo "SKIP  $sha moi $age giay tuoi, cho lan quet sau."
-            exit 0
-          fi
-          # Lan deploy production that (khong dry-run) cho SHA nay, tru lan bi huy.
+          # Lan deploy production that (khong dry-run), tru lan bi huy.
           runs="$(gh run list -R "$REPO" --workflow deploy.yml -L 100 --json displayTitle,conclusion --jq \
             '.[] | select(.conclusion != "cancelled") | .displayTitle')"
-          if grep -F "deploy web production @$sha" <<<"$runs" | grep -vqF "(dry-run)"; then
-            echo "SKIP  $sha da co lan deploy production."
-            exit 0
-          fi
-          echo "DEPLOY $sha chua deploy production."
-          if [[ "$DRY_RUN" == true ]]; then
-            echo "dry-run: khong goi deploy."
-            exit 0
-          fi
-          GH_TOKEN="$DISPATCH_TOKEN" gh workflow run deploy.yml -R "$REPO" \
-            -f project=web -f env=production -f sha="$sha"
+          for entry in web:HethongFrontEndWeb_QLgiaidau backend:HethongBackendApi_QuanlyGiaiDau; do
+            project="${entry%%:*}"
+            repo="$OWNER/${entry#*:}"
+            sha="$(gh api "repos/$repo/commits/main" --jq .sha)"
+            committed="$(gh api "repos/$repo/commits/$sha" --jq .commit.committer.date)"
+            # merge-lane.py goi deploy ngay sau khi push; cho 3 phut de khong deploy trung va huy lan dang chay.
+            age=$(( $(date +%s) - $(date -d "$committed" +%s) ))
+            if (( age < 180 )); then
+              echo "SKIP  $project $sha moi $age giay tuoi, cho lan quet sau."
+              continue
+            fi
+            if grep -F "deploy $project production @$sha" <<<"$runs" | grep -vqF "(dry-run)"; then
+              echo "SKIP  $project $sha da co lan deploy production."
+              continue
+            fi
+            echo "DEPLOY $project $sha chua deploy production."
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "dry-run: khong goi deploy."
+              continue
+            fi
+            GH_TOKEN="$DISPATCH_TOKEN" gh workflow run deploy.yml -R "$REPO" \
+              -f project="$project" -f env=production -f sha="$sha"
+          done
