@@ -409,16 +409,24 @@ jobs:
           BASE_BRANCH=""
           if [ -z "$HANDOFF_BRANCH" ]; then
             BASE_BRANCH=$(printf '%s\n' "$ISSUE_BODY" | grep -oP '(?:Branch|Nhánh)(?: dở dang)? \(?nền\)?\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
+            on_task=0
+            on_base=0
             for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
               [ -d "$repo_dir/.git" ] || continue
               if git -C "$repo_dir" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
                 git -C "$repo_dir" fetch -q origin "$BRANCH_NAME:$BRANCH_NAME" && git -C "$repo_dir" checkout -q "$BRANCH_NAME" \
-                  && echo "$repo_dir: làm tiếp trên nhánh $BRANCH_NAME đã có"
+                  && echo "$repo_dir: làm tiếp trên nhánh $BRANCH_NAME đã có" && on_task=$((on_task + 1))
               elif [ -n "$BASE_BRANCH" ] && git -C "$repo_dir" ls-remote --exit-code --heads origin "$BASE_BRANCH" >/dev/null 2>&1; then
                 git -C "$repo_dir" fetch -q origin "$BASE_BRANCH:$BASE_BRANCH" && git -C "$repo_dir" checkout -q "$BASE_BRANCH" \
-                  && echo "$repo_dir: tách nhánh $BRANCH_NAME từ nhánh nền $BASE_BRANCH"
+                  && echo "$repo_dir: tách nhánh $BRANCH_NAME từ nhánh nền $BASE_BRANCH" && on_base=$((on_base + 1))
               fi
             done
+            # Ghi nhánh nền mà không repo nào có (gõ sai, chưa push): dừng, không lặng lẽ tách từ main như #54–56.
+            # Repo không có nhánh nền nhưng repo khác có thì repo đó vẫn tách từ main (repo không liên quan tới việc).
+            if [ -n "$BASE_BRANCH" ] && [ "$on_task" = 0 ] && [ "$on_base" = 0 ]; then
+              echo "::error::Issue ghi nhánh nền '$BASE_BRANCH' nhưng không repo nào có nhánh này trên origin: dừng, không tách nhánh từ main."
+              exit 1
+            fi
           fi
           # Đầu nhánh trước khi agent chạy: bước 8.6 so với sau bước 7 để biết lượt này có tiến triển không.
           echo "AGENT_BRANCH=$BRANCH_NAME" >> "$GITHUB_ENV"
@@ -860,7 +868,8 @@ jobs:
     needs: run-agent
     if: ${{ !cancelled() && needs.run-agent.outputs.agent_ok == 'true' && needs.run-agent.outputs.need_e2e == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    # Hai lượt test-runner (nhánh việc + nhánh nền), mỗi lượt e2e-run.sh chờ tối đa ~145 phút; 360 là trần của GitHub.
+    timeout-minutes: 300
     env:
       GH_TOKEN: ${{ secrets.GH_PAT }}
       REPO: ${{ github.repository }}
