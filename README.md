@@ -16,14 +16,19 @@ Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở
    - tạo một **Issue** `[Handoff] ...` chứa `Session-ID`, `Repo mục tiêu`, `Branch dở dang`, checklist.
 2. **Cloud** (`agent-task.yml`) chạy khi chủ repo **mở** Issue, hoặc **gắn nhãn `agent-task`** (cách chạy lại một Issue;
    nhãn khác không kích hoạt), hoặc dispatch tay. Mỗi Issue chỉ một run cùng lúc, lần kích hoạt thêm xếp hàng:
-   - kéo các repo dự án về, checkout đúng nhánh dở dang;
+   - kéo các repo dự án về, checkout đúng nhánh dở dang (`**Branch dở dang**:` = làm tiếp chính nhánh đó). Issue ghi
+     `**Branch nền**:` / `**Nhánh nền**:` / `**Branch dở dang (nền)**:` thì làm trên nhánh riêng `omp/issue-N` tách từ
+     nhánh nền, không đẩy thẳng vào nhánh nền;
    - tải session từ `omp-sync/sessions` và chạy `omp --continue` để làm tiếp;
-   - chạy test **ngay trên runner** (Postgres + Redis đã dựng sẵn), kể cả Playwright E2E khi việc liên quan Web;
    - bước 7 (`scripts/agent/push-work.sh`, có test) đẩy code **thẳng lên nhánh** (`omp/issue-N` hoặc nhánh dở dang),
      không tạo Pull Request; chạy cả khi agent lỗi/quá giờ. Gom việc dở ở thư mục clone và mọi git worktree; nhánh
      trên origin có commit mới trong lúc chạy thì gộp vào; xung đột thì đẩy sang `<nhánh>-agent-run<id>`, không ép;
    - báo kết quả (pass/fail + link run + nhánh đã push + **số file khác main**, 0 nghĩa là agent không để lại code)
-     vào Issue **chỉ khi chạy do Issue kích hoạt**; dispatch tay thì không có comment; lưu lại session.
+     vào Issue **chỉ khi chạy do Issue kích hoạt**; dispatch tay thì không có comment; lưu lại session;
+   - job `e2e` chạy Playwright qua `test-runner.yml` trên nhánh của việc (chỉ các spec issue ghi). Có test đỏ thì chạy
+     lại đúng các spec đó trên nhánh nền (hoặc `main`): test cũng đỏ ở đó là lỗi có sẵn, không gọi agent sửa; chỉ test
+     đỏ mới mới tự chạy tiếp lượt sửa (tối đa 3). Không repo Web/Backend nào có nhánh của việc thì báo đỏ, không chạy
+     E2E trên code không phải của việc (`scripts/agent/e2e-run.sh`, có test).
 3. **Kéo về local** khi muốn làm tiếp ở máy: `cancel-cloud-and-pull.ps1`, rồi `omp --resume`.
 
 ## Chưa làm (không có trong workflow hiện tại)

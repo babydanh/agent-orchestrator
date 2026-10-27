@@ -43,6 +43,8 @@ jobs:
       specs: ${{ steps.e2e-plan.outputs.specs }}
       web_ref: ${{ steps.e2e-plan.outputs.web_ref }}
       backend_ref: ${{ steps.e2e-plan.outputs.backend_ref }}
+      base_web_ref: ${{ steps.e2e-plan.outputs.base_web_ref }}
+      base_backend_ref: ${{ steps.e2e-plan.outputs.base_backend_ref }}
 
     # CUNG CẤP DATABASE POSTGRESQL & REDIS CHO CHUỖI E2E TEST
     services:
@@ -401,17 +403,26 @@ jobs:
               || CONTINUE_ROUND=0
           fi
           echo "Lượt nối tiếp: $CONTINUE_ROUND"
+          # Nhánh nền (`**Branch nền**:`, `**Nhánh nền**:`, `**Branch dở dang (nền)**:`): việc làm trên nhánh RIÊNG tách từ
+          # nhánh nền, không đẩy thẳng vào nhánh nền. Khác `**Branch dở dang**:` (fast-handoff) là làm tiếp chính nhánh đó.
+          # Trước 27/10 dạng có "(nền)" không được nhận: #54–56 tách nhánh từ main, thiếu phần việc của nhánh nền.
+          BASE_BRANCH=""
           if [ -z "$HANDOFF_BRANCH" ]; then
+            BASE_BRANCH=$(printf '%s\n' "$ISSUE_BODY" | grep -oP '(?:Branch|Nhánh)(?: dở dang)? \(?nền\)?\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
             for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
               [ -d "$repo_dir/.git" ] || continue
               if git -C "$repo_dir" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
                 git -C "$repo_dir" fetch -q origin "$BRANCH_NAME:$BRANCH_NAME" && git -C "$repo_dir" checkout -q "$BRANCH_NAME" \
                   && echo "$repo_dir: làm tiếp trên nhánh $BRANCH_NAME đã có"
+              elif [ -n "$BASE_BRANCH" ] && git -C "$repo_dir" ls-remote --exit-code --heads origin "$BASE_BRANCH" >/dev/null 2>&1; then
+                git -C "$repo_dir" fetch -q origin "$BASE_BRANCH:$BASE_BRANCH" && git -C "$repo_dir" checkout -q "$BASE_BRANCH" \
+                  && echo "$repo_dir: tách nhánh $BRANCH_NAME từ nhánh nền $BASE_BRANCH"
               fi
             done
           fi
           # Đầu nhánh trước khi agent chạy: bước 8.6 so với sau bước 7 để biết lượt này có tiến triển không.
           echo "AGENT_BRANCH=$BRANCH_NAME" >> "$GITHUB_ENV"
+          echo "BASE_BRANCH=$BASE_BRANCH" >> "$GITHUB_ENV"
           for repo_dir in backend app web aicheckvar auto3dvideo auto25d-remotion; do
             [ -d "$repo_dir/.git" ] || continue
             echo "$repo_dir $(git -C "$repo_dir" rev-parse -q --verify "refs/heads/$BRANCH_NAME" || echo none)"
@@ -438,31 +449,49 @@ jobs:
           5. CHẠY TEST THẬT & ALLURE: Chạy đúng test liên quan tới việc này (Web: 'pnpm test:e2e <các spec trong trường E2E specs của issue hoặc spec bạn vừa thêm/sửa>'; Backend: 'pnpm test'; App: 'flutter test <file>') để đảm bảo tính năng mới chạy chuẩn và test liên quan vẫn pass. Spec mới viết cho việc này đặt trong test/e2e/ để bước E2E tự động chạy lại.
           6. BẮT BUỘC stage và commit tất cả thay đổi: git add . && git commit -m 'feat: complete handoff tasks for $ISSUE_TITLE' trên branch '$BRANCH_NAME'."
 
+          # Lượt sửa so thay đổi của việc với nhánh nền nếu có (repo không có nhánh nền thì so với main).
+          DIFF_FROM="origin/${BASE_BRANCH:-main}"
+          DIFF_NOTE=""
+          if [ -n "$BASE_BRANCH" ]; then DIFF_NOTE=" (repo nào không có nhánh $BASE_BRANCH thì dùng origin/main)"; fi
           if [ "$CONTINUE_ROUND" -gt 0 ]; then
-            # Lượt do job e2e gọi: bình luận dấu cuối có e2e-run:<id>. Tên test đỏ và lỗi đọc thẳng từ log run E2E
-            # (không chép vào issue công khai). Đọc bằng GH_PAT, trước khi unset.
-            E2E_RUN=$(GH_TOKEN="$GH_PAT" gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" --paginate \
-              --jq '[.[] | select(.body | contains("<!-- omp-auto-continue -->")) | .body] | last // ""' 2>/dev/null \
-              | grep -oE 'e2e-run:[0-9]+' | tail -n 1 | cut -d: -f2) || E2E_RUN=""
+            # Lượt do job e2e gọi: bình luận dấu cuối có e2e-run:<id> (và e2e-base:<id> nếu đã chạy lại trên nhánh nền).
+            # Tên test đỏ và lỗi đọc thẳng từ log run E2E (không chép vào issue công khai). Đọc bằng GH_PAT, trước khi unset.
+            LAST_MARK=$(GH_TOKEN="$GH_PAT" gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" --paginate \
+              --jq '[.[] | select(.body | contains("<!-- omp-auto-continue -->")) | .body] | last // ""' 2>/dev/null) || LAST_MARK=""
+            E2E_RUN=$(printf '%s' "$LAST_MARK" | grep -oE 'e2e-run:[0-9]+' | tail -n 1 | cut -d: -f2 || true)
+            E2E_BASE=$(printf '%s' "$LAST_MARK" | grep -oE 'e2e-base:[0-9]+' | tail -n 1 | cut -d: -f2 || true)
             if [ -n "$E2E_RUN" ]; then
               E2E_LOG=$(GH_TOKEN="$GH_PAT" gh run view "$E2E_RUN" --repo "$GITHUB_REPOSITORY" --log 2>/dev/null | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ //') || E2E_LOG=""
-              E2E_FAILED=$(printf '%s\n' "$E2E_LOG" | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u | head -n 20)
-              E2E_ERRORS=$(printf '%s\n' "$E2E_LOG" | grep -a -A 14 -E '^ +[0-9]+\) \[[a-z]+\] ›' | head -n 150)
+              E2E_FAILED=$(printf '%s\n' "$E2E_LOG" | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u || true)
+              # Test cũng đỏ trên nhánh nền (job e2e đã chạy lại đúng spec đó) là lỗi có sẵn: không đưa cho agent sửa.
+              # So không kèm dòng:cột, như scripts/agent/e2e-run.sh.
+              if [ -n "$E2E_BASE" ]; then
+                BASE_FAILED=$(GH_TOKEN="$GH_PAT" gh run view "$E2E_BASE" --repo "$GITHUB_REPOSITORY" --log 2>/dev/null \
+                  | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' \
+                  | sed -E 's/^✘ +[0-9]+ //; s/(\.spec\.ts):[0-9]+:[0-9]+/\1/; s/ +$//' | sort -u) || BASE_FAILED=""
+                E2E_FAILED=$(printf '%s\n' "$E2E_FAILED" | while IFS= read -r t; do
+                  [ -n "$t" ] || continue
+                  key=$(printf '%s' "$t" | sed -E 's/(\.spec\.ts):[0-9]+:[0-9]+/\1/')
+                  printf '%s\n' "$BASE_FAILED" | grep -qxF -- "$key" || printf '%s\n' "$t"
+                done)
+              fi
+              E2E_FAILED=$(printf '%s\n' "$E2E_FAILED" | head -n 20)
+              E2E_ERRORS=$(printf '%s\n' "$E2E_LOG" | grep -a -A 14 -E '^ +[0-9]+\) \[[a-z]+\] ›' | head -n 150 || true)
               # Chỉ in số đếm (log công khai): để biết lượt sửa có nhận được ngữ cảnh E2E thật không.
-              echo "Lượt sửa E2E: run $E2E_RUN, $(printf '%s' "$E2E_FAILED" | grep -c . ) test đỏ, $(printf '%s' "$E2E_ERRORS" | grep -c . ) dòng lỗi đưa vào đề"
+              echo "Lượt sửa E2E: run $E2E_RUN (nền: ${E2E_BASE:-không chạy}), $(printf '%s' "$E2E_FAILED" | grep -c . ) test đỏ mới, $(printf '%s' "$E2E_ERRORS" | grep -c . ) dòng lỗi đưa vào đề"
               TASK_PROMPT="$TASK_PROMPT
 
-          LƯỢT SỬA E2E $CONTINUE_ROUND: phần việc đã được đẩy lên nhánh '$BRANCH_NAME' (bạn đang đứng trên nhánh đó), nhưng E2E chạy trên nhánh này (run test-runner $E2E_RUN) có test đỏ:
+          LƯỢT SỬA E2E $CONTINUE_ROUND: phần việc đã được đẩy lên nhánh '$BRANCH_NAME' (bạn đang đứng trên nhánh đó), nhưng E2E chạy trên nhánh này (run test-runner $E2E_RUN) có test đỏ do việc này gây ra (test cũng đỏ trên nhánh nền/main đã được bỏ khỏi danh sách):
           $E2E_FAILED
 
-          Lỗi Playwright:
+          Lỗi Playwright (có thể in cả lỗi của test có sẵn đã bỏ ở trên, bỏ qua chúng):
           $E2E_ERRORS
 
-          Việc của lượt này: xem 'git diff --stat origin/main...HEAD' để biết nhánh đã sửa gì, rồi sửa để các test trên xanh. Nếu một test đỏ KHÔNG liên quan tới phần nhánh này sửa (màn hình/API test dùng không bị đụng), đó là lỗi có sẵn trên main: KHÔNG sửa, ghi rõ trong báo cáo cuối. Không xoá, không bỏ qua (skip) test để cho xanh."
+          Việc của lượt này: xem 'git diff --stat $DIFF_FROM...HEAD'$DIFF_NOTE để biết nhánh đã sửa gì, rồi sửa để các test trên xanh. Nếu một test đỏ KHÔNG liên quan tới phần nhánh này sửa (màn hình/API test dùng không bị đụng), đó là lỗi có sẵn: KHÔNG sửa, ghi rõ trong báo cáo cuối. Không xoá, không bỏ qua (skip) test để cho xanh."
             else
               TASK_PROMPT="$TASK_PROMPT
 
-          LƯỢT NỐI TIẾP $CONTINUE_ROUND: lượt trước bị dừng giữa chừng (quá giờ hoặc lỗi) và phần làm dở đã được đẩy lên nhánh '$BRANCH_NAME'; bạn đang đứng trên nhánh đó. Trước khi làm: trong từng repo có nhánh này, xem 'git log --oneline origin/main..HEAD' và 'git diff --stat origin/main...HEAD' để biết đã làm gì. Chỉ làm tiếp phần còn thiếu: không làm lại từ đầu, không xoá hay viết lại phần đã có trừ khi nó sai."
+          LƯỢT NỐI TIẾP $CONTINUE_ROUND: lượt trước bị dừng giữa chừng (quá giờ hoặc lỗi) và phần làm dở đã được đẩy lên nhánh '$BRANCH_NAME'; bạn đang đứng trên nhánh đó. Trước khi làm: trong từng repo có nhánh này, xem 'git log --oneline $DIFF_FROM..HEAD' và 'git diff --stat $DIFF_FROM...HEAD'$DIFF_NOTE để biết đã làm gì. Chỉ làm tiếp phần còn thiếu: không làm lại từ đầu, không xoá hay viết lại phần đã có trừ khi nó sai."
             fi
           fi
           # Kiểm tra và khôi phục session dở dang nếu có từ branch omp-sync/sessions
@@ -579,6 +608,9 @@ jobs:
           HANDOFF_BRANCH=$(printf '%s\n' "$ISSUE_BODY" | grep -oP 'Branch dở dang\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
           if [ -n "$HANDOFF_BRANCH" ]; then BRANCH_NAME="$HANDOFF_BRANCH"; fi
           NEED_E2E=false
+          # Bước 6 ghi BASE_BRANCH vào GITHUB_ENV: việc tách từ nhánh nền thì "thay đổi của việc" tính so với nhánh nền.
+          DIFF_BASE=main
+          if [ -n "${BASE_BRANCH:-}" ] && git -C web rev-parse --verify -q "$BASE_BRANCH" >/dev/null 2>&1; then DIFF_BASE="$BASE_BRANCH"; fi
           TARGET_REPO=$(echo "$ISSUE_BODY" | grep -oP 'Repo mục tiêu\*\*:\s*`?\K[^`\s]+' | head -n 1 || true)
 
           # 1. Kiểm tra nếu Task nhắm vào Frontend Web
@@ -597,7 +629,7 @@ jobs:
           if [ -d "web" ]; then
             cd web
             if [ -n "$BRANCH_NAME" ] && git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-              if ! git diff --quiet main.."$BRANCH_NAME" 2>/dev/null; then
+              if ! git diff --quiet "$DIFF_BASE".."$BRANCH_NAME" 2>/dev/null; then
                 echo ">>> Phát hiện có commit thay đổi trong repo Web -> Kích hoạt E2E!"
                 NEED_E2E=true
               fi
@@ -613,14 +645,14 @@ jobs:
 
           # CHỈ CHẠY E2E MÀ VIỆC NÀY YÊU CẦU (không chạy cả bộ ~55 phút cho mọi issue):
           #  1) các file test/e2e/*.spec.ts ghi trong tiêu đề/nội dung issue (trường "E2E specs" của fast-handoff),
-          #  2) nếu issue không ghi: các spec nhánh này thêm/sửa so với main,
+          #  2) nếu issue không ghi: các spec nhánh này thêm/sửa so với main (hoặc nhánh nền),
           #  3) cả bộ CHỈ khi issue ghi rõ "E2E: toàn bộ" / "E2E: full".
           FULL_E2E=false
           # Chỉ khi một DÒNG kết thúc bằng "E2E: toàn bộ" / "E2E specs: toàn bộ" (hoặc full); cụm nằm giữa câu không tính.
           if printf '%s\n' "$ISSUE_BODY" | grep -iqE 'E2E( specs)?\**:[[:space:]]*(toàn bộ|full)[[:space:]]*$'; then FULL_E2E=true; fi
           SPECS=$(printf '%s\n%s\n' "$ISSUE_TITLE" "$ISSUE_BODY" | grep -oE 'test/e2e/[A-Za-z0-9_./-]+\.spec\.ts' | sort -u | tr '\n' ' ' || true)
           if [ -z "$SPECS" ] && [ -d web ] && [ -n "$BRANCH_NAME" ] && git -C web rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-            SPECS=$(git -C web diff --name-only --diff-filter=AM main.."$BRANCH_NAME" -- 'test/e2e/*.spec.ts' | tr '\n' ' ' || true)
+            SPECS=$(git -C web diff --name-only --diff-filter=AM "$DIFF_BASE".."$BRANCH_NAME" -- 'test/e2e/*.spec.ts' | tr '\n' ' ' || true)
           fi
           # Bỏ spec không có trong repo Web (Playwright sẽ báo "No tests found").
           KEPT=""
@@ -641,15 +673,25 @@ jobs:
             echo ">>> E2E chỉ chạy: $SPECS"
           fi
 
-          # Nhánh chỉ có ở repo nào thì repo đó dùng nhánh, repo còn lại dùng main (test-runner fetch ref không có là hỏng).
-          ref_of() { git -C "$1" ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1 && echo "$BRANCH_NAME" || true; }
+          # Repo có nhánh của việc thì dùng nhánh đó; không có thì dùng nhánh nền nếu repo có, còn lại main (test-runner
+          # fetch ref không có là hỏng). base_*_ref: nhánh nền tương ứng, job e2e chạy lại test đỏ trên đó để tách lỗi có sẵn.
+          has_ref() { git -C "$1" ls-remote --exit-code --heads origin "$2" >/dev/null 2>&1; }
+          base_ref_of() { [ -d "$1" ] && [ -n "${BASE_BRANCH:-}" ] && has_ref "$1" "$BASE_BRANCH" && echo "$BASE_BRANCH" || true; }
+          ref_of() { [ -d "$1" ] && has_ref "$1" "$BRANCH_NAME" && echo "$BRANCH_NAME" || base_ref_of "$1"; }
+          WEB_REF=$(ref_of web)
+          BACKEND_REF=$(ref_of backend)
+          BASE_WEB_REF=$(base_ref_of web)
+          BASE_BACKEND_REF=$(base_ref_of backend)
           {
             echo "need=true"
             echo "specs=$SPECS"
-            echo "web_ref=$( [ -d web ] && ref_of web )"
-            echo "backend_ref=$( [ -d backend ] && ref_of backend )"
+            echo "web_ref=$WEB_REF"
+            echo "backend_ref=$BACKEND_REF"
+            echo "base_web_ref=$BASE_WEB_REF"
+            echo "base_backend_ref=$BASE_BACKEND_REF"
           } >> "$GITHUB_OUTPUT"
-          echo ">>> E2E sẽ chạy ở job e2e (test-runner.yml), web_ref=$(ref_of web) backend_ref=$(ref_of backend)"
+          echo ">>> E2E sẽ chạy ở job e2e (test-runner.yml), web_ref=${WEB_REF:-main} backend_ref=${BACKEND_REF:-main}" \
+            "(nền: web=${BASE_WEB_REF:-main} backend=${BASE_BACKEND_REF:-main})"
 
       # Repo này public: không upload allure-report/playwright-report (ảnh, video, trace chứa giao diện,
       # request/response của repo private). Chỉ in số test theo trạng thái; xem chi tiết thì chạy lại ở máy.
@@ -680,11 +722,13 @@ jobs:
           else
             HEADLINE="Run KẾT THÚC VỚI TRẠNG THÁI: $JOB_STATUS. Có step bị lỗi, xem log trước khi dùng code."
           fi
+          # PUSHED_REPOS (bước 7 ghi vào GITHUB_ENV) phải đọc qua biến shell: để Actions chèn thẳng env.PUSHED_REPOS vào
+          # chuỗi "..." thì shell chạy `tên-nhánh` trong dấu huyền như một lệnh, bình luận ra "nhánh , 187 file" (#53–56).
           gh issue comment "$ISSUE_NUMBER" --repo "${{ github.repository }}" \
             --body "**OMP Orchestrator:** $HEADLINE
 
           Nhánh đã push (nếu có):
-          ${{ env.PUSHED_REPOS }}
+          ${PUSHED_REPOS:-}
 
           Log và artifact (Allure/Playwright): $RUN_URL
 
@@ -808,14 +852,15 @@ jobs:
           pip install --quiet pynacl requests
           python3 scripts/agent/persist_codex_token.py
 
-  # E2E chạy bằng test-runner.yml (bộ dựng đang xanh) thành một run riêng, job này chờ kết quả. Đỏ vì test thì gọi agent
-  # sửa tiếp (chung giới hạn 3 lượt với bước 8.6, đếm bằng dấu omp-auto-continue). Repo CÔNG KHAI: bình luận chỉ ghi
-  # số lượt, số test đỏ và mã run; tên test và dòng lỗi lượt sau tự đọc từ log run E2E.
+  # E2E chạy bằng test-runner.yml (bộ dựng đang xanh) thành một run riêng, job này chờ kết quả. Có test đỏ thì chạy lại
+  # đúng các spec đó trên nhánh nền (hoặc main) để tách test vốn đã đỏ; chỉ test đỏ MỚI mới gọi agent sửa tiếp (chung
+  # giới hạn 3 lượt với bước 8.6, đếm bằng dấu omp-auto-continue). Repo CÔNG KHAI: bình luận chỉ ghi số lượt, số test
+  # đỏ và mã run; tên test và dòng lỗi lượt sau tự đọc từ log run E2E. Logic tách lỗi: scripts/agent/e2e-run.sh (có test).
   e2e:
     needs: run-agent
     if: ${{ !cancelled() && needs.run-agent.outputs.agent_ok == 'true' && needs.run-agent.outputs.need_e2e == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 240
     env:
       GH_TOKEN: ${{ secrets.GH_PAT }}
       REPO: ${{ github.repository }}
@@ -823,65 +868,60 @@ jobs:
       SPECS: ${{ needs.run-agent.outputs.specs }}
       WEB_REF: ${{ needs.run-agent.outputs.web_ref }}
       BACKEND_REF: ${{ needs.run-agent.outputs.backend_ref }}
+      BASE_WEB_REF: ${{ needs.run-agent.outputs.base_web_ref }}
+      BASE_BACKEND_REF: ${{ needs.run-agent.outputs.base_backend_ref }}
       MAX_ROUNDS: 3
     steps:
-      - name: 1. Chạy E2E bằng test-runner.yml và chờ kết quả
+      - name: 0. Lấy script E2E của orchestrator
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/agent
+
+      - name: 1. Chạy E2E bằng test-runner.yml, test đỏ thì chạy lại trên nhánh nền để tách lỗi có sẵn
         id: run
         run: |
           if [ -z "$GH_TOKEN" ]; then echo "::error::Thiếu secret GH_PAT, không gọi được test-runner.yml"; exit 1; fi
-          REQ="agent-${{ github.run_id }}-${{ github.run_attempt }}"
-          gh workflow run test-runner.yml --repo "$REPO" -f target_project=fullstack-e2e \
-            -f web_ref="$WEB_REF" -f backend_ref="$BACKEND_REF" -f specs="$SPECS" -f request_id="$REQ" -f no_report=true
-          id=""
-          for _ in $(seq 1 30); do
-            sleep 10
-            id=$(gh run list --repo "$REPO" --workflow test-runner.yml --limit 30 --json databaseId,displayTitle \
-              --jq ".[] | select(.displayTitle | endswith(\"#$REQ\")) | .databaseId" | head -n 1)
-            [ -n "$id" ] && break
-          done
-          if [ -z "$id" ]; then echo "::error::Không thấy run test-runner của yêu cầu $REQ"; exit 1; fi
-          echo "run_id=$id" >> "$GITHUB_OUTPUT"
-          echo "Run E2E: ${{ github.server_url }}/$REPO/actions/runs/$id"
-          # Hỏi trạng thái mỗi phút thay vì `gh run watch`: watch rớt mạng là thoát sớm khi run còn chạy.
-          status=""
-          for _ in $(seq 1 140); do
-            status=$(gh run view "$id" --repo "$REPO" --json status --jq .status 2>/dev/null || echo unknown)
-            [ "$status" = completed ] && break
-            sleep 60
-          done
-          conclusion=$(gh run view "$id" --repo "$REPO" --json conclusion --jq .conclusion 2>/dev/null || echo unknown)
-          [ "$status" = completed ] || conclusion="timed_out_waiting"
-          # Test đỏ = dòng ✘ của Playwright (gồm cả lượt chạy lại). Không có dòng nào mà run vẫn đỏ: lỗi dựng môi trường.
-          gh run view "$id" --repo "$REPO" --log 2>/dev/null \
-            | grep -a -oE '✘ +[0-9]+ \[[a-z]+\] › [^(]+' | sed -E 's/^✘ +[0-9]+ //; s/ +$//' | sort -u > failed.txt || true
-          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
-          echo "failed=$(wc -l < failed.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
-          echo "fingerprint=$(sha256sum failed.txt | cut -c1-16)" >> "$GITHUB_OUTPUT"
-          echo "E2E: $conclusion, $(wc -l < failed.txt | tr -d ' ') test đỏ"
+          REQ="agent-${{ github.run_id }}-${{ github.run_attempt }}" bash scripts/agent/e2e-run.sh | tee -a "$GITHUB_OUTPUT"
 
       - name: 2. E2E đỏ thì gọi agent sửa tiếp (tối đa 3 lượt), xanh thì báo
-        if: ${{ !cancelled() && github.event_name == 'issues' && steps.run.outputs.run_id != '' }}
+        if: ${{ !cancelled() && github.event_name == 'issues' && steps.run.outputs.conclusion != '' }}
         env:
           RUN_ID: ${{ steps.run.outputs.run_id }}
+          BASE_RUN_ID: ${{ steps.run.outputs.base_run_id }}
           CONCLUSION: ${{ steps.run.outputs.conclusion }}
           FAILED: ${{ steps.run.outputs.failed }}
+          PREEXISTING: ${{ steps.run.outputs.preexisting }}
           FINGERPRINT: ${{ steps.run.outputs.fingerprint }}
         run: |
           MARK='<!-- omp-auto-continue -->'
           URL="${{ github.server_url }}/$REPO/actions/runs/$RUN_ID"
+          BASE_URL="${{ github.server_url }}/$REPO/actions/runs/$BASE_RUN_ID"
+          BASE_DESC=main
+          if [ -n "$BASE_WEB_REF$BASE_BACKEND_REF" ]; then BASE_DESC="nhánh nền"; fi
           say() { gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$1"; }
+          if [ "$CONCLUSION" = no_task_branch ]; then
+            # Fail closed: không có nhánh của việc thì E2E chỉ kiểm lại $BASE_DESC, xanh hay đỏ đều không nói gì về việc này.
+            say "**OMP Orchestrator:** E2E KHÔNG chạy: Web và Backend đều không có nhánh của việc này (agent không đẩy code Web/Backend), nên không có gì để kiểm. Xem bình luận trước về nhánh đã push."
+            exit 1
+          fi
           if [ "$CONCLUSION" = success ]; then
             say "**OMP Orchestrator:** E2E xanh ($URL)."
+            exit 0
+          fi
+          if [ "${FAILED:-0}" = 0 ] && [ "${PREEXISTING:-0}" != 0 ]; then
+            say "**OMP Orchestrator:** E2E có $PREEXISTING test đỏ nhưng chạy lại trên $BASE_DESC cũng đỏ y như vậy: lỗi có sẵn, không do việc này, không gọi agent sửa. Việc: $URL · $BASE_DESC: $BASE_URL"
             exit 0
           fi
           if [ "${FAILED:-0}" = 0 ]; then
             say "**OMP Orchestrator:** E2E hỏng ($CONCLUSION) nhưng không có test nào đỏ: lỗi dựng môi trường, không gọi agent sửa. $URL"
             exit 1
           fi
+          PRE_NOTE=""
+          if [ "${PREEXISTING:-0}" != 0 ]; then PRE_NOTE=" Ngoài ra $PREEXISTING test đỏ có sẵn trên $BASE_DESC, không tính ($BASE_URL)."; fi
           markers=$(gh api "repos/$REPO/issues/$ISSUE_NUMBER/comments" --paginate --jq "[.[] | select(.body | contains(\"$MARK\")) | .body]" \
             | jq -s 'add // []') || markers='null'
           if [ "$markers" = null ]; then
-            say "**OMP Orchestrator:** E2E đỏ ($FAILED test, $URL), không đọc được số lượt đã chạy nên KHÔNG tự sửa tiếp."
+            say "**OMP Orchestrator:** E2E đỏ ($FAILED test mới, $URL), không đọc được số lượt đã chạy nên KHÔNG tự sửa tiếp.$PRE_NOTE"
             exit 1
           fi
           done_rounds=$(printf '%s' "$markers" | jq 'length')
@@ -890,16 +930,17 @@ jobs:
           if [ "$done_rounds" -ge "$MAX_ROUNDS" ]; then
             stop="đã tự chạy tiếp đủ $MAX_ROUNDS lượt"
           elif [ "$FINGERPRINT" = "$last_fp" ]; then
-            stop="đúng các test đỏ y như lượt trước, sửa thêm không ăn thua (có thể là lỗi có sẵn trên main)"
+            stop="đúng các test đỏ y như lượt trước, sửa thêm không ăn thua"
           fi
           if [ -n "$stop" ]; then
-            say "**OMP Orchestrator:** E2E đỏ ($FAILED test, $URL), KHÔNG tự sửa tiếp: $stop. Kéo về máy: \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
+            say "**OMP Orchestrator:** E2E đỏ ($FAILED test mới, $URL), KHÔNG tự sửa tiếp: $stop.$PRE_NOTE Kéo về máy: \`powershell C:\Users\GIGABYTE\.omp\scripts\cancel-cloud-and-pull.ps1\`"
             exit 1
           fi
           next=$((done_rounds + 1))
+          # e2e-base: lượt sửa bỏ các test cũng đỏ trên nhánh nền khỏi danh sách đưa cho agent (bước 6).
           say "$MARK
-          <!-- e2e-run:$RUN_ID e2e-fp:$FINGERPRINT -->
-          **OMP Orchestrator:** E2E đỏ ($FAILED test, $URL). Tự chạy tiếp lượt $next/$MAX_ROUNDS để agent sửa."
+          <!-- e2e-run:$RUN_ID e2e-base:$BASE_RUN_ID e2e-fp:$FINGERPRINT -->
+          **OMP Orchestrator:** E2E đỏ ($FAILED test mới, $URL). Tự chạy tiếp lượt $next/$MAX_ROUNDS để agent sửa.$PRE_NOTE"
           gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --remove-label agent-task >/dev/null 2>&1 || true
           gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label agent-task
           exit 1
