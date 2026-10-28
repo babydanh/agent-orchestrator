@@ -38,6 +38,10 @@ on:
         description: 'Chỉ kiểm + build image, không push image, không deploy'
         type: boolean
         default: false
+      skip_unit_tests:
+        description: 'Backend: bỏ bước unit test (schema trên DB sạch vẫn chạy). Chỉ dùng khi người dùng yêu cầu rõ'
+        type: boolean
+        default: false
 
 # Mỗi đích một hàng đợi. Backend không huỷ lượt đang chạy (huỷ giữa migrate/thay container có thể để backend tắt);
 # Web huỷ lượt cũ như workflow gốc của repo Web.
@@ -159,6 +163,7 @@ jobs:
           bash ../scripts/deploy/quiet.sh "migrate lần 2 (idempotent)" node run-prod-migration.js
           bash ../scripts/deploy/quiet.sh "verify football schema" pnpm verify:football-schema
       - name: Unit test
+        if: ${{ !inputs.skip_unit_tests }}
         working-directory: src
         env:
           QUIET_SUMMARY: '^(Test Suites|Tests):'
