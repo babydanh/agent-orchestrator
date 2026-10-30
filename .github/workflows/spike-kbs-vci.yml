@@ -1,0 +1,24 @@
+name: spike-kbs-vci
+
+# Throwaway spike (agent-chung-khoan step 1). Runs only from the spike branch or by hand.
+on:
+  push:
+    branches: [spike/kbs-vci-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/probe_kbs_vci.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: symbols
+          path: symbols.txt
+          if-no-files-found: ignore
