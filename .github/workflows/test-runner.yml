@@ -25,6 +25,7 @@ on:
           - 'app-e2e'
           - 'aicheckvar'
           - 'auto25d'
+          - 'auto3dvideo'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -1087,3 +1088,65 @@ jobs:
       - name: 3. Run Unit Tests
         run: |
           python -m unittest discover -s tests -v
+
+  # ==========================================================================================
+  # JOB 7: TEST AUTO3DVIDEO (PYTHON + GIAO DIỆN WEB + RUST/TAURI TRÊN WINDOWS)
+  # Chỉ chạy khi chọn đúng target này (không nằm trong 'all'): runner Windows tính phút gấp đôi và lần build Rust
+  # đầu tiên lâu. App chỉ chạy trên Windows (WebView2, MSVC), nên cloud Linux không kiểm được phần Rust.
+  # Thứ tự: rẻ trước (Python, giao diện), Rust sau; Tauri cần ../dist nên giao diện phải build trước cargo.
+  # ==========================================================================================
+  test-auto3dvideo:
+    name: 🎞️ Test Auto3Dvideo (Python + giao diện + Rust/Tauri, Windows)
+    if: github.event.inputs.target_project == 'auto3dvideo'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: 1. Checkout Auto3Dvideo Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/Auto3Dvideo
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: 2. Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 3. Python unit tests
+        run: python -m unittest discover -s scripts -p "test_*.py" -v
+
+      - name: 4. Setup pnpm 9
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 5. Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: 6. Frontend install and build (tsc + vite; Tauri reads ../dist)
+        working-directory: desktop
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: 7. Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: 8. cargo check
+        working-directory: desktop/src-tauri
+        run: cargo check --locked --all-targets
+
+      - name: 9. cargo test
+        working-directory: desktop/src-tauri
+        run: cargo test --locked
