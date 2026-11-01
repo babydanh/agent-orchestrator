@@ -1,11 +1,12 @@
 name: Chụp trang web bằng Safari thật trên iPhone (trình giả lập iOS)
 
 # Mở từng trang trong Mobile Safari của trình giả lập Xcode (máy macOS của GitHub), chụp màn hình,
-# tuỳ chọn quay video vài giây. Dùng để xem lỗi chỉ có trên iPhone (Safari và Chrome iOS cùng nhân WebKit).
+# tuỳ chọn quay video vài giây. Có thể truyền actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen
+# để thao tác bằng chạm WebDriver trên trang đầu tiên; mỗi thao tác có ảnh và trạng thái video trong tóm tắt.
+# Ví dụ: gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live/3cb336fa-4d25-451d-8046-736332330359 -f actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen -f record_seconds=0
 # Repo public: ảnh/video là artifact ai cũng tải được, chỉ dùng trang công khai, KHÔNG đưa URL có token/phiên đăng nhập.
-#   gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live,/home
-# Giới hạn: chỉ Safari (trình giả lập không có App Store nên không có Chrome); chỉ mở trang và chụp,
-# không chạm/cuộn/gõ.
+# Input actions để trống giữ nguyên hành vi chụp thụ động cũ. actions luôn quay video suốt chuỗi thao tác.
+# Giới hạn: chỉ Safari trong iOS Simulator, không phải máy iPhone thật (trình giả lập không có App Store nên không có Chrome).
 
 on:
   workflow_dispatch:
@@ -20,6 +21,11 @@ on:
         required: true
         default: '/live,/home,/tournaments'
         type: string
+      actions:
+        description: 'Các thao tác Safari trên trang đầu tiên, cách nhau dấu phẩy; để trống chỉ chụp thụ động'
+        required: false
+        default: ''
+        type: string
       device:
         description: 'Tên máy trong Xcode'
         required: true
@@ -31,7 +37,7 @@ on:
         default: '15'
         type: string
       record_seconds:
-        description: 'Quay video mỗi trang bao nhiêu giây (0 = không quay)'
+        description: 'Thời lượng quay video mỗi trang thụ động (giây; actions luôn quay suốt chuỗi, kể cả khi bằng 0)'
         required: true
         default: '0'
         type: string
@@ -52,6 +58,7 @@ jobs:
           DEVICE: ${{ inputs.device }}
           WAIT: ${{ inputs.wait_seconds }}
           REC: ${{ inputs.record_seconds }}
+          ACTIONS: ${{ inputs.actions }}
         run: |
           set -euo pipefail
           [[ "$BASE" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || { echo "base_url sai dạng: chỉ scheme://host[:port]"; exit 1; }
@@ -61,7 +68,13 @@ jobs:
           done
           [[ "$DEVICE" =~ ^[A-Za-z0-9\ \(\)-]+$ ]] || { echo "tên máy sai dạng"; exit 1; }
           [[ "$WAIT" =~ ^[0-9]{1,3}$ && "$REC" =~ ^[0-9]{1,2}$ ]] || { echo "wait_seconds/record_seconds phải là số"; exit 1; }
-
+          [[ -z "$ACTIONS" || "$ACTIONS" != ,* && "$ACTIONS" != *, && "$ACTIONS" != *,,* ]] || { echo "actions không được có phần tử rỗng"; exit 1; }
+          if [ -n "$ACTIONS" ]; then
+            IFS=',' read -ra A <<< "$ACTIONS"
+            for action in "${A[@]}"; do
+              case "$action" in play|unmute|seek-3|'seek+3'|fullscreen|exit-fullscreen) ;; *) echo "Thao tác không hợp lệ: $action"; exit 1 ;; esac
+            done
+          fi
       - name: Dựng ${{ inputs.device }} trên bản iOS 26 mới nhất
         env:
           DEVICE: ${{ inputs.device }}
@@ -86,12 +99,21 @@ jobs:
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "Xcode: $(xcodebuild -version | head -1)"; } | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Cài Appium WebDriver cho Safari
+        if: ${{ inputs.actions != '' }}
+        run: |
+          set -euo pipefail
+          npm install --global appium
+          appium driver install xcuitest
+
       - name: Mở từng trang và chụp
         env:
           BASE: ${{ inputs.base_url }}
           PATHS: ${{ inputs.paths }}
           WAIT: ${{ inputs.wait_seconds }}
           REC: ${{ inputs.record_seconds }}
+          ACTIONS: ${{ inputs.actions }}
+          DEVICE: ${{ inputs.device }}
         run: |
           set -euo pipefail
           mkdir -p shots
@@ -117,6 +139,21 @@ jobs:
             done
             return 1
           }
+          APPIUM_PID=
+          if [ -n "$ACTIONS" ]; then
+            appium --address 127.0.0.1 --port 4723 --base-path /wd/hub >"$RUNNER_TEMP/appium.log" 2>&1 &
+            APPIUM_PID=$!
+            trap 'if [ -n "$APPIUM_PID" ]; then kill "$APPIUM_PID" 2>/dev/null || true; fi' EXIT
+            for _ in $(seq 60); do
+              if curl --silent --fail http://127.0.0.1:4723/wd/hub/status >/dev/null; then break; fi
+              sleep 2
+            done
+            if ! curl --silent --fail http://127.0.0.1:4723/wd/hub/status >/dev/null; then
+              cat "$RUNNER_TEMP/appium.log"
+              echo "Appium không sẵn sàng"
+              exit 1
+            fi
+          fi
           # Warm-up shots/pages may fail without failing the job; target pages below may not.
           shot shots/00-man-hinh-chinh.png || true
           # Safari's first launch on a fresh simulator is slow: let it settle before the real pages.
@@ -133,6 +170,22 @@ jobs:
             slug=$(printf '%02d%s' "$i" "$(echo "$p" | tr -c 'A-Za-z0-9' '-' | sed 's/-*$//')")
             # A page that did not open would leave the previous page on screen: never shoot it as if it were this one.
             if ! open "$BASE$p"; then echo "- \`$p\`: KHÔNG MỞ ĐƯỢC" >> "$GITHUB_STEP_SUMMARY"; failed=1; continue; fi
+            if [ "$i" -eq 1 ] && [ -n "$ACTIONS" ]; then
+              video="shots/$slug.mp4"
+              # Actions luôn được quay, kể cả record_seconds=0; giữ recordVideo chạy trong toàn chuỗi thao tác.
+              xcrun simctl io "$UDID" recordVideo --codec h264 --force "$video" &
+              action_rc=0
+              node scripts/ios-safari/run-actions.mjs "$BASE$p" "$ACTIONS" "$UDID" "shots/$slug" "$WAIT" "$DEVICE" || action_rc=$?
+              # SIGINT phải đến simctl thật (xcrun không chuyển tiếp); simctl hoàn tất file MP4.
+              pkill -INT -f "simctl io $UDID recordVideo" || true
+              for _ in $(seq 20); do pgrep -f "simctl io $UDID recordVideo" >/dev/null || break; sleep 1; done
+              pkill -KILL -f "simctl io $UDID recordVideo" || true
+              wait || true
+              if [ ! -s "$video" ]; then echo "- \`$p\`: KHÔNG GHI ĐƯỢC VIDEO $video" >> "$GITHUB_STEP_SUMMARY"; action_rc=1; fi
+              echo "- \`$p\` → chuỗi thao tác: shots/$slug.png, ảnh từng thao tác \`NN-<action>.png\`, video $video" >> "$GITHUB_STEP_SUMMARY"
+              [ "$action_rc" = 0 ] || failed=1
+              continue
+            fi
             sleep "$WAIT"
             if ! shot "shots/$slug.png"; then echo "- \`$p\`: KHÔNG CHỤP ĐƯỢC" >> "$GITHUB_STEP_SUMMARY"; failed=1; continue; fi
             if [ "$REC" -gt 0 ]; then
