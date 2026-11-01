@@ -1,0 +1,123 @@
+name: Bấm trình phát video bằng Safari thật trên iPhone (iOS Simulator, safaridriver)
+
+# Mở một trang trong Mobile Safari của trình giả lập Xcode và CHẠM các nút trình phát video qua
+# safaridriver của Apple (W3C WebDriver; trên iOS, Element Click là chạm một ngón). Sau mỗi thao tác:
+# chụp màn hình + ghi trạng thái video (currentTime, paused, muted, fullscreen) + quay video cả chuỗi.
+# Chụp thụ động nhiều trang: dùng ios-safari-shot.yml. Repo public: chỉ trang công khai.
+#   gh workflow run ios-safari-actions.yml -R babydanh/agent-orchestrator -f path=/live/<matchId>
+# Giới hạn: iOS Simulator, không phải iPhone phần cứng; chỉ Safari (Chrome iOS cùng nhân WebKit).
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Gốc trang web (http/https, không kèm đường dẫn)'
+        required: true
+        default: 'https://sporto.asia'
+        type: string
+      path:
+        description: 'Một đường dẫn trang có trình phát, bắt đầu bằng /'
+        required: true
+        type: string
+      actions:
+        description: 'Thao tác theo thứ tự: play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen'
+        required: true
+        default: 'play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen'
+        type: string
+      device:
+        description: 'Tên máy trong Xcode'
+        required: true
+        default: 'iPhone 17 Pro Max'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  act:
+    name: Safari ${{ inputs.device }} ${{ inputs.path }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Kiểm đầu vào
+        env:
+          BASE: ${{ inputs.base_url }}
+          P: ${{ inputs.path }}
+          ACTIONS: ${{ inputs.actions }}
+          DEVICE: ${{ inputs.device }}
+        run: |
+          set -euo pipefail
+          [[ "$BASE" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || { echo "base_url sai dạng"; exit 1; }
+          [[ "$P" =~ ^/[A-Za-z0-9/_.~%=-]*$ ]] || { echo "path sai dạng: $P"; exit 1; }
+          [[ "$DEVICE" =~ ^[A-Za-z0-9\ \(\)-]+$ ]] || { echo "tên máy sai dạng"; exit 1; }
+          IFS=',' read -ra A <<< "$ACTIONS"
+          for a in "${A[@]}"; do
+            case "$a" in play|unmute|seek-3|'seek+3'|fullscreen|exit-fullscreen) ;; *) echo "thao tác không hợp lệ: $a"; exit 1 ;; esac
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Bật safaridriver
+        run: sudo safaridriver --enable
+
+      - name: Dựng ${{ inputs.device }} trên bản iOS 26 mới nhất
+        env:
+          DEVICE: ${{ inputs.device }}
+        run: |
+          set -euo pipefail
+          RUNTIME=$(xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          rs = [r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-26")]
+          rs.sort(key=lambda r: [int(x) for x in r["version"].split(".")])
+          print(rs[-1]["identifier"] if rs else "")')
+          [ -n "$RUNTIME" ] || { xcrun simctl list runtimes; exit 1; }
+          TYPE=$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, os, sys
+          print(next((t["identifier"] for t in json.load(sys.stdin)["devicetypes"] if t["name"] == os.environ["DEVICE"]), ""))')
+          [ -n "$TYPE" ] || { xcrun simctl list devicetypes | grep -i iphone; exit 1; }
+          UDID=$(xcrun simctl create act "$TYPE" "$RUNTIME")
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+          # Safari → Advanced → Web Inspector + Remote Automation (simulator preferences; best effort, keys vary by iOS version).
+          for kv in com.apple.webinspectord:RemoteInspectorEnabled com.apple.webinspectord:RemoteAutomationEnabled \
+                    com.apple.mobilesafari:WebInspectorEnabled com.apple.mobilesafari:RemoteAutomationEnabled \
+                    com.apple.mobilesafari:WebKitRemoteAutomationEnabled; do
+            xcrun simctl spawn "$UDID" defaults write "${kv%%:*}" "${kv##*:}" -bool YES || true
+          done
+          # Start Safari once so its first-launch work is done before the WebDriver session.
+          perl -e 'alarm 120; exec @ARGV' xcrun simctl openurl "$UDID" https://example.com || echo "openurl khởi động quá giờ, chạy tiếp"
+          sleep 20
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; xcodebuild -version | head -1; } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Bấm trình phát và chụp
+        env:
+          URL: ${{ inputs.base_url }}${{ inputs.path }}
+          ACTIONS: ${{ inputs.actions }}
+        run: |
+          set -euo pipefail
+          mkdir -p shots
+          safaridriver -p 4444 > "$RUNNER_TEMP/safaridriver.log" 2>&1 &
+          for _ in $(seq 30); do nc -z 127.0.0.1 4444 && break; sleep 1; done
+          xcrun simctl io "$UDID" recordVideo --codec h264 --force shots/chuoi-thao-tac.mp4 > "$RUNNER_TEMP/rec.log" 2>&1 &
+          sleep 3
+          rc=0
+          node scripts/ios-safari/safaridriver-actions.mjs "$URL" "$UDID" shots "$ACTIONS" || rc=$?
+          # SIGINT must reach simctl itself (xcrun does not forward it); simctl then finalises the MP4.
+          pkill -INT -f "simctl io $UDID recordVideo" || true
+          for _ in $(seq 20); do pgrep -f "simctl io $UDID recordVideo" >/dev/null || break; sleep 1; done
+          pkill -KILL -f "simctl io $UDID recordVideo" || true
+          if [ "$rc" -ne 0 ]; then echo "--- safaridriver.log (cuối)"; tail -40 "$RUNNER_TEMP/safaridriver.log" || true; fi
+          exit "$rc"
+
+      - name: Tải ảnh lên
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-safari-actions
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 7
