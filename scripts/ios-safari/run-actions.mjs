@@ -179,13 +179,13 @@ async function main() {
         'appium:udid': udid,
         'appium:deviceName': deviceName,
         'appium:noReset': true,
-        'appium:newCommandTimeout': 300,
+        'appium:newCommandTimeout': 1800,
         'appium:wdaLaunchTimeout': 600_000,
         'appium:showXcodeLog': true,
         'appium:waitForIdleTimeout': 0,
       },
     },
-  }, 600_000);
+  }, 900_000);
   sessionId = session.sessionId;
   if (!sessionId) throw new Error('Appium did not return a WebDriver session ID');
 

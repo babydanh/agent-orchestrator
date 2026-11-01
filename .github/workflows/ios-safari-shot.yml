@@ -95,6 +95,9 @@ jobs:
           UDID=$(xcrun simctl create shot "$TYPE" "$RUNTIME")
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
+          # Giữ Simulator UI hiển thị trước khi Appium/WDA điều khiển, tránh driver khởi động lại máy giữa lúc quay video.
+          open -a Simulator --args -CurrentDeviceUDID "$UDID"
+          sleep 3
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           XCODE_INFO=$(xcodebuild -version)
