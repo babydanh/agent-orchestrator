@@ -84,8 +84,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')" >> "$GITHUB_STEP_SUMMARY"
-          echo "Xcode: $(xcodebuild -version | head -1)" >> "$GITHUB_STEP_SUMMARY"
+          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "Xcode: $(xcodebuild -version | head -1)"; } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Mở từng trang và chụp
         env:
@@ -98,15 +97,22 @@ jobs:
           mkdir -p shots
           # macOS has no `timeout`; perl alarm caps every simctl call so one hung call cannot eat the whole job.
           cap() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
-          # When a call hangs, show who is eating the CPU (simulator, Safari WebContent, ...).
-          diag() { echo "--- $1 ($(date +%T)), top CPU:"; top -l 1 -n 8 -o cpu -stats pid,command,cpu,mem | tail -9; }
+          # When a call hangs, show who is eating the CPU (ps gives an instant %CPU; a single `top` sample is always 0).
+          diag() { echo "--- $1 ($(date +%T)), top CPU:"; ps -Ao pid,pcpu,rss,comm -r | head -8; }
           shot() { if cap 60 xcrun simctl io "$UDID" screenshot "$1"; then echo "$(date +%T) chụp $1 ok"; else diag "chụp $1 treo"; fi; }
-          open() { if cap 60 xcrun simctl openurl "$UDID" "$1"; then echo "$(date +%T) mở $1 ok"; else diag "mở $1 treo"; fi; }
-          # Ranh giới từng tầng: chụp màn hình chính (chưa có Safari), rồi trang rất nhẹ, rồi mới tới trang thật.
+          # openurl waits for Safari to take the URL; a busy or first-launching Safari can exceed 60 s, and then
+          # the page never changes (seen on run 41287230900), so try once more before shooting.
+          open() {
+            for try in 1 2; do
+              if cap 60 xcrun simctl openurl "$UDID" "$1"; then echo "$(date +%T) mở $1 ok (lần $try)"; return 0; fi
+              diag "mở $1 quá giờ (lần $try)"; sleep 10
+            done
+          }
           shot shots/00-man-hinh-chinh.png
+          # Safari's first launch on a fresh simulator is slow: let it settle before the real pages.
           open https://example.com
-          sleep 10
-          shot shots/00-example.png
+          sleep 20
+          shot shots/00-safari-san-sang.png
           open "$BASE"
           sleep 20
           IFS=',' read -ra P <<< "$PATHS"
