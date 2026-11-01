@@ -96,23 +96,27 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p shots
+          # macOS has no `timeout`; perl alarm caps every simctl call so one hung call cannot eat the whole job.
+          cap() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
           # Lần mở đầu Safari có thể hiện màn chào: mở trang gốc một lần cho Safari khởi động xong.
-          xcrun simctl openurl "$UDID" "$BASE"
+          cap 60 xcrun simctl openurl "$UDID" "$BASE" || echo "openurl trang gốc quá giờ, chạy tiếp"
           sleep 20
           IFS=',' read -ra P <<< "$PATHS"
           i=0
           for p in "${P[@]}"; do
             i=$((i + 1))
             slug=$(printf '%02d%s' "$i" "$(echo "$p" | tr -c 'A-Za-z0-9' '-' | sed 's/-*$//')")
-            xcrun simctl openurl "$UDID" "$BASE$p"
+            cap 60 xcrun simctl openurl "$UDID" "$BASE$p" || echo "openurl $p quá giờ, vẫn chụp"
             sleep "$WAIT"
-            xcrun simctl io "$UDID" screenshot "shots/$slug.png"
+            cap 60 xcrun simctl io "$UDID" screenshot "shots/$slug.png"
             if [ "$REC" -gt 0 ]; then
               xcrun simctl io "$UDID" recordVideo --codec h264 --force "shots/$slug.mp4" &
-              rec=$!
               sleep "$REC"
-              kill -INT "$rec"
-              wait "$rec" || true
+              # SIGINT must reach simctl itself (the xcrun wrapper does not forward it); simctl then finalises the file.
+              pkill -INT -f "simctl io $UDID recordVideo" || true
+              for _ in $(seq 20); do pgrep -f "simctl io $UDID recordVideo" >/dev/null || break; sleep 1; done
+              pkill -KILL -f "simctl io $UDID recordVideo" || true
+              wait || true
             fi
             echo "- \`$p\` → shots/$slug.png" >> "$GITHUB_STEP_SUMMARY"
           done
