@@ -23,7 +23,7 @@ const actionPoints = {
   // Native iOS fullscreen exposes Done near the top-left; CSS fullscreen keeps the in-player control.
   'exit-fullscreen': [{ x: 40, y: 80 }, { x: 408, y: 925 }, { x: 408, y: 284 }],
 };
-const timePoint = { x: 151, y: 284 };
+const timePoint = { x: 125, y: 284 };
 
 if (!actions.length || !udid || !screenshotPrefix || !waitSeconds) {
   console.error('Usage: run-axe-actions.mjs ACTIONS UDID SCREENSHOT_PREFIX WAIT_SECONDS');
@@ -176,7 +176,7 @@ function tapTarget(target, point) {
       return 'AXe nhãn · chạm vật lý';
     } catch (error) {
       const errorText = `${error.message}\n${error.stderr?.toString() ?? ''}`;
-      if (!/not found|no match|multiple|ambiguous|no element|selector/i.test(errorText)) throw error;
+      if (!/not found|no match|multiple|ambiguous|no accessibility element matched|no element|selector/i.test(errorText)) throw error;
     }
   }
   runAxe(['tap', '-x', String(point.x), '-y', String(point.y), '--udid', udid, '--tap-style', 'physical']);
