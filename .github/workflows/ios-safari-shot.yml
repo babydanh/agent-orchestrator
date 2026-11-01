@@ -100,12 +100,13 @@ jobs:
           # When a call hangs, show who is eating the CPU (ps gives an instant %CPU; a single `top` sample is always 0).
           # `|| true`: head closing the pipe early makes ps exit 141, which pipefail would turn into a job failure.
           diag() { echo "--- $1 ($(date +%T)), top CPU:"; { ps -Ao pid,pcpu,rss,comm -r | head -8; } || true; }
-          # Heavy pages (several live videos on /live) can stall the simulator's frame capture past 60 s (run 41287896611).
+          # Some pages stall the simulator's frame capture past 60 s (run 41287896611, /live list), so wait 90 s and retry.
           shot() {
             for try in 1 2; do
               if cap 90 xcrun simctl io "$UDID" screenshot "$1"; then echo "$(date +%T) chụp $1 ok (lần $try)"; return 0; fi
               diag "chụp $1 treo (lần $try)"
             done
+            return 1
           }
           # openurl waits for Safari to take the URL; a busy or first-launching Safari can exceed 60 s, and then
           # the page never changes (seen on run 41287230900), so try once more before shooting.
@@ -114,22 +115,26 @@ jobs:
               if cap 60 xcrun simctl openurl "$UDID" "$1"; then echo "$(date +%T) mở $1 ok (lần $try)"; return 0; fi
               diag "mở $1 quá giờ (lần $try)"; sleep 10
             done
+            return 1
           }
-          shot shots/00-man-hinh-chinh.png
+          # Warm-up shots/pages may fail without failing the job; target pages below may not.
+          shot shots/00-man-hinh-chinh.png || true
           # Safari's first launch on a fresh simulator is slow: let it settle before the real pages.
-          open https://example.com
+          open https://example.com || true
           sleep 20
-          shot shots/00-safari-san-sang.png
-          open "$BASE"
+          shot shots/00-safari-san-sang.png || true
+          open "$BASE" || true
           sleep 20
+          failed=0
           IFS=',' read -ra P <<< "$PATHS"
           i=0
           for p in "${P[@]}"; do
             i=$((i + 1))
             slug=$(printf '%02d%s' "$i" "$(echo "$p" | tr -c 'A-Za-z0-9' '-' | sed 's/-*$//')")
-            open "$BASE$p"
+            # A page that did not open would leave the previous page on screen: never shoot it as if it were this one.
+            if ! open "$BASE$p"; then echo "- \`$p\`: KHÔNG MỞ ĐƯỢC" >> "$GITHUB_STEP_SUMMARY"; failed=1; continue; fi
             sleep "$WAIT"
-            shot "shots/$slug.png"
+            if ! shot "shots/$slug.png"; then echo "- \`$p\`: KHÔNG CHỤP ĐƯỢC" >> "$GITHUB_STEP_SUMMARY"; failed=1; continue; fi
             if [ "$REC" -gt 0 ]; then
               xcrun simctl io "$UDID" recordVideo --codec h264 --force "shots/$slug.mp4" &
               sleep "$REC"
@@ -141,6 +146,7 @@ jobs:
             fi
             echo "- \`$p\` → shots/$slug.png" >> "$GITHUB_STEP_SUMMARY"
           done
+          [ "$failed" = 0 ] || { echo "Có trang đích không mở/chụp được, xem tóm tắt run"; exit 1; }
 
       - name: Tải ảnh lên
         if: always()
