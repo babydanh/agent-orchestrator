@@ -124,9 +124,9 @@ function inspect(snapshot) {
     : normalizedLabels.some((label) => label === 'play' || label === 'phat' || label.startsWith('play ')) ? true : null;
   const volumeLabels = labels.filter((label) => /volume|audio|sound|mute|tieng|am luong/i.test(normalize(label)));
   const volumeTerms = volumeLabels.map(normalize);
-  const muted = volumeTerms.some((label) => label.includes('unmute') || label.includes('bat tieng') || label.includes('volume off'))
+  const muted = volumeTerms.some((label) => label.includes('unmute') || label.includes('bat tieng') || label.includes('volume off') || label.includes('mute court audio') || label.includes('tat tieng'))
     ? true
-    : volumeTerms.some((label) => label.includes('mute court audio') || label.includes('tat tieng') || label.includes('volume high') || label.includes('volume low') || label.includes('am luong') || label === 'mute') ? false : null;
+    : volumeTerms.some((label) => label.includes('volume high') || label.includes('volume low') || label.includes('am luong')) ? false : null;
   const fullscreen = normalizedLabels.some((label) => /exit fullscreen|exit full screen|thoat toan man hinh|^done$/.test(label))
     ? true
     : normalizedLabels.some((label) => /^(fullscreen|full screen|toan man hinh|enter fullscreen|enter full screen)$/.test(label))
