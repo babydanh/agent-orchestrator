@@ -1,0 +1,127 @@
+name: Chụp trang web bằng Safari thật trên iPhone (trình giả lập iOS)
+
+# Mở từng trang trong Mobile Safari của trình giả lập Xcode (máy macOS của GitHub), chụp màn hình,
+# tuỳ chọn quay video vài giây. Dùng để xem lỗi chỉ có trên iPhone (Safari và Chrome iOS cùng nhân WebKit).
+# Repo public: ảnh/video là artifact ai cũng tải được, chỉ dùng trang công khai, KHÔNG đưa URL có token/phiên đăng nhập.
+#   gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live,/home
+# Giới hạn: chỉ Safari (trình giả lập không có App Store nên không có Chrome); chỉ mở trang và chụp,
+# không chạm/cuộn/gõ.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Gốc trang web (http/https, không kèm đường dẫn)'
+        required: true
+        default: 'https://sporto.asia'
+        type: string
+      paths:
+        description: 'Các đường dẫn cách nhau dấu phẩy, mỗi cái bắt đầu bằng /'
+        required: true
+        default: '/live,/home,/tournaments'
+        type: string
+      device:
+        description: 'Tên máy trong Xcode'
+        required: true
+        default: 'iPhone 17 Pro Max'
+        type: string
+      wait_seconds:
+        description: 'Chờ mỗi trang tải xong (giây)'
+        required: true
+        default: '15'
+        type: string
+      record_seconds:
+        description: 'Quay video mỗi trang bao nhiêu giây (0 = không quay)'
+        required: true
+        default: '0'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  shot:
+    name: Safari ${{ inputs.device }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Kiểm đầu vào
+        env:
+          BASE: ${{ inputs.base_url }}
+          PATHS: ${{ inputs.paths }}
+          DEVICE: ${{ inputs.device }}
+          WAIT: ${{ inputs.wait_seconds }}
+          REC: ${{ inputs.record_seconds }}
+        run: |
+          set -euo pipefail
+          [[ "$BASE" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || { echo "base_url sai dạng: chỉ scheme://host[:port]"; exit 1; }
+          IFS=',' read -ra P <<< "$PATHS"
+          for p in "${P[@]}"; do
+            [[ "$p" =~ ^/[A-Za-z0-9/_.~%=-]*$ ]] || { echo "đường dẫn sai dạng (chỉ /chữ-số-_.~%=-, không ? &): $p"; exit 1; }
+          done
+          [[ "$DEVICE" =~ ^[A-Za-z0-9\ \(\)-]+$ ]] || { echo "tên máy sai dạng"; exit 1; }
+          [[ "$WAIT" =~ ^[0-9]{1,3}$ && "$REC" =~ ^[0-9]{1,2}$ ]] || { echo "wait_seconds/record_seconds phải là số"; exit 1; }
+
+      - name: Dựng ${{ inputs.device }} trên bản iOS 26 mới nhất
+        env:
+          DEVICE: ${{ inputs.device }}
+        run: |
+          set -euo pipefail
+          # Bản iOS 26.x cao nhất có sẵn trên máy (Xcode mặc định của macos-26).
+          RUNTIME=$(xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          rs = [r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-26")]
+          rs.sort(key=lambda r: [int(x) for x in r["version"].split(".")])
+          print(rs[-1]["identifier"] if rs else "")')
+          [ -n "$RUNTIME" ] || { echo "Máy không có runtime iOS 26:"; xcrun simctl list runtimes; exit 1; }
+          TYPE=$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, os, sys
+          want = os.environ["DEVICE"]
+          print(next((t["identifier"] for t in json.load(sys.stdin)["devicetypes"] if t["name"] == want), ""))')
+          [ -n "$TYPE" ] || { echo "Không có máy \"$DEVICE\". Các máy có sẵn:"; xcrun simctl list devicetypes | grep -i iphone; exit 1; }
+          UDID=$(xcrun simctl create shot "$TYPE" "$RUNTIME")
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')" >> "$GITHUB_STEP_SUMMARY"
+          echo "Xcode: $(xcodebuild -version | head -1)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Mở từng trang và chụp
+        env:
+          BASE: ${{ inputs.base_url }}
+          PATHS: ${{ inputs.paths }}
+          WAIT: ${{ inputs.wait_seconds }}
+          REC: ${{ inputs.record_seconds }}
+        run: |
+          set -euo pipefail
+          mkdir -p shots
+          # Lần mở đầu Safari có thể hiện màn chào: mở trang gốc một lần cho Safari khởi động xong.
+          xcrun simctl openurl "$UDID" "$BASE"
+          sleep 20
+          IFS=',' read -ra P <<< "$PATHS"
+          i=0
+          for p in "${P[@]}"; do
+            i=$((i + 1))
+            slug=$(printf '%02d%s' "$i" "$(echo "$p" | tr -c 'A-Za-z0-9' '-' | sed 's/-*$//')")
+            xcrun simctl openurl "$UDID" "$BASE$p"
+            sleep "$WAIT"
+            xcrun simctl io "$UDID" screenshot "shots/$slug.png"
+            if [ "$REC" -gt 0 ]; then
+              xcrun simctl io "$UDID" recordVideo --codec h264 --force "shots/$slug.mp4" &
+              rec=$!
+              sleep "$REC"
+              kill -INT "$rec"
+              wait "$rec" || true
+            fi
+            echo "- \`$p\` → shots/$slug.png" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Tải ảnh lên
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-safari-shots
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 7
