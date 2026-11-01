@@ -98,17 +98,25 @@ jobs:
           mkdir -p shots
           # macOS has no `timeout`; perl alarm caps every simctl call so one hung call cannot eat the whole job.
           cap() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
-          # Lần mở đầu Safari có thể hiện màn chào: mở trang gốc một lần cho Safari khởi động xong.
-          cap 60 xcrun simctl openurl "$UDID" "$BASE" || echo "openurl trang gốc quá giờ, chạy tiếp"
+          # When a call hangs, show who is eating the CPU (simulator, Safari WebContent, ...).
+          diag() { echo "--- $1 ($(date +%T)), top CPU:"; top -l 1 -n 8 -o cpu -stats pid,command,cpu,mem | tail -9; }
+          shot() { if cap 60 xcrun simctl io "$UDID" screenshot "$1"; then echo "$(date +%T) chụp $1 ok"; else diag "chụp $1 treo"; fi; }
+          open() { if cap 60 xcrun simctl openurl "$UDID" "$1"; then echo "$(date +%T) mở $1 ok"; else diag "mở $1 treo"; fi; }
+          # Ranh giới từng tầng: chụp màn hình chính (chưa có Safari), rồi trang rất nhẹ, rồi mới tới trang thật.
+          shot shots/00-man-hinh-chinh.png
+          open https://example.com
+          sleep 10
+          shot shots/00-example.png
+          open "$BASE"
           sleep 20
           IFS=',' read -ra P <<< "$PATHS"
           i=0
           for p in "${P[@]}"; do
             i=$((i + 1))
             slug=$(printf '%02d%s' "$i" "$(echo "$p" | tr -c 'A-Za-z0-9' '-' | sed 's/-*$//')")
-            cap 60 xcrun simctl openurl "$UDID" "$BASE$p" || echo "openurl $p quá giờ, vẫn chụp"
+            open "$BASE$p"
             sleep "$WAIT"
-            cap 60 xcrun simctl io "$UDID" screenshot "shots/$slug.png"
+            shot "shots/$slug.png"
             if [ "$REC" -gt 0 ]; then
               xcrun simctl io "$UDID" recordVideo --codec h264 --force "shots/$slug.mp4" &
               sleep "$REC"
