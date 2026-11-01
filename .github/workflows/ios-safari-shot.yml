@@ -2,7 +2,7 @@ name: Chụp trang web bằng Safari thật trên iPhone (trình giả lập iOS
 
 # Mở từng trang trong Mobile Safari của trình giả lập Xcode (máy macOS của GitHub), chụp màn hình,
 # tuỳ chọn quay video vài giây. Có thể truyền actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen
-# để AXe chạm các nút theo nhãn accessibility trên trang đầu tiên; mỗi thao tác có ảnh và trạng thái AX.
+# AXe hit-test theo điểm accessibility và chạm vật lý theo nhãn/toạ độ trên trang đầu tiên; mỗi thao tác có ảnh và trạng thái AX.
 # Ví dụ: gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live/3cb336fa-4d25-451d-8046-736332330359 -f actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen -f record_seconds=0
 # Repo public: ảnh/video là artifact ai cũng tải được, chỉ dùng trang công khai, KHÔNG đưa URL có token/phiên đăng nhập.
 # Input actions để trống giữ nguyên hành vi chụp thụ động cũ. actions luôn quay video suốt chuỗi thao tác.
