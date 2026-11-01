@@ -2,11 +2,11 @@ name: Chụp trang web bằng Safari thật trên iPhone (trình giả lập iOS
 
 # Mở từng trang trong Mobile Safari của trình giả lập Xcode (máy macOS của GitHub), chụp màn hình,
 # tuỳ chọn quay video vài giây. Có thể truyền actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen
-# để thao tác bằng chạm WebDriver trên trang đầu tiên; mỗi thao tác có ảnh và trạng thái video trong tóm tắt.
+# để AXe chạm các nút theo nhãn accessibility trên trang đầu tiên; mỗi thao tác có ảnh và trạng thái AX.
 # Ví dụ: gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live/3cb336fa-4d25-451d-8046-736332330359 -f actions=play,unmute,seek-3,seek+3,fullscreen,exit-fullscreen -f record_seconds=0
 # Repo public: ảnh/video là artifact ai cũng tải được, chỉ dùng trang công khai, KHÔNG đưa URL có token/phiên đăng nhập.
 # Input actions để trống giữ nguyên hành vi chụp thụ động cũ. actions luôn quay video suốt chuỗi thao tác.
-# Giới hạn: chỉ Safari trong iOS Simulator, không phải máy iPhone thật (trình giả lập không có App Store nên không có Chrome).
+# Giới hạn: chỉ Safari trong iOS Simulator, không phải iPhone thật (trình giả lập không có App Store nên không có Chrome).
 
 on:
   workflow_dispatch:
@@ -95,7 +95,7 @@ jobs:
           UDID=$(xcrun simctl create shot "$TYPE" "$RUNTIME")
           xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
-          # Giữ Simulator UI hiển thị trước khi Appium/WDA điều khiển, tránh driver khởi động lại máy giữa lúc quay video.
+          # Đưa Simulator UI lên trước khi AXe điều khiển và ghi video.
           open -a Simulator --args -CurrentDeviceUDID "$UDID"
           sleep 3
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
@@ -103,18 +103,18 @@ jobs:
           XCODE_INFO=$(xcodebuild -version)
           { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "Xcode: ${XCODE_INFO%%$'\n'*}"; } | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Lấy mã nguồn cho WebDriver
+      - name: Lấy helper thao tác AXe
         if: ${{ inputs.actions != '' }}
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Cài Appium WebDriver cho Safari
+      - name: Cài AXe cho Safari trên iOS Simulator
         if: ${{ inputs.actions != '' }}
         run: |
           set -euo pipefail
-          npm install --global appium
-          appium driver install xcuitest
+          brew install cameroncooke/axe/axe
+          axe --help >/dev/null
 
       - name: Mở từng trang và chụp
         env:
@@ -149,21 +149,6 @@ jobs:
             done
             return 1
           }
-          APPIUM_PID=
-          if [ -n "$ACTIONS" ]; then
-            appium --address 127.0.0.1 --port 4723 --base-path /wd/hub >"$RUNNER_TEMP/appium.log" 2>&1 &
-            APPIUM_PID=$!
-            trap 'if [ -n "$APPIUM_PID" ]; then kill "$APPIUM_PID" 2>/dev/null || true; fi' EXIT
-            for _ in $(seq 60); do
-              if curl --silent --fail http://127.0.0.1:4723/wd/hub/status >/dev/null; then break; fi
-              sleep 2
-            done
-            if ! curl --silent --fail http://127.0.0.1:4723/wd/hub/status >/dev/null; then
-              cat "$RUNNER_TEMP/appium.log"
-              echo "Appium không sẵn sàng"
-              exit 1
-            fi
-          fi
           # Warm-up shots/pages may fail without failing the job; target pages below may not.
           shot shots/00-man-hinh-chinh.png || true
           # Safari's first launch on a fresh simulator is slow: let it settle before the real pages.
@@ -182,26 +167,21 @@ jobs:
             if ! open "$BASE$p"; then echo "- \`$p\`: KHÔNG MỞ ĐƯỢC" >> "$GITHUB_STEP_SUMMARY"; failed=1; continue; fi
             if [ "$i" -eq 1 ] && [ -n "$ACTIONS" ]; then
               video="shots/$slug.mp4"
-              # Actions luôn được quay, kể cả record_seconds=0; giữ recordVideo chạy trong toàn chuỗi thao tác.
-              xcrun simctl io "$UDID" recordVideo --codec h264 --force "$video" &
+              # actions luôn được quay trọn chuỗi; AXe gửi SIGINT để kết thúc và hoàn tất MP4.
+              axe record-video --output "$video" --udid "$UDID" >"$RUNNER_TEMP/axe-video.log" 2>&1 &
               record_pid=$!
               sleep 2
               action_rc=0
-              node scripts/ios-safari/run-actions.mjs "$BASE$p" "$ACTIONS" "$UDID" "shots/$slug" "$WAIT" "$DEVICE" || action_rc=$?
-              if [ "$action_rc" -ne 0 ]; then
-                echo "Lỗi thao tác; nhật ký Appium:" >&2
-                cat "$RUNNER_TEMP/appium.log"
-              fi
-              # SIGINT phải đến simctl thật (xcrun không chuyển tiếp); simctl hoàn tất file MP4.
-              pkill -INT -f "simctl io $UDID recordVideo" || true
+              node scripts/ios-safari/run-axe-actions.mjs "$ACTIONS" "$UDID" "shots/$slug" "$WAIT" || action_rc=$?
+              pkill -INT -f "axe record-video.*$video" || kill -INT "$record_pid" 2>/dev/null || true
               for _ in $(seq 20); do kill -0 "$record_pid" 2>/dev/null || break; sleep 1; done
               if kill -0 "$record_pid" 2>/dev/null; then
-                pkill -KILL -f "simctl io $UDID recordVideo" || true
-                kill -KILL "$record_pid" 2>/dev/null || true
+                pkill -TERM -f "axe record-video.*$video" || kill -TERM "$record_pid" 2>/dev/null || true
               fi
               wait "$record_pid" || true
+              if [ "$action_rc" -ne 0 ]; then echo "Một hoặc nhiều thao tác AXe không đạt; xem bảng trong tóm tắt và axe-video.log." >&2; cat "$RUNNER_TEMP/axe-video.log"; fi
               if [ ! -s "$video" ]; then echo "- \`$p\`: KHÔNG GHI ĐƯỢC VIDEO $video" >> "$GITHUB_STEP_SUMMARY"; action_rc=1; fi
-              echo "- \`$p\` → chuỗi thao tác: shots/$slug.png, ảnh từng thao tác \`NN-<action>.png\`, video $video" >> "$GITHUB_STEP_SUMMARY"
+              echo "- \`$p\` → chuỗi thao tác: ảnh từng thao tác \`NN-<action>.png\`, cây AX \`NN-<action>.json\`, video $video" >> "$GITHUB_STEP_SUMMARY"
               [ "$action_rc" = 0 ] || failed=1
               continue
             fi
