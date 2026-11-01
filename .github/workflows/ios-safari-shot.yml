@@ -98,8 +98,15 @@ jobs:
           # macOS has no `timeout`; perl alarm caps every simctl call so one hung call cannot eat the whole job.
           cap() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
           # When a call hangs, show who is eating the CPU (ps gives an instant %CPU; a single `top` sample is always 0).
-          diag() { echo "--- $1 ($(date +%T)), top CPU:"; ps -Ao pid,pcpu,rss,comm -r | head -8; }
-          shot() { if cap 60 xcrun simctl io "$UDID" screenshot "$1"; then echo "$(date +%T) chụp $1 ok"; else diag "chụp $1 treo"; fi; }
+          # `|| true`: head closing the pipe early makes ps exit 141, which pipefail would turn into a job failure.
+          diag() { echo "--- $1 ($(date +%T)), top CPU:"; { ps -Ao pid,pcpu,rss,comm -r | head -8; } || true; }
+          # Heavy pages (several live videos on /live) can stall the simulator's frame capture past 60 s (run 41287896611).
+          shot() {
+            for try in 1 2; do
+              if cap 90 xcrun simctl io "$UDID" screenshot "$1"; then echo "$(date +%T) chụp $1 ok (lần $try)"; return 0; fi
+              diag "chụp $1 treo (lần $try)"
+            done
+          }
           # openurl waits for Safari to take the URL; a busy or first-launching Safari can exceed 60 s, and then
           # the page never changes (seen on run 41287230900), so try once more before shooting.
           open() {
