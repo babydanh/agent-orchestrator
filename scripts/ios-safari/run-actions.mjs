@@ -31,13 +31,18 @@ function summary(line) {
   console.log(line);
 }
 
-async function request(method, path, body) {
-  const response = await fetch(`${appiumUrl}${path}`, {
-    method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(120_000),
-  });
+async function request(method, path, body, timeoutMs = 120_000) {
+  let response;
+  try {
+    response = await fetch(`${appiumUrl}${path}`, {
+      method,
+      headers: body ? { 'content-type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    throw new Error(`${method} ${path} failed: ${error.message}`);
+  }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = payload.value?.message ?? payload.message ?? `${response.status} ${response.statusText}`;
@@ -115,7 +120,7 @@ function selectorsFor(action, state) {
         ? ['button[aria-label="Play"]', 'button[aria-label="Phát"]']
         : ['button[aria-label="Pause"]', 'button[aria-label="Tạm dừng"]'];
     case 'unmute':
-      return ['button[aria-label="Volume high"]', 'button[aria-label="Volume low"]', 'button[aria-label="Âm lượng to"]', 'button[aria-label="Âm lượng nhỏ"]'];
+      return ['button[aria-label="Mute court audio"]', 'button[aria-label="Volume high"]', 'button[aria-label="Volume low"]', 'button[aria-label="Tắt tiếng"]', 'button[aria-label="Âm lượng to"]', 'button[aria-label="Âm lượng nhỏ"]'];
     case 'seek-3':
       return ['button[aria-label="Back 3 seconds"]', 'button[aria-label="Lùi 3 giây"]'];
     case 'seek+3':
@@ -164,6 +169,7 @@ function screenshot(file) {
 }
 
 async function main() {
+  console.log('Starting Appium Safari session (up to 10 minutes for XCUITest/WDA startup)');
   const session = await request('POST', '/session', {
     capabilities: {
       alwaysMatch: {
@@ -174,11 +180,12 @@ async function main() {
         'appium:deviceName': deviceName,
         'appium:noReset': true,
         'appium:newCommandTimeout': 300,
-        'appium:wdaLaunchTimeout': 120_000,
+        'appium:wdaLaunchTimeout': 600_000,
+        'appium:showXcodeLog': true,
         'appium:waitForIdleTimeout': 0,
       },
     },
-  });
+  }, 600_000);
   sessionId = session.sessionId;
   if (!sessionId) throw new Error('Appium did not return a WebDriver session ID');
 

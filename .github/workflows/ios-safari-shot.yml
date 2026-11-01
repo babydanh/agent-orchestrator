@@ -97,7 +97,8 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "Xcode: $(xcodebuild -version | head -1)"; } | tee -a "$GITHUB_STEP_SUMMARY"
+          XCODE_INFO=$(xcodebuild -version)
+          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "Xcode: ${XCODE_INFO%%$'\n'*}"; } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Lấy mã nguồn cho WebDriver
         if: ${{ inputs.actions != '' }}
@@ -184,6 +185,10 @@ jobs:
               sleep 2
               action_rc=0
               node scripts/ios-safari/run-actions.mjs "$BASE$p" "$ACTIONS" "$UDID" "shots/$slug" "$WAIT" "$DEVICE" || action_rc=$?
+              if [ "$action_rc" -ne 0 ]; then
+                echo "Lỗi thao tác; nhật ký Appium:" >&2
+                cat "$RUNNER_TEMP/appium.log"
+              fi
               # SIGINT phải đến simctl thật (xcrun không chuyển tiếp); simctl hoàn tất file MP4.
               pkill -INT -f "simctl io $UDID recordVideo" || true
               for _ in $(seq 20); do kill -0 "$record_pid" 2>/dev/null || break; sleep 1; done
