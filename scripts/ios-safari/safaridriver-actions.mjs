@@ -59,14 +59,36 @@ const STATE_JS = `
     labels: [...new Set(labels)].slice(0, 30),
   };`;
 
-// Mark the first visible match so WebDriver can click exactly that element.
+// Mark the first visible match so WebDriver can click exactly that element; return its rect (CSS px).
 const MARK_JS = `
   document.querySelectorAll('[data-ios-test-target]').forEach((e) => e.removeAttribute('data-ios-test-target'));
   for (const sel of arguments[0]) {
     const el = [...document.querySelectorAll(sel)].find((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-    if (el) { el.setAttribute('data-ios-test-target', '1'); el.scrollIntoView({ block: 'center' }); return sel; }
+    if (el) {
+      el.setAttribute('data-ios-test-target', '1');
+      const r = el.getBoundingClientRect();
+      return { sel, rect: [r.left, r.top, r.width, r.height].map(Math.round), vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio };
+    }
   }
   return null;`;
+
+// Measurement only: log where synthetic touches land and what the video does (never drives the page).
+const LISTEN_JS = `
+  if (window.__iosLog) return 'da gan';
+  window.__iosLog = [];
+  const push = (o) => window.__iosLog.push(o);
+  const label = (t) => { const b = t && t.closest && t.closest('button,[role=button]'); return b ? b.getAttribute('aria-label') : (t && t.tagName); };
+  for (const type of ['touchstart', 'pointerdown', 'click']) document.addEventListener(type, (e) => {
+    const p = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+    push({ type, x: Math.round(p.clientX), y: Math.round(p.clientY), target: label(e.target) });
+  }, true);
+  for (const type of ['play', 'playing', 'pause', 'error', 'waiting', 'webkitbeginfullscreen', 'webkitendfullscreen'])
+    document.addEventListener(type, (e) => { if (e.target && e.target.tagName === 'VIDEO') push({ type }); }, true);
+  document.addEventListener('fullscreenchange', () => push({ type: 'fullscreenchange', on: !!document.fullscreenElement }));
+  document.addEventListener('fullscreenerror', () => push({ type: 'fullscreenerror' }));
+  addEventListener('unhandledrejection', (e) => push({ type: 'rejection', reason: String(e.reason).slice(0, 160) }));
+  return 'gan xong';`;
+const DRAIN_JS = `const l = window.__iosLog || []; window.__iosLog = []; return l;`;
 
 function shot(name) {
   const file = `${outDir}/${name}.png`;
@@ -74,16 +96,26 @@ function shot(name) {
   return r.status === 0 ? file : `CHỤP LỖI (${r.status ?? 'quá giờ'})`;
 }
 
-async function tap(sid, css) {
-  const sel = await wd('POST', `/session/${sid}/execute/sync`, { script: MARK_JS, args: [css] });
-  if (!sel) return { ok: false, how: 'không thấy nút' };
+async function markTarget(sid, css) {
+  const mark = await wd('POST', `/session/${sid}/execute/sync`, { script: MARK_JS, args: [css] });
+  if (!mark) return null;
   const el = await wd('POST', `/session/${sid}/element`, { using: 'css selector', value: '[data-ios-test-target="1"]' });
-  const id = Object.values(el)[0];
+  return { ...mark, id: Object.values(el)[0] };
+}
+
+// way 1: Element Click (a single-finger touch on iOS); way 2: Perform Actions with a touch pointer on the element.
+async function tap(sid, css, way) {
+  const m = await markTarget(sid, css);
+  if (!m) return { ok: false, how: 'không thấy nút' };
+  const where = `${m.sel} rect=${m.rect.join(',')} vw=${m.vw}x${m.vh} dpr=${m.dpr}`;
   try {
-    await wd('POST', `/session/${sid}/element/${id}/click`, {});
-    return { ok: true, how: `chạm ${sel}` };
+    if (way === 1) await wd('POST', `/session/${sid}/element/${m.id}/click`, {});
+    else await wd('POST', `/session/${sid}/actions`, { actions: [{ type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' }, actions: [
+      { type: 'pointerMove', duration: 0, origin: { 'element-6066-11e4-a52e-4f735466cecf': m.id }, x: 0, y: 0 },
+      { type: 'pointerDown', button: 0 }, { type: 'pause', duration: 100 }, { type: 'pointerUp', button: 0 }] }] });
+    return { ok: true, how: `cách ${way}: ${where}` };
   } catch (e) {
-    return { ok: false, how: `chạm ${sel} lỗi: ${e.message}` };
+    return { ok: false, how: `cách ${way}: ${where} lỗi: ${e.message}` };
   }
 }
 
@@ -97,6 +129,7 @@ async function main() {
     await wd('POST', `/session/${sid}/url`, { url }, 120_000);
     for (let i = 0; i < 30 && !(await state()).hasVideo; i++) await sleep(2_000);
     await sleep(3_000);
+    console.log(`bộ ghi: ${await wd('POST', `/session/${sid}/execute/sync`, { script: LISTEN_JS, args: [] })}`);
     let s = await state();
     writeFileSync(`${outDir}/00-truoc.json`, JSON.stringify(s, null, 1));
     console.log(`trước thao tác: ${JSON.stringify(s)}`);
@@ -107,16 +140,22 @@ async function main() {
       const nn = String(i + 1).padStart(2, '0');
       if (spec.skipIf?.(s)) { rows.push([name, 'bỏ qua (đã ở trạng thái cần)', '', 'OK']); continue; }
       const before = s;
-      const t = await tap(sid, spec.css);
-      await sleep(3_000);
-      s = await state();
-      writeFileSync(`${outDir}/${nn}-${name}.json`, JSON.stringify({ tap: t, before, after: s }, null, 1));
+      let t, events = [];
+      for (const way of [1, 2]) {
+        t = await tap(sid, spec.css, way);
+        await sleep(3_000);
+        s = await state();
+        events = await wd('POST', `/session/${sid}/execute/sync`, { script: DRAIN_JS, args: [] });
+        console.log(`   ${t.how} | sự kiện: ${JSON.stringify(events).slice(0, 600)}`);
+        if (t.ok && spec.expect(before, s)) break;
+      }
+      writeFileSync(`${outDir}/${nn}-${name}.json`, JSON.stringify({ tap: t, events, before, after: s }, null, 1));
       const file = shot(`${nn}-${name}`);
       const pass = t.ok && spec.expect(before, s);
       if (!pass) failed = true;
       const delta = `time ${before.time.toFixed(1)}→${s.time.toFixed(1)}, paused ${before.paused}→${s.paused}, muted ${before.muted}→${s.muted}, fullscreen ${before.fullscreen}→${s.fullscreen}`;
-      rows.push([name, t.how, delta, pass ? 'OK' : 'FAIL']);
-      console.log(`${nn} ${name}: ${pass ? 'OK' : 'FAIL'} | ${t.how} | ${delta} | ${file}`);
+      rows.push([name, t.how.split(' rect=')[0], delta, pass ? 'OK' : 'FAIL']);
+      console.log(`${nn} ${name}: ${pass ? 'OK' : 'FAIL'} | ${delta} | ${file}`);
     }
   } finally {
     await wd('DELETE', `/session/${sid}`).catch(() => {});
