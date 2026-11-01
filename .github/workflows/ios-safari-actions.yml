@@ -91,7 +91,9 @@ jobs:
           perl -e 'alarm 120; exec @ARGV' xcrun simctl openurl "$UDID" https://example.com || echo "openurl khởi động quá giờ, chạy tiếp"
           sleep 20
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; xcodebuild -version | head -1; } | tee -a "$GITHUB_STEP_SUMMARY"
+          # Capture first: `xcodebuild -version | head -1` aborts xcodebuild on SIGPIPE (run 41306637636, exit 134).
+          XCODE_INFO=$(xcodebuild -version)
+          { echo "### Máy: $DEVICE · $(xcrun simctl list runtimes | grep -F "$RUNTIME" | sed 's/ - .*//')"; echo "${XCODE_INFO%%$'\n'*}"; } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Bấm trình phát và chụp
         env:
