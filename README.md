@@ -46,14 +46,22 @@ Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở
   đẩy lên `test-runner.yml` theo skill `cloud-test-runner` (`~/.omp/scripts/cloud-test-runner.py`).
 - Session **trên cloud** (`agent-task.yml`): test chạy trên cloud.
 - `test-runner.yml` chỉ chạy khi được dispatch (bạn bấm tay hoặc session local theo skill), không hẹn giờ.
-  - `fullstack-e2e`: Postgres + Redis + Backend + Web rồi chạy Playwright, Allure thành artifact.
+  - `fullstack-e2e`: Postgres + Redis + Backend + Web rồi chạy Playwright (video MỌI test, `E2E_VIDEO=on`).
     - Chọn spec (`specs`): 1 máy, ~5 phút cho 1 spec.
     - Cả bộ (`specs` trống): 4 máy song song, mỗi máy DB/Backend/Web riêng. `scripts/e2e/shard_specs.py` chia file
       cân theo thời gian đã đo (`scripts/e2e/spec-durations.json`), job `report-fullstack` gộp Allure. Run
       39153169825 (18/10): xong ~26 phút; trước đó 1 máy chạy tới timeout 60 phút chưa hết bộ. Khi xanh, mỗi
       shard ~8 phút test (ước tính từ số đo, chưa có lượt xanh để xác nhận); test đỏ chạy lại 2 lần nên kéo dài.
     - Backend dựng song song với cài gói Web; `next build` chạy sau khi Backend đã seed và mở cổng (build gọi API).
+    - Báo cáo KHÔNG lên artifact (repo này public, artifact ai cũng tải được). `scripts/e2e/allure_archive.py` lưu mỗi
+      lượt thành một GitHub Release của repo PRIVATE `babydanh/qlgd-e2e-archive` (lưu mãi): `allure-report.zip`
+      (dashboard + video/ảnh/trace), `playwright-report.zip` (trace viewer), `history.zip` (lượt sau dùng cho biểu đồ
+      xu hướng), `summary.json`; mục lục `index.json` + `README.md` của repo kho. Cả bộ: mỗi shard đẩy kết quả thô vào
+      release nháp `tmp-<run_id>`, `report-fullstack` gộp, publish rồi xoá bản nháp. Lưu kho lỗi không làm job đỏ;
+      `no_report=true` thì không lưu media ở đâu. `GH_PAT` cần quyền ghi (Contents) repo kho; repo chưa có thì script
+      tạo private, repo không private thì từ chối tải lên.
   - `web`: Playwright KHÔNG có backend (API SSR rơi về production) — không dùng để xác minh. `all` không chạy job này.
+    Báo cáo lưu kho như trên, project `qlgd-web-ui`.
   - `backend` (Jest), `app` (`flutter analyze` + `flutter test`, không thiết bị thật), `aicheckvar` (pytest).
   - `auto25d`: hỏng — repo `Auto25D-Remotion` "not found" trên run 12/10.
 - Đọc lỗi: `python ~/.omp/scripts/cloud-test-runner.py summary <run_id|last>`.

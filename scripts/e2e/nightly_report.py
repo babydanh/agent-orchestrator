@@ -1,7 +1,7 @@
 """Ghi một comment kết quả E2E vào Issue cố định '[Nightly] Kết quả E2E hằng đêm'.
 
   python nightly_report.py <thư mục allure-report>
-Env: GH_TOKEN, JOB_STATUS, RUN_URL, REPO.
+Env: GH_TOKEN, JOB_STATUS, RUN_URL, REPO; RELEASE_URL (release trong repo kho private, trống nếu lưu kho lỗi).
 """
 import collections
 import glob
@@ -32,6 +32,8 @@ def summarize(report_dir):
 
 def main():
     body = f"**E2E đêm** | job: `{os.environ['JOB_STATUS']}`\n\n{summarize(sys.argv[1])}\n\nRun: {os.environ['RUN_URL']}"
+    if os.environ.get('RELEASE_URL'):
+        body += f"\nKho Allure (video, ảnh, trace): {os.environ['RELEASE_URL']}"
     repo = os.environ['REPO']
     headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
                'Content-Type': 'application/json', 'User-Agent': 'nightly'}
