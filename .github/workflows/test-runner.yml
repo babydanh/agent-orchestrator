@@ -78,7 +78,9 @@ jobs:
     # schedule không có inputs => phải cho phép riêng, nếu không job bị skip và cron báo xanh giả.
     if: github.event_name == 'schedule' || github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'fullstack-e2e'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Quay video mọi test làm test đạt chậm ~24% (run 41370079056 so 40917580158, 102 test chung). Shard nhiều test hỏng
+    # (mỗi test hỏng chạy lại 2 lần, chờ hết timeout) đã chạm 53–61 phút: 60 thì shard bị huỷ, mất phần test còn lại.
+    timeout-minutes: 90
     # Job gộp (report-fullstack) ghi nhánh/commit Web vào mục lục kho; mọi shard cùng một commit Web.
     outputs:
       web_branch: ${{ steps.clone.outputs.web_branch }}
