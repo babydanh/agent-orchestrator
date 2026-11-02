@@ -8,6 +8,10 @@ permissions:
   actions: read
 
 on:
+  # Lượt đêm: cả bộ Playwright lúc 02:00 giờ VN (19:00 UTC), lưu kho Allure + báo Issue [Nightly]. Bật lại 02/11 theo
+  # yêu cầu người dùng (đã gỡ ở fc80c0f ngày 12/10).
+  schedule:
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       target_project:
@@ -85,6 +89,10 @@ jobs:
     outputs:
       web_branch: ${{ steps.clone.outputs.web_branch }}
       web_commit: ${{ steps.clone.outputs.web_commit }}
+    env:
+      # Lượt đêm (schedule) không có inputs: nạp seed:data như mọi lượt fullstack-e2e do cloud-test-runner gọi, nếu không
+      # các spec cần tài khoản ADMIN của seed:data hỏng hàng loạt.
+      SEED: ${{ github.event.inputs.seed || (github.event_name == 'schedule' && 'data') || '' }}
     strategy:
       # Cả bộ (specs trống) chia 4 máy, mỗi máy Postgres/Backend/Web riêng nên spec không giẫm dữ liệu của nhau.
       # Lượt chọn spec chạy 1 máy như cũ. Không huỷ shard khác khi một shard đỏ: script tổng kết coi job bị huỷ là
@@ -195,7 +203,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/db-cache
-          key: db-v2-${{ hashFiles('workspace/backend/src/database/**', 'workspace/backend/run-prod-migration.js', 'workspace/backend/scripts/verify-football-schema.js', 'workspace/backend/package.json', 'workspace/backend/pnpm-lock.yaml') }}-seed-${{ github.event.inputs.seed || 'prod' }}
+          key: db-v2-${{ hashFiles('workspace/backend/src/database/**', 'workspace/backend/run-prod-migration.js', 'workspace/backend/scripts/verify-football-schema.js', 'workspace/backend/package.json', 'workspace/backend/pnpm-lock.yaml') }}-seed-${{ env.SEED || 'prod' }}
 
       # CACHE 5: bản build Backend (`nest build` ~25 giây) theo đúng commit Backend: cổng gộp của Web dùng lại `main`
       # Backend nhiều lượt liền, cùng commit thì cùng kết quả build.
@@ -249,7 +257,7 @@ jobs:
           DB_CACHE="$RUNNER_TEMP/db-cache"
           export PGPASSWORD=your_password
           if [ -f "$DB_CACHE/db.dump" ]; then
-            echo "DB: dựng schema bằng migration, nạp dữ liệu đã seed từ cache (khoá: migration/seed của Backend, seed=${{ github.event.inputs.seed || 'prod' }})"
+            echo "DB: dựng schema bằng migration, nạp dữ liệu đã seed từ cache (khoá: migration/seed của Backend, seed=${SEED:-prod})"
             # Schema dựng bằng chính migration (vài giây), không phục hồi schema từ dump: seed để lại dòng `wards` trỏ tới
             # tỉnh không tồn tại, phục hồi cả schema thì khoá ngoại bị kiểm lại và hỏng (run 39228959972).
             node run-prod-migration.js
@@ -275,7 +283,7 @@ jobs:
 
             # Dữ liệu mẫu (tuỳ chọn): seed-data-prod.ts chỉ ghi DB của job này (DB_HOST=localhost ở trên), không gọi API,
             # không xoá gì, chạy lại không tạo trùng (bỏ qua giải đã có).
-            if [ "${{ github.event.inputs.seed }}" = "data" ]; then
+            if [ "$SEED" = "data" ]; then
               pnpm seed:data
             fi
 
@@ -294,7 +302,7 @@ jobs:
             || ', bảng ' || count(*) || ', wards mồ côi ' || (SELECT count(*) FROM wards w WHERE NOT EXISTS
             (SELECT 1 FROM provinces p WHERE p.code = w.province_code)) FROM pg_tables WHERE schemaname = 'public'"
 
-          if [ "${{ github.event.inputs.seed }}" = "data" ]; then
+          if [ "$SEED" = "data" ]; then
             psql -h localhost -U postgres -d tournament_db -c \
               "SELECT status, count(*) AS so_giai FROM tournaments GROUP BY status ORDER BY status;"
             psql -h localhost -U postgres -d tournament_db -tAc \
@@ -342,7 +350,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARD_TOTAL: ${{ strategy.job-total }}
           # Spec biết job có dữ liệu mẫu hay không (seed=data) để tự bỏ qua ca cần dữ liệu khi chạy trên DB trống.
-          E2E_SEED: ${{ github.event.inputs.seed }}
+          E2E_SEED: ${{ env.SEED }}
           # Video mọi test (kể cả test đạt) để lưu kho; nhánh/commit Web cho trang Environment của Allure.
           E2E_VIDEO: 'on'
           E2E_BRANCH: ${{ steps.clone.outputs.web_branch }}
