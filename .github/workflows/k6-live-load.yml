@@ -1,14 +1,16 @@
 name: k6 Live Load (staging)
 
-# Load-tests the public live-viewer path (Socket.IO /live + public REST) of staging only.
+# Load-tests the public live-viewer path (Socket.IO /live over long-polling + public REST) of staging only.
+# Large peaks are split across runner shards (SHARD_SIZE viewers each) that start at the same instant.
+# A guard job probes PRODUCTION (same VPS as staging) and cancels the whole run if it degrades.
 # Needs environment `staging` (secret STAGING_BASIC_AUTH), so it only runs from main.
 on:
   workflow_dispatch:
     inputs:
       peak_viewers:
-        description: Peak concurrent viewers (staging may share the VPS; start small)
+        description: Total peak concurrent viewers (split over shards of 2500)
         type: choice
-        options: ['50', '100', '500', '1000', '2000']
+        options: ['100', '1000', '5000', '10000', '20000']
         default: '100'
       hold_seconds:
         description: Seconds to hold the peak
@@ -26,19 +28,26 @@ concurrency:
   group: k6-live-load
   cancel-in-progress: false
 
-jobs:
-  load:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    environment: staging
-    env:
-      TARGET_HOST: staging.sporto.asia
-      K6_VERSION: 0.57.0
-      PEAK: ${{ inputs.peak_viewers }}
-      HOLD_SECONDS: ${{ inputs.hold_seconds }}
-    steps:
-      - uses: actions/checkout@v4
+env:
+  TARGET_HOST: staging.sporto.asia
+  PROD_HOST: sporto.asia
+  K6_VERSION: 0.57.0
+  SHARD_SIZE: '2500'
+  RAMP_SECONDS: '45'
+  HOLD_SECONDS: ${{ inputs.hold_seconds }}
 
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      per_shard: ${{ steps.plan.outputs.per_shard }}
+      start_epoch: ${{ steps.plan.outputs.start_epoch }}
+      duration_s: ${{ steps.plan.outputs.duration_s }}
+      match_id: ${{ steps.match.outputs.id }}
+    steps:
       - name: Mask derived credential
         env:
           BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
@@ -50,12 +59,24 @@ jobs:
           # The base64 form is not masked by GitHub automatically.
           echo "::add-mask::$(printf %s "$BASIC_AUTH" | base64 -w0)"
 
-      - name: Install k6
+      - name: Plan shards and common start time
+        id: plan
+        env:
+          PEAK_TOTAL: ${{ inputs.peak_viewers }}
         run: |
           set -euo pipefail
-          curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" | tar -xz
-          sudo install "k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
-          k6 version
+          [[ "$HOLD_SECONDS" =~ ^[0-9]+$ ]] || { echo "::error::hold_seconds phải là số."; exit 1; }
+          shards=$(( (PEAK_TOTAL + SHARD_SIZE - 1) / SHARD_SIZE ))
+          per_shard=$(( (PEAK_TOTAL + shards - 1) / shards ))
+          # Leave time for k6 + (shard 0) Playwright installs before everyone starts together.
+          start_epoch=$(( $(date +%s) + 240 ))
+          duration_s=$(( 3 * RAMP_SECONDS + HOLD_SECONDS + 10 ))
+          list="$(seq -s, 0 $(( shards - 1 )))"
+          echo "shards=[${list}]" >> "$GITHUB_OUTPUT"
+          echo "per_shard=$per_shard" >> "$GITHUB_OUTPUT"
+          echo "start_epoch=$start_epoch" >> "$GITHUB_OUTPUT"
+          echo "duration_s=$duration_s" >> "$GITHUB_OUTPUT"
+          echo "Total $PEAK_TOTAL viewers = $shards shard(s) x $per_shard"
 
       - name: Pick a public match
         id: match
@@ -83,69 +104,132 @@ jobs:
           echo "Trận dùng để test: $MATCH_ID"
           echo "id=$MATCH_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Install Playwright (evidence only)
+  # Kill switch: staging shares the VPS with production, so watch production while the load runs.
+  guard:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      actions: write
+      contents: read
+    env:
+      START_EPOCH: ${{ needs.plan.outputs.start_epoch }}
+      DURATION_S: ${{ needs.plan.outputs.duration_s }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Probe production until the test ends
+        run: |
+          set -uo pipefail
+          END=$(( START_EPOCH + DURATION_S + 90 ))
+          bad=0
+          mkdir -p guard
+          echo "epoch,api_http,api_s,web_http,web_s" > guard/prod-probe.csv
+          probe() { curl -s -o /dev/null -w '%{http_code},%{time_total}' --max-time 8 "$1" || echo "000,8"; }
+          while (( $(date +%s) < END )); do
+            api="$(probe "https://$PROD_HOST/api/v1/categories")"
+            web="$(probe "https://$PROD_HOST/")"
+            echo "$(date +%s),$api,$web" >> guard/prod-probe.csv
+            slow=0
+            for r in "$api" "$web"; do
+              code="${r%%,*}"; t="${r##*,}"
+              if [[ "$code" != "200" ]] || awk -v t="$t" 'BEGIN{exit !(t>3)}'; then slow=1; fi
+            done
+            if (( slow )); then bad=$(( bad + 1 )); else bad=0; fi
+            if (( bad >= 3 )); then
+              echo "::error::Production suy giảm 3 lần liên tiếp (lỗi hoặc >3s). Huỷ run để bảo vệ production."
+              echo "tripped at $(date -u +%FT%TZ)" > guard/TRIPPED.txt
+              gh run cancel "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY"
+              break
+            fi
+            sleep 3
+          done
+      - name: Upload production probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-prod-probe
+          path: guard/
+          retention-days: 7
+          if-no-files-found: warn
+
+  load:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    env:
+      PEAK: ${{ needs.plan.outputs.per_shard }}
+      MATCH_ID: ${{ needs.plan.outputs.match_id }}
+      START_EPOCH: ${{ needs.plan.outputs.start_epoch }}
+      SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mask derived credential
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+        run: echo "::add-mask::$(printf %s "$BASIC_AUTH" | base64 -w0)"
+
+      - name: Install k6
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" | tar -xz
+          sudo install "k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+
+      - name: Install Playwright (shard 0 records evidence)
+        if: matrix.shard == 0
         working-directory: scripts/loadtest
         run: |
           set -euo pipefail
           npm install --no-save --no-package-lock playwright@1.49.1
           npx playwright install --with-deps chromium
 
-      - name: Run k6 + browser recording
+      - name: Run k6 (+ browser recording on shard 0)
         env:
           BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
-          MATCH_ID: ${{ steps.match.outputs.id }}
-          K6_WEB_DASHBOARD: 'true'
+          K6_WEB_DASHBOARD: ${{ matrix.shard == 0 && 'true' || 'false' }}
           K6_WEB_DASHBOARD_EXPORT: report.html
         run: |
           # GitHub starts bash with -e; k6 exits non-zero on a crossed threshold and we must still wait for the browser.
           set +e
           set -uo pipefail
           mkdir -p evidence
-          WATCH_SECONDS=$(( HOLD_SECONDS + 80 ))
-          ( cd scripts/loadtest && node evidence.mjs watch "$TARGET_HOST" "$MATCH_ID" ../../evidence/browser "$WATCH_SECONDS" ) \
-            > evidence/browser-run.log 2>&1 &
-          WATCH_PID=$!
+          ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)"
+          now=$(date +%s)
+          if (( now > START_EPOCH )); then echo "::warning::Shard $SHARD tới trễ $(( now - START_EPOCH ))s so với giờ bắt đầu chung."; fi
+          while (( $(date +%s) < START_EPOCH )); do sleep 1; done
+
+          WATCH_PID=""
+          if [[ "$SHARD" == "0" ]]; then
+            WATCH_SECONDS=$(( 3 * RAMP_SECONDS + HOLD_SECONDS + 20 ))
+            ( cd scripts/loadtest && node evidence.mjs watch "$TARGET_HOST" "$MATCH_ID" ../../evidence/browser "$WATCH_SECONDS" ) \
+              > evidence/browser-run.log 2>&1 &
+            WATCH_PID=$!
+          fi
           k6 run --summary-export evidence/summary.json scripts/loadtest/live-viewers.js 2>&1 | tee evidence/k6.log
           K6_EXIT=${PIPESTATUS[0]}
-          wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"
+          [[ -n "$WATCH_PID" ]] && { wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"; }
           [[ -f report.html ]] && mv report.html evidence/report.html
+          echo "$K6_EXIT" > evidence/k6-exit-code.txt
           echo "K6_EXIT=$K6_EXIT" >> "$GITHUB_ENV"
 
-      - name: Screenshot k6 dashboard
-        if: always()
+      - name: Screenshot k6 dashboard (shard 0)
+        if: always() && matrix.shard == 0
         working-directory: scripts/loadtest
         run: |
           [[ -f ../../evidence/report.html ]] || { echo "no report.html"; exit 0; }
           node evidence.mjs report ../../evidence/report.html ../../evidence/k6-dashboard.png || true
 
-      - name: Summary
-        if: always()
-        run: |
-          {
-            echo "### k6 live load (staging, peak ${PEAK} viewers, hold ${HOLD_SECONDS}s)"
-            echo "k6 exit code: \`${K6_EXIT:-n/a}\` (0 = all thresholds passed)"
-            if [[ -f evidence/summary.json ]]; then
-              echo ""
-              echo "| Metric | Value |"
-              echo "|---|---|"
-              jq -r '
-                .metrics as $m |
-                "| REST p95 (ms) | \($m["http_req_duration{scenario:readers}"]["p(95)"] // "n/a") |",
-                "| Join ok rate | \($m.live_join_ok.value // "n/a") |",
-                "| Join p95 (ms) | \($m.live_join_ms["p(95)"] // "n/a") |",
-                "| Max viewer count seen | \($m.live_viewer_count_seen.max // "n/a") |",
-                "| Max server connections | \($m.live_server_connections.max // "n/a") |",
-                "| Server event-loop lag p95 (ms) | \($m.live_server_event_loop_lag_ms["p(95)"] // "n/a") |",
-                "| WS errors | \($m.live_ws_errors.count // 0) |"
-              ' evidence/summary.json
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload evidence
+      - name: Upload shard evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-live-load-evidence
+          name: k6-shard-${{ matrix.shard }}
           path: evidence/
           retention-days: 7
           if-no-files-found: warn
@@ -153,5 +237,56 @@ jobs:
       - name: Fail when k6 thresholds failed
         if: always() && env.K6_EXIT != '' && env.K6_EXIT != '0'
         run: |
-          echo "::error::k6 exit code $K6_EXIT (threshold crossed or run aborted)."
+          echo "::error::k6 shard $SHARD exit code $K6_EXIT (threshold crossed or run aborted)."
           exit 1
+
+  report:
+    needs: [plan, load, guard]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: k6-*
+          path: all
+      - name: Merge shard results
+        env:
+          PEAK_TOTAL: ${{ inputs.peak_viewers }}
+          SHARDS: ${{ needs.plan.outputs.shards }}
+          PER_SHARD: ${{ needs.plan.outputs.per_shard }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### k6 live load (staging, long-polling) - total ${PEAK_TOTAL} viewers = ${SHARDS} shard(s) x ${PER_SHARD}, hold ${HOLD_SECONDS}s"
+            if [[ -f all/k6-prod-probe/TRIPPED.txt ]]; then
+              echo "**KILL SWITCH FIRED**: production degraded, run cancelled ($(cat all/k6-prod-probe/TRIPPED.txt))."
+            fi
+            codes="$(cat all/k6-shard-*/k6-exit-code.txt 2>/dev/null | tr '\n' ' ')"
+            echo "k6 exit codes per shard: \`${codes:-none}\` (0 = thresholds passed)"
+            if ls all/k6-shard-*/summary.json >/dev/null 2>&1; then
+              echo ""
+              echo "| Metric | Value |"
+              echo "|---|---|"
+              jq -s -r '
+                def sum(f): map(f // 0) | add;
+                def mx(f): map(f // 0) | max;
+                sum(.metrics.live_join_ok.passes) as $ok | sum(.metrics.live_join_ok.fails) as $bad |
+                "| Shards reporting | \(length) |",
+                "| Joins ok / failed | \($ok) / \($bad) |",
+                "| Max viewer count seen by server | \(mx(.metrics.live_viewer_count_seen.max)) |",
+                "| Max server connections | \(mx(.metrics.live_server_connections.max)) |",
+                "| Join p95, worst shard (ms) | \(mx(.metrics.live_join_ms["p(95)"])) |",
+                "| REST p95, worst shard (ms) | \(mx(.metrics["http_req_duration{scenario:readers}"]["p(95)"])) |",
+                "| Server event-loop lag p95, worst (ms) | \(mx(.metrics.live_server_event_loop_lag_ms["p(95)"])) |",
+                "| Failed HTTP requests / total | \(sum(.metrics.http_req_failed.passes)) / \(sum(.metrics.http_req_failed.passes) + sum(.metrics.http_req_failed.fails)) |",
+                "| WS/protocol errors | \(sum(.metrics.live_ws_errors.count)) |"
+              ' all/k6-shard-*/summary.json
+            fi
+            if [[ -f all/k6-prod-probe/prod-probe.csv ]]; then
+              echo ""
+              echo "Production probe (every ~3s):"
+              awk -F, 'NR>1 { n++; if ($2!="200"||$4!="200") err++; if ($3>mx) mx=$3; if ($5>mw) mw=$5 }
+                END { printf "- samples: %d, non-200: %d, worst api %.2fs, worst web %.2fs\n", n, err+0, mx, mw }' all/k6-prod-probe/prod-probe.csv
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

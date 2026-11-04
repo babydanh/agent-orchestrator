@@ -23,10 +23,11 @@ const serverLagMs = new Trend('live_server_event_loop_lag_ms');
 const wsErrors = new Counter('live_ws_errors');
 const scoreEvents = new Counter('live_score_events');
 
+const RAMP = `${parseInt(__ENV.RAMP_SECONDS || '20', 10)}s`;
 const rampTo = (peak) => [
-  { duration: '20s', target: Math.max(1, Math.round(peak / 4)) },
-  { duration: '20s', target: Math.max(1, Math.round(peak / 2)) },
-  { duration: '20s', target: Math.max(1, peak) },
+  { duration: RAMP, target: Math.max(1, Math.round(peak / 4)) },
+  { duration: RAMP, target: Math.max(1, Math.round(peak / 2)) },
+  { duration: RAMP, target: Math.max(1, peak) },
   { duration: HOLD, target: Math.max(1, peak) },
   { duration: '10s', target: 0 },
 ];
@@ -45,7 +46,7 @@ export const options = {
       executor: 'ramping-vus',
       exec: 'reader',
       startVUs: 0,
-      stages: rampTo(Math.max(2, Math.round(PEAK / 10))),
+      stages: rampTo(Math.min(20, Math.max(2, Math.round(PEAK / 10)))), // REST readers stay light per shard
       gracefulRampDown: '10s',
     },
   },
