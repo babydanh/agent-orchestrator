@@ -23,6 +23,10 @@ const serverLagMs = new Trend('live_server_event_loop_lag_ms');
 const wsErrors = new Counter('live_ws_errors');
 const scoreEvents = new Counter('live_score_events');
 
+// REST_ABORT=off keeps the REST p95 threshold as a pass/fail result but stops it from aborting the run,
+// so the test can reach the real breaking point. Join failures still abort (protects staging).
+const REST_ABORT = (__ENV.REST_ABORT || 'on') !== 'off';
+
 const RAMP = `${parseInt(__ENV.RAMP_SECONDS || '20', 10)}s`;
 const rampTo = (peak) => [
   { duration: RAMP, target: Math.max(1, Math.round(peak / 4)) },
@@ -53,7 +57,9 @@ export const options = {
   thresholds: {
     // Stop the run early when the REST path degrades or joins fail, to protect staging.
     'http_req_duration{scenario:readers}': [
-      { threshold: 'p(95)<1000', abortOnFail: true, delayAbortEval: '30s' },
+      REST_ABORT
+        ? { threshold: 'p(95)<1000', abortOnFail: true, delayAbortEval: '30s' }
+        : 'p(95)<1000',
     ],
     live_join_ok: [{ threshold: 'rate>0.95', abortOnFail: true, delayAbortEval: '40s' }],
     live_join_ms: ['p(95)<2000'],

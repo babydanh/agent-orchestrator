@@ -20,6 +20,11 @@ on:
         description: Match UUID to watch (empty = auto-pick a public match)
         type: string
         default: ''
+      rest_abort:
+        description: 'on = abort the run when REST p95 > 1s (default); off = keep going to find the real breaking point (join failures still abort)'
+        type: choice
+        options: ['on', 'off']
+        default: 'on'
 
 permissions:
   contents: read
@@ -194,6 +199,7 @@ jobs:
           BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
           K6_WEB_DASHBOARD: ${{ matrix.shard == 0 && 'true' || 'false' }}
           K6_WEB_DASHBOARD_EXPORT: report.html
+          REST_ABORT: ${{ inputs.rest_abort }}
         run: |
           # GitHub starts bash with -e; k6 exits non-zero on a crossed threshold and we must still wait for the browser.
           set +e
@@ -215,8 +221,12 @@ jobs:
               > evidence/dash-run.log 2>&1 &
             DASH_PID=$!
           fi
+          # Runner CPU every 3s (us/sy/id): tells whether the load generator itself is the bottleneck.
+          vmstat -n 3 > evidence/runner-vmstat.log 2>&1 &
+          VMSTAT_PID=$!
           k6 run --summary-export evidence/summary.json scripts/loadtest/live-viewers.js 2>&1 | tee evidence/k6.log
           K6_EXIT=${PIPESTATUS[0]}
+          kill "$VMSTAT_PID" 2>/dev/null
           [[ -n "$WATCH_PID" ]] && { wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"; }
           [[ -n "$DASH_PID" ]] && { wait "$DASH_PID" || echo "dashboard recorder exited non-zero (see dash-run.log)"; }
           [[ -f report.html ]] && mv report.html evidence/report.html
