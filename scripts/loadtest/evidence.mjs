@@ -53,7 +53,41 @@ async function watch([host, matchId, outDir, secondsRaw]) {
   }
   await page.screenshot({ path: `${outDir}/live-final.png` }).catch(() => {});
   writeFileSync(`${outDir}/browser-log.txt`, `${log.join('\n')}\n`);
+  const video = page.video();
   await context.close(); // flushes the video
+  await video?.saveAs(`${outDir}/live-page.webm`).catch(() => {});
+  await browser.close();
+}
+
+// Records the live k6 web dashboard (VUs, request rate, latency charts) while the test runs.
+async function dash([outDir, secondsRaw]) {
+  const seconds = parseInt(secondsRaw, 10);
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: outDir, size: { width: 1440, height: 900 } },
+  });
+  const page = await context.newPage();
+  const deadline = Date.now() + seconds * 1000;
+  let up = false;
+  // The dashboard server only exists once k6 is running: retry until it answers.
+  while (!up && Date.now() < deadline) {
+    try {
+      await page.goto('http://127.0.0.1:5665', { waitUntil: 'load', timeout: 5000 });
+      up = true;
+    } catch (_) {
+      await sleep(2000);
+    }
+  }
+  let n = 0;
+  while (Date.now() < deadline) {
+    await page.screenshot({ path: `${outDir}/dash-${String(n++).padStart(2, '0')}.png` }).catch(() => {});
+    await sleep(SHOT_EVERY_MS);
+  }
+  const video = page.video();
+  await context.close();
+  await video?.saveAs(`${outDir}/k6-dashboard-live.webm`).catch(() => {});
   await browser.close();
 }
 
@@ -71,6 +105,7 @@ async function report([htmlFile, outPng]) {
 }
 
 if (mode === 'watch') await watch(args);
+else if (mode === 'dash') await dash(args);
 else if (mode === 'report') await report(args);
 else {
   console.error('usage: evidence.mjs watch|report ...');

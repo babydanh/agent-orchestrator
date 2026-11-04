@@ -205,15 +205,20 @@ jobs:
           while (( $(date +%s) < START_EPOCH )); do sleep 1; done
 
           WATCH_PID=""
+          DASH_PID=""
           if [[ "$SHARD" == "0" ]]; then
             WATCH_SECONDS=$(( 3 * RAMP_SECONDS + HOLD_SECONDS + 20 ))
             ( cd scripts/loadtest && node evidence.mjs watch "$TARGET_HOST" "$MATCH_ID" ../../evidence/browser "$WATCH_SECONDS" ) \
               > evidence/browser-run.log 2>&1 &
             WATCH_PID=$!
+            ( cd scripts/loadtest && node evidence.mjs dash ../../evidence/dashboard "$WATCH_SECONDS" ) \
+              > evidence/dash-run.log 2>&1 &
+            DASH_PID=$!
           fi
           k6 run --summary-export evidence/summary.json scripts/loadtest/live-viewers.js 2>&1 | tee evidence/k6.log
           K6_EXIT=${PIPESTATUS[0]}
           [[ -n "$WATCH_PID" ]] && { wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"; }
+          [[ -n "$DASH_PID" ]] && { wait "$DASH_PID" || echo "dashboard recorder exited non-zero (see dash-run.log)"; }
           [[ -f report.html ]] && mv report.html evidence/report.html
           echo "$K6_EXIT" > evidence/k6-exit-code.txt
           echo "K6_EXIT=$K6_EXIT" >> "$GITHUB_ENV"
