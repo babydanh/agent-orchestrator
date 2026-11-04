@@ -60,8 +60,12 @@ async function watch([host, matchId, outDir, secondsRaw]) {
 async function report([htmlFile, outPng]) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.on('console', (m) => m.type() === 'error' && console.error(`report console.error: ${m.text()}`));
+  page.on('pageerror', (e) => console.error(`report pageerror: ${e.message}`));
   await page.goto(`file://${process.cwd()}/${htmlFile}`, { waitUntil: 'load' });
-  await sleep(3000); // let the charts render
+  // The report is a module page that decodes gzip data first; wait for real content, then let charts draw.
+  await page.waitForSelector('#root > *', { timeout: 30000 }).catch((e) => console.error(`report not rendered: ${e.message}`));
+  await sleep(5000);
   await page.screenshot({ path: outPng, fullPage: true });
   await browser.close();
 }
