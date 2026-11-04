@@ -1,0 +1,83 @@
+name: VPS Diagnose (read-only)
+
+# Read-only resource snapshot of the shared Sporto VPS (staging + production live on it).
+# Reuses the deploy SSH wiring (scripts/deploy/ssh-setup.sh). Runs only the fixed commands below:
+# no env dump, no config files, no docker inspect. The log is PUBLIC (repo is public), so it only
+# prints numbers and container names. Host/port/user are secrets and masked by GitHub.
+#
+#   gh workflow run vps-diagnose.yml -R babydanh/agent-orchestrator -f sample_seconds=0     # one snapshot
+#   gh workflow run vps-diagnose.yml -R babydanh/agent-orchestrator -f sample_seconds=240   # sample while k6 runs
+on:
+  workflow_dispatch:
+    inputs:
+      sample_seconds:
+        description: '0 = one snapshot; N = also sample load/RAM/containers every 5s for N seconds (max 600)'
+        type: string
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-diagnose
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      SAMPLE_SECONDS: ${{ inputs.sample_seconds }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate input
+        run: |
+          [[ "$SAMPLE_SECONDS" =~ ^[0-9]+$ ]] && (( SAMPLE_SECONDS <= 600 )) || { echo "::error::sample_seconds phải là số 0-600."; exit 1; }
+
+      - name: SSH setup
+        run: bash scripts/deploy/ssh-setup.sh
+
+      - name: Snapshot (CPU, RAM, disk, containers)
+        run: |
+          "$RUNNER_TEMP/ssh-vps" 'bash -s' <<'REMOTE'
+          set -u
+          echo "== CPU / RAM =="
+          lscpu | grep -E '^(Model name|CPU\(s\)|Thread|Core)' || true
+          free -m
+          echo "== uptime / load (load >= CPU count means CPU-bound) =="
+          uptime
+          echo "== disk =="
+          df -h / | tail -n 2
+          echo "== containers: CPU% / memory =="
+          docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}'
+          echo "== busiest processes (command name only) =="
+          ps -eo pcpu,pmem,comm --sort=-pcpu | head -n 8
+          echo "== limits that matter for many connections =="
+          echo "ulimit -n: $(ulimit -n)"
+          echo "somaxconn: $(cat /proc/sys/net/core/somaxconn)"
+          echo "established tcp: $(ss -Htn state established 2>/dev/null | wc -l)"
+          REMOTE
+
+      - name: Sample while load runs
+        if: ${{ inputs.sample_seconds != '0' }}
+        run: |
+          "$RUNNER_TEMP/ssh-vps" "SAMPLE=$SAMPLE_SECONDS bash -s" <<'REMOTE'
+          set -u
+          end=$(( $(date +%s) + SAMPLE ))
+          echo "time load1/5/15 mem_used/total_MB est_tcp | containers cpu%/mem"
+          while (( $(date +%s) < end )); do
+            load="$(cut -d' ' -f1-3 /proc/loadavg)"
+            mem="$(free -m | awk '/^Mem:/ {print $3"/"$2}')"
+            est="$(ss -Htn state established 2>/dev/null | wc -l)"
+            cont="$(docker stats --no-stream --format '{{.Name}}={{.CPUPerc}}/{{.MemUsage}}' 2>/dev/null | awk -F'/' '{print $1"/"$2}' | tr '\n' ' ')"
+            echo "$(date +%T) $load $mem $est | $cont"
+            sleep 3
+          done
+          REMOTE
