@@ -1,0 +1,155 @@
+name: k6 Live Load (staging)
+
+# Load-tests the public live-viewer path (Socket.IO /live + public REST) of staging only.
+# Needs environment `staging` (secret STAGING_BASIC_AUTH), so it only runs from main.
+on:
+  workflow_dispatch:
+    inputs:
+      peak_viewers:
+        description: Peak concurrent viewers (staging may share the VPS; start small)
+        type: choice
+        options: ['50', '100', '500', '1000', '2000']
+        default: '100'
+      hold_seconds:
+        description: Seconds to hold the peak
+        type: string
+        default: '60'
+      match_id:
+        description: Match UUID to watch (empty = auto-pick a public match)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: k6-live-load
+  cancel-in-progress: false
+
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: staging
+    env:
+      TARGET_HOST: staging.sporto.asia
+      K6_VERSION: 0.57.0
+      PEAK: ${{ inputs.peak_viewers }}
+      HOLD_SECONDS: ${{ inputs.hold_seconds }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mask derived credential
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+        run: |
+          if [[ -z "$BASIC_AUTH" ]]; then
+            echo "::error::Thiếu secret STAGING_BASIC_AUTH của environment staging."
+            exit 1
+          fi
+          # The base64 form is not masked by GitHub automatically.
+          echo "::add-mask::$(printf %s "$BASIC_AUTH" | base64 -w0)"
+
+      - name: Install k6
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" | tar -xz
+          sudo install "k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+
+      - name: Pick a public match
+        id: match
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+          INPUT_MATCH_ID: ${{ inputs.match_id }}
+        run: |
+          set -euo pipefail
+          pick() {
+            curl -fsS --max-time 20 -u "$BASIC_AUTH" "https://$TARGET_HOST/api/v1/matches?$1" \
+              | jq -r '[.. | objects | select(has("id") and has("status")) | .id][0] // empty'
+          }
+          MATCH_ID="$INPUT_MATCH_ID"
+          [[ -n "$MATCH_ID" ]] || MATCH_ID="$(pick 'status=IN_PROGRESS&limit=5' || true)"
+          [[ -n "$MATCH_ID" ]] || MATCH_ID="$(pick 'limit=5' || true)"
+          if [[ -z "$MATCH_ID" ]]; then
+            echo "::error::Không tìm thấy trận công khai nào trên staging."
+            exit 1
+          fi
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -u "$BASIC_AUTH" "https://$TARGET_HOST/api/v1/matches/$MATCH_ID")"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::GET /matches/$MATCH_ID trả $code (mong đợi 200)."
+            exit 1
+          fi
+          echo "Trận dùng để test: $MATCH_ID"
+          echo "id=$MATCH_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Install Playwright (evidence only)
+        working-directory: scripts/loadtest
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Run k6 + browser recording
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+          MATCH_ID: ${{ steps.match.outputs.id }}
+          K6_WEB_DASHBOARD: 'true'
+          K6_WEB_DASHBOARD_EXPORT: report.html
+        run: |
+          set -uo pipefail
+          mkdir -p evidence
+          WATCH_SECONDS=$(( HOLD_SECONDS + 80 ))
+          ( cd scripts/loadtest && node evidence.mjs watch "$TARGET_HOST" "$MATCH_ID" ../../evidence/browser "$WATCH_SECONDS" ) \
+            > evidence/browser-run.log 2>&1 &
+          WATCH_PID=$!
+          k6 run --summary-export evidence/summary.json scripts/loadtest/live-viewers.js 2>&1 | tee evidence/k6.log
+          K6_EXIT=${PIPESTATUS[0]}
+          wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"
+          [[ -f report.html ]] && mv report.html evidence/report.html
+          echo "K6_EXIT=$K6_EXIT" >> "$GITHUB_ENV"
+
+      - name: Screenshot k6 dashboard
+        if: always()
+        working-directory: scripts/loadtest
+        run: |
+          [[ -f ../../evidence/report.html ]] || { echo "no report.html"; exit 0; }
+          node evidence.mjs report ../../evidence/report.html ../../evidence/k6-dashboard.png || true
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### k6 live load (staging, peak ${PEAK} viewers, hold ${HOLD_SECONDS}s)"
+            echo "k6 exit code: \`${K6_EXIT:-n/a}\` (0 = all thresholds passed)"
+            if [[ -f evidence/summary.json ]]; then
+              echo ""
+              echo "| Metric | Value |"
+              echo "|---|---|"
+              jq -r '
+                .metrics as $m |
+                "| REST p95 (ms) | \($m.http_req_duration["p(95)"] // "n/a") |",
+                "| Join ok rate | \($m.live_join_ok.value // "n/a") |",
+                "| Join p95 (ms) | \($m.live_join_ms["p(95)"] // "n/a") |",
+                "| Max viewer count seen | \($m.live_viewer_count_seen.max // "n/a") |",
+                "| Max server connections | \($m.live_server_connections.max // "n/a") |",
+                "| Server event-loop lag p95 (ms) | \($m.live_server_event_loop_lag_ms["p(95)"] // "n/a") |",
+                "| WS errors | \($m.live_ws_errors.count // 0) |"
+              ' evidence/summary.json
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-live-load-evidence
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Fail when k6 thresholds failed
+        if: always() && env.K6_EXIT != '' && env.K6_EXIT != '0'
+        run: |
+          echo "::error::k6 exit code $K6_EXIT (threshold crossed or run aborted)."
+          exit 1
