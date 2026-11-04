@@ -1,7 +1,6 @@
 // k6 load test for the public live-viewer path of Sporto staging.
-// Viewers speak Engine.IO v4 / Socket.IO to namespace /live (joinMatch), readers hit public REST.
+// Viewers speak Engine.IO v4 / Socket.IO (long-polling) to namespace /live (joinMatch), readers hit public REST.
 // Required env: TARGET_HOST, MATCH_ID, BASIC_AUTH ("user:pass" of the staging gate). Never printed.
-import ws from 'k6/ws';
 import http from 'k6/http';
 import encoding from 'k6/encoding';
 import { check, sleep } from 'k6';
@@ -14,6 +13,7 @@ const HOLD = `${parseInt(__ENV.HOLD_SECONDS || '60', 10)}s`;
 const SESSION_MS = 45000; // one socket session; shorter than gracefulRampDown
 const AUTH = `Basic ${encoding.b64encode(__ENV.BASIC_AUTH || '')}`;
 const NS = '/live';
+const RECORD_SEP = String.fromCharCode(0x1e); // Engine.IO v4 packet separator in polling bodies
 
 const joinOk = new Rate('live_join_ok');
 const joinMs = new Trend('live_join_ms', true);
@@ -82,52 +82,79 @@ function asObject(payload) {
   return payload && typeof payload === 'object' ? payload : {};
 }
 
+// Staging blocks WebSocket upgrade (Basic Auth gate), so its web client uses long-polling only
+// (see Web src/lib/socket.ts). Viewers therefore speak Engine.IO v4 over HTTP long-polling,
+// exactly like a real staging browser.
+function handleEvent(packet, state, startedAt) {
+  const evt = parseEvent(packet);
+  if (!evt) return;
+  const [name, payload] = evt;
+  if (name === 'joined' && !state.joined) {
+    state.joined = true;
+    joinOk.add(true);
+    joinMs.add(Date.now() - startedAt);
+  } else if (name === 'exception') {
+    state.failed = true;
+    wsErrors.add(1);
+  } else if (name === 'viewer:count') {
+    const count = asObject(payload).viewerCount;
+    if (typeof count === 'number') viewerSeen.add(count);
+  } else if (name === 'system:metrics') {
+    const m = asObject(payload);
+    if (typeof m.connections === 'number') serverConns.add(m.connections);
+    if (typeof m.eventLoopLag === 'number') serverLagMs.add(m.eventLoopLag);
+  } else if (name === 'score:update' || name === 'match:status') {
+    scoreEvents.add(1);
+  }
+}
+
 export function viewer() {
-  const url = `wss://${HOST}/socket.io/?EIO=4&transport=websocket`;
-  const params = { headers: { Authorization: AUTH, Origin: `https://${HOST}` } };
-  const startedAt = Date.now();
-  let joined = false;
-
-  const res = ws.connect(url, params, (socket) => {
-    socket.on('message', (msg) => {
-      if (msg === '2') return socket.send('3'); // Engine.IO ping -> pong
-      if (msg.startsWith('0{')) return socket.send(`40${NS},`);
-      if (msg.startsWith(`40${NS},`)) return socket.send(`42${NS},["joinMatch","${MATCH_ID}"]`);
-      if (msg.startsWith(`44${NS},`)) {
-        wsErrors.add(1);
-        return;
-      }
-      if (!msg.startsWith(`42${NS},`)) return;
-
-      const evt = parseEvent(msg);
-      if (!evt) return;
-      const [name, payload] = evt;
-      if (name === 'joined' && !joined) {
-        joined = true;
-        joinOk.add(true);
-        joinMs.add(Date.now() - startedAt);
-      } else if (name === 'exception') {
-        joinOk.add(false);
-        wsErrors.add(1);
-      } else if (name === 'viewer:count') {
-        const count = asObject(payload).viewerCount;
-        if (typeof count === 'number') viewerSeen.add(count);
-      } else if (name === 'system:metrics') {
-        const m = asObject(payload);
-        if (typeof m.connections === 'number') serverConns.add(m.connections);
-        if (typeof m.eventLoopLag === 'number') serverLagMs.add(m.eventLoopLag);
-      } else if (name === 'score:update' || name === 'match:status') {
-        scoreEvents.add(1);
-      }
-    });
-    socket.on('error', () => wsErrors.add(1));
-    socket.setTimeout(() => {
-      if (!joined) joinOk.add(false);
-      socket.close();
-    }, SESSION_MS + Math.floor(Math.random() * 5000));
+  const base = `https://${HOST}/socket.io/?EIO=4&transport=polling`;
+  const reqParams = (name) => ({
+    headers: {
+      Authorization: AUTH,
+      Origin: `https://${HOST}`,
+      'Content-Type': 'text/plain;charset=UTF-8',
+    },
+    tags: { name, type: 'poll' },
+    timeout: '40s',
   });
+  const startedAt = Date.now();
+  const state = { joined: false, failed: false };
 
-  check(res, { 'ws upgraded (101)': (r) => r && r.status === 101 });
+  const hs = http.get(base, reqParams('eio_handshake'));
+  const handshakeOk = check(hs, { 'handshake 200': (r) => r.status === 200 && r.body.startsWith('0') });
+  if (!handshakeOk) {
+    joinOk.add(false);
+    wsErrors.add(1);
+    sleep(1);
+    return;
+  }
+
+  const url = `${base}&sid=${JSON.parse(hs.body.slice(1)).sid}`;
+  const send = (packet) => http.post(url, packet, reqParams('eio_send'));
+  send(`40${NS},`);
+
+  let sentJoin = false;
+  const endAt = Date.now() + SESSION_MS + Math.floor(Math.random() * 5000);
+  while (Date.now() < endAt && !state.failed) {
+    const res = http.get(url, reqParams('eio_poll')); // long-poll: blocks until a packet or ping
+    if (res.status !== 200) {
+      wsErrors.add(1);
+      break;
+    }
+    for (const packet of res.body.split(RECORD_SEP)) {
+      if (packet === '2') send('3'); // Engine.IO ping -> pong
+      else if (packet.startsWith(`40${NS},`) && !sentJoin) {
+        sentJoin = true;
+        send(`42${NS},["joinMatch","${MATCH_ID}"]`);
+      } else if (packet.startsWith(`44${NS},`)) wsErrors.add(1);
+      else if (packet.startsWith(`42${NS},`)) handleEvent(packet, state, startedAt);
+    }
+  }
+
+  if (!state.joined) joinOk.add(false);
+  send('1'); // polite Engine.IO close
   sleep(1);
 }
 

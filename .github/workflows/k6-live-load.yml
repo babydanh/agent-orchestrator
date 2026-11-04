@@ -97,6 +97,8 @@ jobs:
           K6_WEB_DASHBOARD: 'true'
           K6_WEB_DASHBOARD_EXPORT: report.html
         run: |
+          # GitHub starts bash with -e; k6 exits non-zero on a crossed threshold and we must still wait for the browser.
+          set +e
           set -uo pipefail
           mkdir -p evidence
           WATCH_SECONDS=$(( HOLD_SECONDS + 80 ))
@@ -128,7 +130,7 @@ jobs:
               echo "|---|---|"
               jq -r '
                 .metrics as $m |
-                "| REST p95 (ms) | \($m.http_req_duration["p(95)"] // "n/a") |",
+                "| REST p95 (ms) | \($m["http_req_duration{scenario:readers}"]["p(95)"] // "n/a") |",
                 "| Join ok rate | \($m.live_join_ok.value // "n/a") |",
                 "| Join p95 (ms) | \($m.live_join_ms["p(95)"] // "n/a") |",
                 "| Max viewer count seen | \($m.live_viewer_count_seen.max // "n/a") |",
