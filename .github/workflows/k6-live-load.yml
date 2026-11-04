@@ -20,6 +20,15 @@ on:
         description: Match UUID to watch (empty = auto-pick a public match)
         type: string
         default: ''
+      script:
+        description: 'live-viewers.js = only live viewers; web-mixed.js = live viewers + people opening public web pages'
+        type: choice
+        options: ['live-viewers.js', 'web-mixed.js']
+        default: 'live-viewers.js'
+      page_peak:
+        description: 'web-mixed.js only: peak concurrent people browsing pages (per shard)'
+        type: string
+        default: '0'
       rest_abort:
         description: 'on = abort the run when REST p95 > 1s (default); off = keep going to find the real breaking point (join failures still abort)'
         type: choice
@@ -52,6 +61,7 @@ jobs:
       start_epoch: ${{ steps.plan.outputs.start_epoch }}
       duration_s: ${{ steps.plan.outputs.duration_s }}
       match_id: ${{ steps.match.outputs.id }}
+      tournament_id: ${{ steps.match.outputs.tid }}
     steps:
       - name: Mask derived credential
         env:
@@ -108,6 +118,29 @@ jobs:
           fi
           echo "Trận dùng để test: $MATCH_ID"
           echo "id=$MATCH_ID" >> "$GITHUB_OUTPUT"
+          TID="$(curl -fsS --max-time 20 -u "$BASIC_AUTH" "https://$TARGET_HOST/api/v1/matches/$MATCH_ID" \
+            | jq -r '[.. | objects | select(has("tournamentId")) | .tournamentId | strings][0] // empty' || true)"
+          echo "tid=$TID" >> "$GITHUB_OUTPUT"
+
+      - name: Check public pages answer 200 (web-mixed.js only)
+        if: ${{ inputs.script == 'web-mixed.js' }}
+        env:
+          BASIC_AUTH: ${{ secrets.STAGING_BASIC_AUTH }}
+          MATCH_ID: ${{ steps.match.outputs.id }}
+          TID: ${{ steps.match.outputs.tid }}
+          PAGE_PEAK: ${{ inputs.page_peak }}
+        run: |
+          set -uo pipefail
+          [[ "$PAGE_PEAK" =~ ^[0-9]+$ ]] || { echo "::error::page_peak phải là số."; exit 1; }
+          paths=(/ /tournaments /matches "/live/$MATCH_ID")
+          [[ -n "$TID" ]] && paths+=("/tournaments/$TID")
+          bad=0
+          for p in "${paths[@]}"; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -u "$BASIC_AUTH" "https://$TARGET_HOST$p")"
+            echo "$p -> $code"
+            [[ "$code" == "200" ]] || bad=1
+          done
+          (( bad == 0 )) || { echo "::error::Có trang không trả 200 trên staging."; exit 1; }
 
   # Kill switch: staging shares the VPS with production, so watch production while the load runs.
   guard:
@@ -169,6 +202,9 @@ jobs:
     env:
       PEAK: ${{ needs.plan.outputs.per_shard }}
       MATCH_ID: ${{ needs.plan.outputs.match_id }}
+      TOURNAMENT_ID: ${{ needs.plan.outputs.tournament_id }}
+      PAGE_PEAK: ${{ inputs.page_peak }}
+      K6_SCRIPT: ${{ inputs.script }}
       START_EPOCH: ${{ needs.plan.outputs.start_epoch }}
       SHARD: ${{ matrix.shard }}
     steps:
@@ -224,7 +260,7 @@ jobs:
           # Runner CPU every 3s (us/sy/id): tells whether the load generator itself is the bottleneck.
           vmstat -n 3 > evidence/runner-vmstat.log 2>&1 &
           VMSTAT_PID=$!
-          k6 run --summary-export evidence/summary.json scripts/loadtest/live-viewers.js 2>&1 | tee evidence/k6.log
+          k6 run --summary-export evidence/summary.json "scripts/loadtest/$K6_SCRIPT" 2>&1 | tee evidence/k6.log
           K6_EXIT=${PIPESTATUS[0]}
           kill "$VMSTAT_PID" 2>/dev/null
           [[ -n "$WATCH_PID" ]] && { wait "$WATCH_PID" || echo "browser recorder exited non-zero (see browser-run.log)"; }
@@ -297,6 +333,14 @@ jobs:
                 "| Failed HTTP requests / total | \(sum(.metrics.http_req_failed.passes)) / \(sum(.metrics.http_req_failed.passes) + sum(.metrics.http_req_failed.fails)) |",
                 "| WS/protocol errors | \(sum(.metrics.live_ws_errors.count)) |"
               ' all/k6-shard-*/summary.json
+              if grep -q 'name:page_home' all/k6-shard-*/summary.json 2>/dev/null; then
+                jq -s -r '
+                  def mx(f): map(f // 0) | max;
+                  def rows($n): "| Page p95 \($n), worst shard (ms) | \(mx(.metrics["http_req_duration{name:page_\($n)}"]["p(95)"])) |";
+                  rows("home"), rows("tournaments"), rows("matches"), rows("tournament_detail"), rows("live"),
+                  "| Failed page requests (rate, worst shard) | \(mx(.metrics["http_req_failed{scenario:pages}"].value)) |"
+                ' all/k6-shard-*/summary.json
+              fi
             fi
             if [[ -f all/k6-prod-probe/prod-probe.csv ]]; then
               echo ""

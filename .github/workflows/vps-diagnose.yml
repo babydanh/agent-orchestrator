@@ -77,7 +77,8 @@ jobs:
             mem="$(free -m | awk '/^Mem:/ {print $3"/"$2}')"
             est="$(ss -Htn state established 2>/dev/null | wc -l)"
             cont="$(docker stats --no-stream --format '{{.Name}}={{.CPUPerc}}/{{.MemUsage}}' 2>/dev/null | awk -F'/' '{print $1"/"$2}' | tr '\n' ' ')"
-            echo "$(date +%T) $load $mem $est | $cont"
+            top="$(ps -eo pcpu,comm --sort=-pcpu | sed -n '2,4p' | awk '{printf "%s:%s ",$2,$1}')"
+            echo "$(date +%T) $load $mem $est | $cont | top: $top"
             sleep 3
           done
           REMOTE
