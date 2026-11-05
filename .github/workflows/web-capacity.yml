@@ -114,6 +114,13 @@ jobs:
           npx --yes wait-on@9.5.1 http-get://localhost:3000 --timeout 90000
           IFS=',' read -ra P <<< "$PATHS"
           for p in "${P[@]}"; do curl -s -o /dev/null -w "warm-up $p -> %{http_code} %{size_download} bytes\n" "http://localhost:3000$p"; done
+          # PROBE (temporary): response headers that decide whether a page cache may store the page.
+          probe() { echo "== $1"; shift; curl -s -o /dev/null -D - "$@" | grep -iE '^(HTTP|cache-control|set-cookie|vary|location|x-nextjs-cache|x-nextjs-prerender|etag|content-type)' | sed -E 's/(set-cookie: [^=]*)=[^;]*/\1=<value>/I'; }
+          for p in / /tournaments /matches /en; do
+            probe "GET $p (no cookie)" "http://localhost:3000$p"
+            probe "GET $p (cookie NEXT_LOCALE=en)" -H 'Cookie: NEXT_LOCALE=en' "http://localhost:3000$p"
+            probe "GET $p (RSC request)" -H 'RSC: 1' "http://localhost:3000$p"
+          done
 
           {
             echo "### Web capacity on 1 core (k6, same method as the \$12 Server Challenge)"
