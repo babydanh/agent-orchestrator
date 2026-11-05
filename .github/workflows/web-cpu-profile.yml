@@ -74,7 +74,8 @@ jobs:
           SECS: ${{ inputs.seconds }}
         run: |
           mkdir -p "$RUNNER_TEMP/prof"
-          PORT=3000 NODE_OPTIONS="--cpu-prof --cpu-prof-dir=$RUNNER_TEMP/prof --cpu-prof-interval=1000" pnpm start > "$RUNNER_TEMP/web.log" 2>&1 &
+          # Start node directly (not through pnpm) so the signal below reaches the process that owns the profile.
+          PORT=3000 node --cpu-prof --cpu-prof-dir="$RUNNER_TEMP/prof" --cpu-prof-interval=1000 node_modules/next/dist/bin/next start > "$RUNNER_TEMP/web.log" 2>&1 &
           SERVER=$!
           npx --yes wait-on@9.5.1 http-get://localhost:3000 --timeout 90000
 
@@ -94,8 +95,10 @@ jobs:
 
           # SIGINT lets Next call process.exit, which is when V8 writes the .cpuprofile.
           kill -INT "$SERVER" || true
-          for _ in $(seq 1 30); do kill -0 "$SERVER" 2>/dev/null || break; sleep 1; done
+          for _ in $(seq 1 60); do kill -0 "$SERVER" 2>/dev/null || break; sleep 1; done
+          if kill -0 "$SERVER" 2>/dev/null; then echo "server ignored SIGINT, sending SIGTERM"; kill -TERM "$SERVER" || true; sleep 5; fi
           ls -la "$RUNNER_TEMP/prof" || true
+          tail -n 5 "$RUNNER_TEMP/web.log" || true
 
       - name: Where the CPU went
         run: node orchestrator/scripts/loadtest/analyze-cpuprofile.mjs "$RUNNER_TEMP/prof" 25
