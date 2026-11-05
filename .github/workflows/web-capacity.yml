@@ -1,0 +1,169 @@
+name: Web Capacity (k6)
+
+# How many "people" can the Web's prerendered public pages serve on ONE CPU core? Same method as the $12 Server Challenge
+# (https://github.com/arjaythedev/twelve-dollar-server-challenge): a person opens a page about every 10 s; a step passes
+# with p95 < 500 ms, p99 < 1 s and < 1% errors. VUS doubles until a step fails, then the gap is halved twice.
+# Runs on a GitHub runner only (Web pinned to core 0, k6 pinned to the other cores). It never touches the VPS or production.
+# The repo is public: the log shows only numbers. Shorter hold than the challenge (90 s instead of 5 min).
+#
+#   gh workflow run web-capacity.yml -R babydanh/agent-orchestrator -f web_ref=staging
+on:
+  workflow_dispatch:
+    inputs:
+      web_ref:
+        description: 'Web branch/commit to measure'
+        type: string
+        default: 'staging'
+      start_vus:
+        description: 'First step (virtual people)'
+        type: string
+        default: '500'
+      max_vus:
+        description: 'Stop doubling above this many people'
+        type: string
+        default: '16000'
+      hold_seconds:
+        description: 'Seconds to hold each step (30-300)'
+        type: string
+        default: '90'
+      paths:
+        description: 'Comma separated prerendered paths (first one is opened by everyone)'
+        type: string
+        default: '/,/tournaments,/matches'
+
+permissions:
+  contents: read
+
+env:
+  K6_VERSION: 0.57.0
+
+jobs:
+  capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Validate input
+        env:
+          WEB_REF: ${{ inputs.web_ref }}
+          START: ${{ inputs.start_vus }}
+          MAX: ${{ inputs.max_vus }}
+          HOLD: ${{ inputs.hold_seconds }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          printf '%s' "$WEB_REF" | grep -qE '^[A-Za-z0-9_./-]+$' || { echo "::error::web_ref has invalid characters"; exit 1; }
+          printf '%s' "$PATHS" | grep -qE '^(/[A-Za-z0-9_./-]*)(,/[A-Za-z0-9_./-]*)*$' || { echo "::error::paths must be comma separated absolute paths"; exit 1; }
+          [[ "$START" =~ ^[0-9]+$ ]] && (( START >= 100 && START <= 20000 )) || { echo "::error::start_vus must be 100-20000"; exit 1; }
+          [[ "$MAX" =~ ^[0-9]+$ ]] && (( MAX >= START && MAX <= 40000 )) || { echo "::error::max_vus must be start_vus-40000"; exit 1; }
+          [[ "$HOLD" =~ ^[0-9]+$ ]] && (( HOLD >= 30 && HOLD <= 300 )) || { echo "::error::hold_seconds must be 30-300"; exit 1; }
+
+      - uses: actions/checkout@v4
+        with:
+          path: orchestrator
+          sparse-checkout: scripts/loadtest
+
+      - name: Checkout Web
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.web_ref }}
+          path: web
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install and build
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          pnpm build
+          echo "web commit: $(git rev-parse --short=7 HEAD)"
+
+      - name: Install k6
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" | tar -xz
+          sudo install "k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+          echo "cores on this runner: $(nproc)"
+
+      - name: Find the limit
+        working-directory: web
+        env:
+          START: ${{ inputs.start_vus }}
+          MAX: ${{ inputs.max_vus }}
+          HOLD: ${{ inputs.hold_seconds }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          # GitHub runs bash with -e; k6 exits non-zero when a threshold fails and that is a normal result here.
+          set +e
+          set -uo pipefail
+          SCRIPT="$GITHUB_WORKSPACE/orchestrator/scripts/loadtest/web-capacity.js"
+          OUT="$RUNNER_TEMP/cap"; mkdir -p "$OUT"
+          SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+          # One core for the server (the challenge box has 1 vCPU), the rest for the load generator.
+          LOAD_CORES="1-$(( $(nproc) - 1 ))"
+          PORT=3000 taskset -c 0 node node_modules/next/dist/bin/next start > "$OUT/web.log" 2>&1 &
+          SERVER=$!
+          npx --yes wait-on@9.5.1 http-get://localhost:3000 --timeout 90000
+          IFS=',' read -ra P <<< "$PATHS"
+          for p in "${P[@]}"; do curl -s -o /dev/null -w "warm-up $p -> %{http_code} %{size_download} bytes\n" "http://localhost:3000$p"; done
+
+          {
+            echo "### Web capacity on 1 core (k6, same method as the \$12 Server Challenge)"
+            echo
+            echo "| People | Result | p95 ms | p99 ms | Failed | Requests/s | Server RSS MB |"
+            echo "|---|---|---|---|---|---|---|"
+          } >> "$SUMMARY"
+
+          # run_step <people>: prints PASS or FAIL, appends a table row.
+          run_step() {
+            local vus=$1 rc result rss
+            if ! kill -0 "$SERVER" 2>/dev/null; then echo "server is dead before step $vus"; echo "| $vus | FAIL (server dead) | - | - | - | - | - |" >> "$SUMMARY"; return 1; fi
+            echo "== step $vus people, hold ${HOLD}s"
+            taskset -c "$LOAD_CORES" k6 run -e VUS="$vus" -e HOLD="${HOLD}s" -e PATHS="$PATHS" --summary-export "$OUT/k6-$vus.json" "$SCRIPT" > "$OUT/k6-$vus.log" 2>&1
+            rc=$?
+            tail -n 30 "$OUT/k6-$vus.log" | grep -E "http_req_duration|http_req_failed|http_reqs|vus_max|iterations|level=error" | cut -c1-200 || true
+            result=PASS; (( rc == 0 )) || result=FAIL
+            rss=$(( $(ps -o rss= -p "$SERVER" 2>/dev/null || echo 0) / 1024 ))
+            jq -r --arg v "$vus" --arg r "$result" --arg m "$rss" \
+              '"| \($v) | \($r) | \(.metrics.http_req_duration["p(95)"] | floor) | \(.metrics.http_req_duration["p(99)"] | floor) | \((.metrics.http_req_failed.value * 10000 | floor) / 100)% | \(.metrics.http_reqs.rate | floor) | \($m) |"' \
+              "$OUT/k6-$vus.json" >> "$SUMMARY" || echo "| $vus | $result (no summary) | - | - | - | - | $rss |" >> "$SUMMARY"
+            echo "step $vus -> $result (k6 exit $rc, server RSS ${rss} MB)"
+            sleep 15 # let the server settle before the next step
+            [[ $result == PASS ]]
+          }
+
+          lo=0; hi=0; vus=$START
+          while (( vus <= MAX )); do
+            if run_step "$vus"; then lo=$vus; vus=$(( vus * 2 )); else hi=$vus; break; fi
+          done
+
+          if (( lo > 0 && hi > 0 )); then
+            for _ in 1 2; do
+              mid=$(( (lo + hi) / 2 / 250 * 250 ))
+              (( mid > lo && mid < hi )) || break
+              if run_step "$mid"; then lo=$mid; else hi=$mid; fi
+            done
+          fi
+
+          {
+            echo
+            if (( lo == 0 )); then echo "**No step passed**: even $START people failed the thresholds."
+            elif (( hi == 0 )); then echo "**Highest passing step: $lo people** (no failing step up to $MAX; raise max_vus to keep going)."
+            else echo "**Highest passing step: $lo people**; first failing step: $hi people."
+            fi
+            echo
+            echo "Pages: $PATHS. HTML only (no JS/CSS/images). Hold ${HOLD}s per step (the challenge holds 5 min)."
+            echo "Web pinned to 1 core on a shared GitHub runner; no Backend or database, so dynamic pages are not covered."
+          } >> "$SUMMARY"
+          tail -n 12 "$SUMMARY" || true
+
+          kill -TERM "$SERVER" 2>/dev/null || true
+          tail -n 5 "$OUT/web.log" || true
