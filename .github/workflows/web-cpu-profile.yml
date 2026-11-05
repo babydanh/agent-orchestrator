@@ -1,0 +1,101 @@
+name: Web CPU Profile
+
+# Builds the Web repo on a runner, serves it with `node --cpu-prof`, hits public pages with autocannon and prints
+# where the Node process spends its CPU. Runs on GitHub, not on the shared VPS, so production is not touched.
+# The repo is public: the log shows only function/package names and numbers; no .cpuprofile is uploaded.
+#
+#   gh workflow run web-cpu-profile.yml -R babydanh/agent-orchestrator -f web_ref=staging
+on:
+  workflow_dispatch:
+    inputs:
+      web_ref:
+        description: 'Web branch/commit to profile'
+        type: string
+        default: 'staging'
+      connections:
+        description: 'Concurrent connections per page'
+        type: string
+        default: '16'
+      seconds:
+        description: 'Seconds of load per page (10-60)'
+        type: string
+        default: '30'
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Validate input
+        env:
+          WEB_REF: ${{ inputs.web_ref }}
+          CONNS: ${{ inputs.connections }}
+          SECS: ${{ inputs.seconds }}
+        run: |
+          printf '%s' "$WEB_REF" | grep -qE '^[A-Za-z0-9_./-]+$' || { echo "::error::web_ref has invalid characters"; exit 1; }
+          [[ "$CONNS" =~ ^[0-9]+$ ]] && (( CONNS >= 1 && CONNS <= 64 )) || { echo "::error::connections must be 1-64"; exit 1; }
+          [[ "$SECS" =~ ^[0-9]+$ ]] && (( SECS >= 10 && SECS <= 60 )) || { echo "::error::seconds must be 10-60"; exit 1; }
+
+      - uses: actions/checkout@v4
+        with:
+          path: orchestrator
+          sparse-checkout: scripts/loadtest
+
+      - name: Checkout Web
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongFrontEndWeb_QLgiaidau
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.web_ref }}
+          path: web
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install and build
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline
+          pnpm build
+          echo "web commit: $(git rev-parse --short=7 HEAD)"
+
+      - name: Serve with --cpu-prof and load public pages
+        working-directory: web
+        env:
+          CONNS: ${{ inputs.connections }}
+          SECS: ${{ inputs.seconds }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/prof"
+          PORT=3000 NODE_OPTIONS="--cpu-prof --cpu-prof-dir=$RUNNER_TEMP/prof --cpu-prof-interval=1000" pnpm start > "$RUNNER_TEMP/web.log" 2>&1 &
+          SERVER=$!
+          npx --yes wait-on@9.5.1 http-get://localhost:3000 --timeout 90000
+
+          # Warm up once so lazy compilation and module loading do not pollute the profile.
+          for p in / /tournaments /matches; do curl -s -o /dev/null "http://localhost:3000$p"; done
+
+          for p in / /tournaments /matches; do
+            echo "== autocannon $p  c=$CONNS d=${SECS}s"
+            npx --yes autocannon@7.15.0 -c "$CONNS" -d "$SECS" --json "http://localhost:3000$p" > "$RUNNER_TEMP/ac.json" 2> /dev/null || true
+            node -e '
+              const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+              const b = r.latency;
+              console.log(`req/s avg=${r.requests.average} total=${r.requests.total} non2xx=${r.non2xx} errors=${r.errors} timeouts=${r.timeouts}`);
+              console.log(`latency ms p50=${b.p50} p97.5=${b.p97_5} p99=${b.p99} max=${b.max}; bytes/s=${r.throughput.average}`);
+            ' "$RUNNER_TEMP/ac.json" || echo "autocannon output unreadable"
+          done
+
+          # SIGINT lets Next call process.exit, which is when V8 writes the .cpuprofile.
+          kill -INT "$SERVER" || true
+          for _ in $(seq 1 30); do kill -0 "$SERVER" 2>/dev/null || break; sleep 1; done
+          ls -la "$RUNNER_TEMP/prof" || true
+
+      - name: Where the CPU went
+        run: node orchestrator/scripts/loadtest/analyze-cpuprofile.mjs "$RUNNER_TEMP/prof" 25
