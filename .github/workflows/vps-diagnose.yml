@@ -63,6 +63,16 @@ jobs:
           echo "ulimit -n: $(ulimit -n)"
           echo "somaxconn: $(cat /proc/sys/net/core/somaxconn)"
           echo "established tcp: $(ss -Htn state established 2>/dev/null | wc -l)"
+          echo "== web server in front (counts and names only, no config values) =="
+          ps -eo comm | grep -iE 'litespeed|lshttpd|lsws|nginx|apache|httpd|caddy' | sort | uniq -c || echo "no known web server process"
+          for root in /usr/local/lsws /usr/local/lsws/conf; do
+            [ -d "$root" ] && echo "dir exists: $root"
+          done
+          if [ -f /usr/local/lsws/conf/httpd_config.xml ]; then
+            echo "cache module mentions in httpd_config.xml: $(grep -ciE 'cache' /usr/local/lsws/conf/httpd_config.xml)"
+            echo "vhost config files mentioning enableCache: $(grep -rlsiE 'enableCache' /usr/local/lsws/conf 2>/dev/null | wc -l)"
+          fi
+          [ -d /usr/local/lsws/cachedata ] && echo "cachedata dir size: $(du -sh /usr/local/lsws/cachedata 2>/dev/null | cut -f1)"
           REMOTE
 
       - name: Sample while load runs
