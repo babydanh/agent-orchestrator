@@ -313,6 +313,10 @@ jobs:
           fi
 
           # Khởi động Backend API
+          # Chẩn đoán: độ dài khoá trước/sau khi bỏ khoảng trắng (không in giá trị). Khoá dính xuống dòng làm SDK lỗi không có mã HTTP.
+          echo "OPENROUTER_API_KEY: dài ${#OPENROUTER_API_KEY} ký tự, sau khi bỏ khoảng trắng $(printf %s "$OPENROUTER_API_KEY" | tr -d '[:space:]' | wc -c)"
+          OPENROUTER_API_KEY="$(printf %s "$OPENROUTER_API_KEY" | tr -d '[:space:]')"
+          export OPENROUTER_API_KEY
           PORT=3000 pnpm start:prod 2>&1 | tee "$RUNNER_TEMP/backend.log" &
 
           echo "::group::Log cài gói Web"
