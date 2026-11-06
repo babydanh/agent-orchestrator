@@ -233,7 +233,7 @@ jobs:
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-32chars
           # AI tao giai (/ai/parse-tournament-source): key lay tu Secret, ten model free khong phai bi mat.
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          AI_MODEL: deepseek/deepseek-v4.1-flash
+          AI_MODEL: nvidia/nemotron-3.5-super-vl:free
           CI: true
         run: |
           (
