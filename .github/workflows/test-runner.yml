@@ -313,7 +313,7 @@ jobs:
           fi
 
           # Khởi động Backend API
-          PORT=3000 pnpm start:prod &
+          PORT=3000 pnpm start:prod 2>&1 | tee "$RUNNER_TEMP/backend.log" &
 
           echo "::group::Log cài gói Web"
           WEB_OK=0
@@ -436,6 +436,10 @@ jobs:
           pnpm test:e2e $SPECS $([ "$FAIL_FAST" = "true" ] && echo "--max-failures=3 --retries=0")
 
       # Biểu đồ xu hướng: history/ của lượt trước cùng project trong repo kho (chưa có release thì bỏ qua).
+      - name: 7a. In dòng log AI của Backend (chẩn đoán lỗi nhà cung cấp AI)
+        if: always()
+        run: grep -aE "AI tournament parse|AiService" "$RUNNER_TEMP/backend.log" | tail -20 || true
+
       - name: 7b. Lấy history Allure từ repo kho
         if: always() && strategy.job-total == 1 && github.event.inputs.no_report != 'true'
         continue-on-error: true
