@@ -313,9 +313,9 @@ jobs:
           fi
 
           # Khởi động Backend API
-          # Chẩn đoán: độ dài khoá trước/sau khi bỏ khoảng trắng (không in giá trị). Khoá dính xuống dòng làm SDK lỗi không có mã HTTP.
-          echo "OPENROUTER_API_KEY: dài ${#OPENROUTER_API_KEY} ký tự, sau khi bỏ khoảng trắng $(printf %s "$OPENROUTER_API_KEY" | tr -d '[:space:]' | wc -c)"
-          OPENROUTER_API_KEY="$(printf %s "$OPENROUTER_API_KEY" | tr -d '[:space:]')"
+          # Chẩn đoán: độ dài khoá trước/sau khi chỉ giữ ký tự ASCII in được (không in giá trị). Ký tự lạ (BOM, xuống dòng) làm SDK lỗi không có mã HTTP.
+          echo "OPENROUTER_API_KEY: dài ${#OPENROUTER_API_KEY} ký tự, sau khi chỉ giữ ASCII $(printf %s "$OPENROUTER_API_KEY" | LC_ALL=C tr -cd '!-~' | wc -c)"
+          OPENROUTER_API_KEY="$(printf %s "$OPENROUTER_API_KEY" | LC_ALL=C tr -cd '!-~')"
           export OPENROUTER_API_KEY
           PORT=3000 pnpm start:prod 2>&1 | tee "$RUNNER_TEMP/backend.log" &
 
