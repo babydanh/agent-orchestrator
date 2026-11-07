@@ -1025,9 +1025,9 @@ jobs:
             SPECS_ARR=(integration_test)
           fi
           echo "Thiết bị đang chạy:"; adb devices
-          # AVD mặc định chỉ 320x640 nên video mờ; đặt 720x1440 (360x720 dp) cho nét. Lỗi đổi cỡ không được làm đỏ job.
+          # AVD mặc định chỉ 320x640 nên video mờ; đặt 720x1440 @280dpi (~411x823 dp) cho nét. Lỗi đổi cỡ không được làm đỏ job.
           adb shell wm size 720x1440 || true
-          adb shell wm density 320 || true
+          adb shell wm density 280 || true
           # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
           # Quay màn hình emulator thành các đoạn 170 s (screenrecord tối đa 180 s/lần; hết giờ thì file tự đóng đúng chuẩn).
           # Lỗi quay không được làm đỏ job: mọi lệnh quay đều có || true.
