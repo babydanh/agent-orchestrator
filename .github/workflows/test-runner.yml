@@ -1026,11 +1026,39 @@ jobs:
           fi
           echo "Thiết bị đang chạy:"; adb devices
           # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
+          # Quay màn hình emulator thành các đoạn 170 s (screenrecord tối đa 180 s/lần; hết giờ thì file tự đóng đúng chuẩn).
+          # Lỗi quay không được làm đỏ job: mọi lệnh quay đều có || true.
+          adb shell 'rm -f /sdcard/e2e-seg-*.mp4' || true
+          (
+            SEG=0
+            while true; do
+              SEG=$((SEG + 1))
+              adb shell screenrecord --time-limit 170 --bit-rate 1500000 "/sdcard/e2e-seg-$(printf '%03d' "$SEG").mp4" || sleep 2
+            done
+          ) &
+          REC_PID=$!
           T_TEST0=$(date +%s)
           echo "MỐC $(date -u +%H:%M:%S) UTC: bắt đầu flutter test (mỗi file test: Gradle assembleDebug, cài APK, chạy)"
           timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
           T_TEST1=$(date +%s)
+          # Dừng quay: tắt vòng lặp trước, rồi SIGINT cho screenrecord để đoạn cuối được đóng file; kéo về và nối thành một video.
+          kill "$REC_PID" 2>/dev/null || true
+          adb shell 'pkill -2 screenrecord' || true
+          sleep 3
+          mkdir -p app-e2e-report/video
+          mkdir -p app-e2e-report/video-raw
+          for SEG_FILE in $(adb shell 'ls /sdcard/e2e-seg-*.mp4' 2>/dev/null | tr -d '\r'); do
+            adb pull "$SEG_FILE" app-e2e-report/video-raw/ >/dev/null 2>&1 || true
+          done
+          ls app-e2e-report/video-raw/e2e-seg-*.mp4 2>/dev/null | sort | sed "s#^#file '$PWD/#; s#\$#'#" > app-e2e-report/video/list.txt || true
+          if [ -s app-e2e-report/video/list.txt ]; then
+            ffmpeg -loglevel error -f concat -safe 0 -i app-e2e-report/video/list.txt -c copy app-e2e-report/video/app-e2e.mp4 || echo "Không nối được video; giữ các đoạn rời trong video-raw"
+          else
+            echo "Không có đoạn video nào (screenrecord không chạy được trên emulator này)"
+          fi
+          rm -f app-e2e-report/video/list.txt
+          [ -s app-e2e-report/video/app-e2e.mp4 ] && rm -rf app-e2e-report/video-raw || true
           GRADLE_S=$(grep -oE "assembleDebug'[^0-9]*[0-9]+\.[0-9]+s" app-e2e-report/flutter-test.log | grep -oE "[0-9]+\.[0-9]+" | awk '{s+=$1} END {printf "%.0f", s}')
           echo "MỐC $(date -u +%H:%M:%S) UTC: flutter test xong sau $((T_TEST1 - T_TEST0)) s; Gradle assembleDebug cộng dồn ${GRADLE_S:-0} s (phần còn lại: cài APK và chạy test)"
           # Dòng "Tests: ..." để cloud-test-runner.py phân loại kết quả (flutter test không in dòng này).
