@@ -1036,7 +1036,7 @@ jobs:
             SEG=0
             while true; do
               SEG=$((SEG + 1))
-              adb shell screenrecord --time-limit 170 --bit-rate 1500000 "/sdcard/e2e-seg-$(printf '%03d' "$SEG").mp4" || sleep 2
+              adb shell screenrecord --size 720x1440 --time-limit 170 --bit-rate 2500000 "/sdcard/e2e-seg-$(printf '%03d' "$SEG").mp4" || sleep 2
             done
           ) &
           REC_PID=$!
