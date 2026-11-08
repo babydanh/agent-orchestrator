@@ -1,0 +1,231 @@
+name: Deploy salesbot
+
+# Deploy salesbot-admin (repo private) lên một VPS bằng bộ Docker trong deploy/docker của repo đó: build 3 image
+# (api, web, bot) vào GHCR private, chép compose + init.sh lên VPS, bật lại stack, kiểm sức khoẻ, lỗi thì quay về bản
+# trước. Chỉ chạy khi người dùng bảo (không có trigger tự động):
+#   gh workflow run deploy-salesbot.yml -R babydanh/agent-orchestrator -f sha=<40 ký tự> [-f origin=https://...]
+# Lần đầu trên VPS mới: thêm origin (địa chỉ dashboard) và embed_url (máy bge-m3, vd danh7 qua Tailscale); khoá
+# 9router/embed nhập tay trên VPS bằng `sh set-key.sh`, không đi qua workflow. Hướng dẫn: deploy/docker/README.md.
+#
+# Repo public nên log ai cũng đọc:
+# - Địa chỉ, cổng, user, thư mục VPS, khoá SSH, known_hosts là secret của environment `salesbot` (GitHub che trong log).
+# - Output thô của build (code repo private) qua scripts/deploy/quiet.sh; phần chạy trên VPS ghi log vào
+#   <APP_DIR>/deploy-logs. Không upload artifact; cache build nằm trong package GHCR private (tag buildcache).
+# - Image phải private: sau khi push, bước cuối của build thử tải ẩn danh và dừng nếu tải được.
+run-name: "deploy salesbot @${{ inputs.sha }}${{ inputs.dry_run && ' (dry-run)' || '' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA đủ 40 ký tự của salesbot-admin (phải nằm trên main)'
+        required: true
+        type: string
+      origin:
+        description: 'Địa chỉ dashboard, vd https://dash.example.com (bắt buộc lần đầu; để trống = giữ nguyên)'
+        type: string
+        default: ''
+      embed_url:
+        description: 'Máy bge-m3 ở xa, vd http://100.x.y.z:8081/v1 (để trống = giữ nguyên)'
+        type: string
+        default: ''
+      profiles:
+        description: 'Dịch vụ thêm: keep = giữ như cũ; embed = bge-m3 ngay trên VPS; messenger = Matrix + Messenger'
+        type: choice
+        options: [keep, none, embed, messenger, 'embed,messenger']
+        default: keep
+      dry_run:
+        description: 'Chỉ kiểm + build image, không push, không deploy'
+        type: boolean
+        default: false
+
+# Một hàng đợi, không huỷ lượt đang chạy (huỷ giữa lúc thay container có thể để bot tắt).
+concurrency:
+  group: deploy-salesbot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REPO: salesbot-admin
+
+jobs:
+  verify:
+    name: Kiểm commit + tham số
+    runs-on: ubuntu-latest
+    steps:
+      - name: SHA nằm trên main, origin/embed_url đúng dạng
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ inputs.sha }}
+          ORIGIN: ${{ inputs.origin }}
+          EMBED_URL: ${{ inputs.embed_url }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha phải là 40 ký tự hex thường."
+            exit 1
+          fi
+          # Cùng luật với init.sh; kiểm sớm để không build 3 image rồi mới hỏng ở VPS.
+          if [[ -n "$ORIGIN" && ! "$ORIGIN" =~ ^https?://[A-Za-z0-9._:-]+$ ]]; then
+            echo "::error::origin chỉ gồm http(s)://tên-miền[:cổng], không có / ở cuối."
+            exit 1
+          fi
+          if [[ -n "$EMBED_URL" && ! "$EMBED_URL" =~ ^https?://[A-Za-z0-9._:/-]+$ ]]; then
+            echo "::error::embed_url phải là http(s)://máy:cổng/v1."
+            exit 1
+          fi
+          status="$(gh api "repos/$OWNER/$REPO/compare/$SHA...main" --jq .status)"
+          case "$status" in
+            identical | ahead) echo "OK    $SHA nằm trên main ($status)" ;;
+            *)
+              echo "::error::$SHA không nằm trên main của $REPO (compare: $status)."
+              exit 1
+              ;;
+          esac
+
+  build:
+    name: Build 3 image${{ !inputs.dry_run && ' + push GHCR' || '' }}
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ env.REPO }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Đăng nhập GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin >/dev/null && echo "OK    docker login ghcr.io"
+      # Một job, build lần lượt: ba target chung stage build/openclaw, builder giữ lại nên chỉ dựng một lần.
+      - name: Build api, web, bot
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ inputs.sha }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          for target in api web bot; do
+            image="ghcr.io/$OWNER/salesbot-$target"
+            cache=(--cache-from "type=registry,ref=$image:buildcache")
+            if [[ "$DRY_RUN" == true ]]; then
+              out=(--output type=cacheonly)
+            else
+              out=(--push)
+              cache+=(--cache-to "type=registry,ref=$image:buildcache,mode=max")
+            fi
+            bash scripts/deploy/quiet.sh "docker build $target" \
+              docker buildx build src -f src/deploy/docker/Dockerfile --target "$target" --progress=plain \
+              -t "$image:$SHA" -t "$image:latest" "${cache[@]}" "${out[@]}"
+          done
+      - name: Image không tải ẩn danh được (package private)
+        if: ${{ !inputs.dry_run }}
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          for target in api web bot; do
+            name="$OWNER/salesbot-$target"
+            token="$(curl -s "https://ghcr.io/token?scope=repository:$name:pull" | jq -r '.token // empty')"
+            code="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json' \
+              "https://ghcr.io/v2/$name/manifests/$SHA")"
+            if [[ "$code" == 200 ]]; then
+              echo "::error::ghcr.io/$name đang PUBLIC (code repo private lộ ra). Đổi sang Private trong Package settings rồi chạy lại."
+              exit 1
+            fi
+            echo "OK    ghcr.io/$name private (ẩn danh nhận $code)"
+          done
+
+  deploy:
+    name: Deploy lên VPS
+    needs: build
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: salesbot
+    permissions:
+      contents: read
+      packages: read
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+      SHA: ${{ inputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ env.REPO }}
+          ref: ${{ inputs.sha }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          sparse-checkout: |
+            deploy/docker
+            deploy/vps/matrix
+            apps/api/docker/db-init
+          persist-credentials: false
+      - name: Chuẩn bị SSH
+        run: |
+          if [[ -z "$APP_DIR" ]]; then
+            echo "::error::Thiếu secret APP_DIR của environment salesbot."
+            exit 1
+          fi
+          bash scripts/deploy/ssh-setup.sh
+      # Chỉ file chạy stack, không có Dockerfile hay mã nguồn: compose, init.sh, set-key.sh, README, db-init, mẫu matrix.
+      - name: Chép gói deploy lên VPS
+        run: |
+          set -euo pipefail
+          pkg="$RUNNER_TEMP/pkg"
+          mkdir -p "$pkg/matrix-templates"
+          cp src/deploy/docker/compose.yaml src/deploy/docker/init.sh src/deploy/docker/set-key.sh \
+            src/deploy/docker/README.md "$pkg/"
+          cp -r src/apps/api/docker/db-init "$pkg/db-init"
+          cp src/deploy/vps/matrix/* "$pkg/matrix-templates/"
+          # Liệt kê từng mục, không dùng ".": mục "." đổi quyền của chính APP_DIR khi giải nén.
+          tar -czf "$RUNNER_TEMP/pkg.tgz" -C "$pkg" compose.yaml init.sh set-key.sh README.md db-init matrix-templates
+          "$RUNNER_TEMP/ssh-vps" "umask 077 && mkdir -p '$APP_DIR'"
+          "$RUNNER_TEMP/scp-vps" "$RUNNER_TEMP/pkg.tgz" "$APP_DIR/.deploy-pkg.tgz"
+          echo "OK    đã chép gói deploy"
+      - name: Đăng nhập GHCR trên VPS
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$TOKEN" | "$RUNNER_TEMP/ssh-vps" "docker login ghcr.io -u '$ACTOR' --password-stdin >/dev/null"
+          echo "OK    docker login ghcr.io trên VPS"
+      - name: init, pull, bật stack, kiểm sức khoẻ (lỗi thì quay về bản trước)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          ORIGIN: ${{ inputs.origin }}
+          EMBED_URL: ${{ inputs.embed_url }}
+          PROFILES: ${{ inputs.profiles }}
+        run: bash scripts/deploy/remote.sh salesbot.sh "$APP_DIR" "$SHA" "$OWNER" "$ORIGIN" "$EMBED_URL" "$PROFILES"
+      # Token GITHUB_TOKEN hết hạn khi job xong, nhưng không để nó nằm lại trong ~/.docker/config.json trên VPS.
+      # Container khởi động lại sau đó dùng image đã có trên máy, không cần đăng nhập.
+      - name: Đăng xuất GHCR trên VPS
+        if: always()
+        run: |
+          if [[ -x "$RUNNER_TEMP/ssh-vps" ]]; then
+            "$RUNNER_TEMP/ssh-vps" "docker logout ghcr.io >/dev/null 2>&1 || true" && echo "OK    docker logout ghcr.io trên VPS"
+          fi
