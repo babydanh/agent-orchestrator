@@ -890,7 +890,7 @@ jobs:
             esac
           done
 
-      # Backend giống test-fullstack. Luôn nạp seed:data: app-e2e cần quyền ADMIN để duyệt giải qua API: bước 7 cấp vai trò ADMIN cho tài khoản E2E admin1 (không dùng tài khoản admin của seed).
+      # Backend giống test-fullstack. Luôn nạp seed:data: app-e2e cần quyền ADMIN để duyệt giải qua API: bước 7 tạo tài khoản E2E riêng e2eadmin (chỉ vai ADMIN, tách khỏi chủ giải để giải tạo ra vẫn ở trạng thái chờ duyệt).
       - name: 6. Backend migrate, seed, khởi động NestJS
         env:
           NODE_ENV: test
@@ -919,7 +919,7 @@ jobs:
       - name: 7. Chờ Backend và tạo tài khoản E2E
         run: |
           npx --yes wait-on@9.5.1 tcp:localhost:3000 --timeout 120000
-          for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player"; do
+          for account in "admin1@gmail.com:E2E Organizer" "user8@gmail.com:E2E Player" "e2eadmin@gmail.com:E2E Admin"; do
             email="${account%%:*}"; name="${account#*:}"
             code=$(curl -s -o /tmp/register.json -w '%{http_code}' -X POST http://localhost:3000/api/v1/auth/register \
               -H 'Content-Type: application/json' \
@@ -930,14 +930,14 @@ jobs:
             echo "Tài khoản E2E $email: HTTP $code"
           done
           PGPASSWORD=your_password psql -h localhost -U postgres -d tournament_db -v ON_ERROR_STOP=1 <<'SQL'
-          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com');
+          UPDATE users SET is_email_verified = true WHERE email IN ('admin1@gmail.com', 'user8@gmail.com', 'e2eadmin@gmail.com');
           INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
           INSERT INTO user_to_roles (user_id, role_id)
             SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
             ON CONFLICT DO NOTHING;
           INSERT INTO roles (name, slug, description) VALUES ('ADMIN', 'admin', 'Administrator') ON CONFLICT DO NOTHING;
           INSERT INTO user_to_roles (user_id, role_id)
-            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.email = 'admin1@gmail.com'
+            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.email = 'e2eadmin@gmail.com'
             ON CONFLICT DO NOTHING;
           SQL
 
