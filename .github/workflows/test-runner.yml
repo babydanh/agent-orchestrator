@@ -59,7 +59,7 @@ on:
         required: false
         default: 'false'
       seed:
-        description: 'Dữ liệu mẫu cho fullstack-e2e. "data" = chạy thêm `pnpm seed:data` của Backend (seed-data-prod.ts: 13 giải 4 thể thức ở trạng thái mở đăng ký/đang đấu/đã kết thúc, 24 VĐV mật khẩu Player@123, BTC macter.970 & hxlinh1683 / Test@123, admin vndcsport@gmail.com / Admin@123). Để trống = chỉ seed:prod như cũ'
+        description: 'Dữ liệu mẫu cho fullstack-e2e. "data" = chạy thêm `pnpm seed:data` của Backend (seed-data-prod.ts: 13 giải 4 thể thức ở trạng thái mở đăng ký/đang đấu/đã kết thúc, 24 VĐV mật khẩu Player@123, BTC macter.970 & hxlinh1683 / Test@123, 1 tài khoản admin; mật khẩu seed xem seed-data-prod.ts của Backend). Để trống = chỉ seed:prod như cũ'
         required: false
         default: ''
       no_report:
@@ -387,7 +387,7 @@ jobs:
           # Hỏng là dừng job: chạy spec trên dữ liệu không đăng nhập được thì kết quả không có nghĩa.
           if [ "$E2E_SEED" = "data" ]; then
             API=http://localhost:3000/api/v1
-            for cred in "vndcsport@gmail.com:Admin@123" "macter.970@gmail.com:Test@123" "danh.nguyen@gmail.com:Player@123"; do
+            for cred in "macter.970@gmail.com:Test@123" "danh.nguyen@gmail.com:Player@123"; do
               email="${cred%%:*}"; pass="${cred#*:}"
               code=$(curl -s -o /tmp/login.json -w '%{http_code}' -X POST "$API/auth/mobile/login" \
                 -H 'Content-Type: application/json' -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
@@ -890,7 +890,7 @@ jobs:
             esac
           done
 
-      # Backend giống test-fullstack. Luôn nạp seed:data: tài khoản ADMIN (vndcsport) chỉ có trong seed:data và app-e2e cần nó để duyệt giải qua API.
+      # Backend giống test-fullstack. Luôn nạp seed:data: app-e2e cần quyền ADMIN để duyệt giải qua API: bước 7 cấp vai trò ADMIN cho tài khoản E2E admin1 (không dùng tài khoản admin của seed).
       - name: 6. Backend migrate, seed, khởi động NestJS
         env:
           NODE_ENV: test
@@ -934,6 +934,10 @@ jobs:
           INSERT INTO roles (name, slug, description) VALUES ('ORGANIZER', 'organizer', 'Ban tổ chức') ON CONFLICT DO NOTHING;
           INSERT INTO user_to_roles (user_id, role_id)
             SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ORGANIZER' WHERE u.email = 'admin1@gmail.com'
+            ON CONFLICT DO NOTHING;
+          INSERT INTO roles (name, slug, description) VALUES ('ADMIN', 'admin', 'Administrator') ON CONFLICT DO NOTHING;
+          INSERT INTO user_to_roles (user_id, role_id)
+            SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.email = 'admin1@gmail.com'
             ON CONFLICT DO NOTHING;
           SQL
 
