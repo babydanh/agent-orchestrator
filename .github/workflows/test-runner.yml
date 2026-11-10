@@ -30,6 +30,7 @@ on:
           - 'aicheckvar'
           - 'auto25d'
           - 'auto3dvideo'
+          - 'itservice-flutter'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -797,6 +798,50 @@ jobs:
           # Errors fail the job; the ~200 existing info/warning lints are reported, not fatal.
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
+
+  # =========================================================================
+  # JOB ITSERVICE-FLUTTER: prototype Flutter của HethongQuanLiITService (VNCare)
+  # Chỉ chạy khi chọn đúng target này (không nằm trong 'all'). Repo nằm ở design/flutter-splash, không phải gốc repo.
+  # custom_branch phải là nhánh ĐÃ PUSH lên GitHub; để trống thì kiểm main (chỉ có khung rỗng).
+  # specs (tuỳ chọn): file test cách nhau bằng dấu cách, tính từ design/flutter-splash; trống = cả bộ.
+  # =========================================================================
+  test-itservice-flutter:
+    name: 📱 Test VNCare Flutter (gen-l10n, analyze, test)
+    if: github.event.inputs.target_project == 'itservice-flutter'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: design/flutter-splash
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: 2. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          # pubspec needs Dart ^3.13.3 (Flutter 3.47.x), same line as the dev machine.
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 3. Generate l10n, analyze, test
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          # Errors fail the job; infos/warnings are reported, not fatal (flutter analyze was never run on this repo before).
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          flutter test --no-pub $SPECS
 
   # =========================================================================
   # JOB E2E APP: integration_test CHẠY TRÊN EMULATOR ANDROID + BACKEND THẬT
