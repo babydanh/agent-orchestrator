@@ -31,6 +31,7 @@ on:
           - 'auto25d'
           - 'auto3dvideo'
           - 'itservice-flutter'
+          - 'itservice-web-e2e'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -842,6 +843,121 @@ jobs:
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
           flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-WEB-E2E: web quản trị VNCare (apps/web) + api thật (apps/api, chạy bằng e2e-main) + Postgres 17
+  # Chỉ chạy khi chọn đúng target này (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH của
+  # HethongQuanLiITService. specs (tuỳ chọn): file spec tính từ apps/web, vd e2e/users.spec.ts; trống = cả bộ.
+  # Dữ liệu chỉ là dữ liệu giả; artifact giữ 1 ngày (repo công khai). Google thật KHÔNG được E2E (e2e-main thay bộ xác minh).
+  # =========================================================================
+  test-itservice-web-e2e:
+    name: 🖥️🧪 E2E VNCare Web (Postgres 17 + api e2e-main + next start + Playwright)
+    if: github.event.inputs.target_project == 'itservice-web-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_WEB_PORT: '3100'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier) and wait for /health
+        working-directory: apps/api
+        run: |
+          # Throwaway secret for this run only; never stored.
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Web - install, build, start and wait for /login
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: e2e.apps.googleusercontent.com
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          API_URL="http://127.0.0.1:$E2E_API_PORT" PORT="$E2E_WEB_PORT" nohup pnpm start > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://localhost:$E2E_WEB_PORT/login" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "web did not become ready"; tail -n 50 "$RUNNER_TEMP/web.log"; exit 1
+
+      - name: 6. Playwright (chromium only, one worker)
+        working-directory: apps/web
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+          E2E_BASE_URL: http://localhost:3100
+          E2E_API_URL: http://127.0.0.1:3000
+          CI: 'true'
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          pnpm exec playwright test $SPECS
+
+      - name: 7. Upload screenshots (375/768/1440), traces and logs (1 day, fake data only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-web-e2e
+          retention-days: 1
+          if-no-files-found: ignore
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+            ${{ runner.temp }}/api.log
+            ${{ runner.temp }}/web.log
 
   # =========================================================================
   # JOB E2E APP: integration_test CHẠY TRÊN EMULATOR ANDROID + BACKEND THẬT
