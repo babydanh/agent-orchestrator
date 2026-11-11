@@ -1287,8 +1287,12 @@ jobs:
           npm run build:extension
           cd webview-ui && npx vite build
 
+      # apt mirrors fail DNS on ubuntu-26.04 runners (runs 43036437982, 43038366349); the image already ships the
+      # libraries Chromium needs, so the browser download is required and the apt step is best effort.
       - name: 5. Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          npx playwright install chromium
+          npx playwright install-deps chromium || echo "::warning::playwright install-deps failed (apt); using the runner image libraries"
 
       # This repo is PUBLIC and the code is private: results stay in the log only, no report/video/trace artifact.
       - name: 6. E2E
