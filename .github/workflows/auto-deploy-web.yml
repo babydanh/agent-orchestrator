@@ -3,6 +3,9 @@ name: Auto deploy Web main
 # Repo Web/Backend (private) khong chay duoc Actions khi het phut, nen push main khong con tu deploy production.
 # Workflow nay chay o repo public nay (runner mien phi): cu 60 giay so SHA moi nhat cua main Web va Backend voi cac lan
 # deploy.yml da chay; SHA chua deploy thi goi deploy.yml (project=web|backend, env=production) cho dung SHA do.
+# Cung vong quet: main salesbot-admin (bot Zalo) -> deploy-salesbot.yml, chi khi bien repo SALESBOT_AUTO_DEPLOY=on
+# (gh variable set SALESBOT_AUTO_DEPLOY -R babydanh/agent-orchestrator -b on|off). Truoc khi bat: environment `salesbot`
+# du secret VPS_*/APP_DIR va lan deploy dau chay tay voi input origin.
 # Lich cron cua GitHub khong dam bao (tre/bo luot), nen moi lan chay tu lap ~5h30 roi tu goi lai chinh no; cron chi la du phong.
 # Chay thu khong deploy (quet mot lan, khong lap): gh workflow run auto-deploy-web.yml -R babydanh/agent-orchestrator -f dry_run=true
 run-name: "auto-deploy main${{ inputs.dry_run && ' (dry-run)' || '' }}"
@@ -39,6 +42,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.repository }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SALESBOT_AUTO_DEPLOY: ${{ vars.SALESBOT_AUTO_DEPLOY }}
         run: |
           set -uo pipefail
           scan() {
@@ -70,15 +74,46 @@ jobs:
             done
           }
 
+          # salesbot-admin (bot Zalo): goi deploy-salesbot.yml, chi khi bien repo SALESBOT_AUTO_DEPLOY=on (dry-run luon in).
+          scan_salesbot() {
+            local src="$OWNER/salesbot-admin" runs sha committed age
+            [[ "$SALESBOT_AUTO_DEPLOY" == on || "$DRY_RUN" == true ]] || return 0
+            sha="$(gh api "repos/$src/commits/main" --jq .sha)" || return 1
+            committed="$(gh api "repos/$src/commits/$sha" --jq .commit.committer.date)" || return 1
+            age=$(( $(date +%s) - $(date -d "$committed" +%s) ))
+            if (( age < 180 )); then
+              echo "SKIP  salesbot $sha moi $age giay tuoi, cho lan quet sau."
+              return 0
+            fi
+            # Lan deploy da goi (dang chay, xong hay loi deu tinh; loi thi khong goi lai), tru lan bi huy/dry-run.
+            runs="$(gh run list -R "$REPO" --workflow deploy-salesbot.yml -L 100 --json displayTitle,conclusion --jq \
+              '.[] | select(.conclusion != "cancelled") | .displayTitle')" || return 1
+            grep -qFx "deploy salesbot @$sha" <<<"$runs" && return 0
+            # Commit chua co bo Docker thi deploy-salesbot chac chan hong; bo qua thay vi build 3 image vo ich.
+            if ! gh api "repos/$src/contents/deploy/docker/compose.yaml?ref=$sha" --silent 2>/dev/null; then
+              echo "SKIP  salesbot $sha chua co deploy/docker/compose.yaml."
+              return 0
+            fi
+            echo "DEPLOY salesbot $sha chua deploy (cong tac: ${SALESBOT_AUTO_DEPLOY:-tat})."
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "dry-run: khong goi deploy."
+              return 0
+            fi
+            GH_TOKEN="$DISPATCH_TOKEN" gh workflow run deploy-salesbot.yml -R "$REPO" -f sha="$sha"
+          }
+
           if [[ "$DRY_RUN" == true ]]; then
-            scan
-            exit $?
+            rc=0
+            scan || rc=1
+            scan_salesbot || rc=1
+            exit $rc
           fi
 
           # Loi mang/API tam thoi chi bo qua mot luot, khong de vong lap chet.
           deadline=$(( $(date +%s) + 330 * 60 ))
           while (( $(date +%s) < deadline )); do
             scan || echo "WARN  luot quet loi, thu lai sau 60 giay."
+            scan_salesbot || echo "WARN  luot quet salesbot loi, thu lai sau 60 giay."
             sleep 60
           done
 
