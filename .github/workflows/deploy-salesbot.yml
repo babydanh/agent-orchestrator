@@ -2,7 +2,7 @@ name: Deploy salesbot
 
 # Deploy salesbot-admin (repo private) lên một VPS bằng bộ Docker trong deploy/docker của repo đó: build 3 image
 # (api, web, bot) vào GHCR private, chép compose + init.sh lên VPS, bật lại stack, kiểm sức khoẻ, lỗi thì quay về bản
-# trước. Chỉ chạy khi người dùng bảo (không có trigger tự động):
+# trước. Chạy tay, hoặc auto-deploy-salesbot.yml gọi khi main có SHA mới (chỉ khi biến SALESBOT_AUTO_DEPLOY=on):
 #   gh workflow run deploy-salesbot.yml -R babydanh/agent-orchestrator -f sha=<40 ký tự> [-f origin=https://...]
 # Lần đầu trên VPS mới: thêm origin (địa chỉ dashboard) và embed_url (máy bge-m3, vd danh7 qua Tailscale); khoá
 # 9router/embed nhập tay trên VPS bằng `sh set-key.sh`, không đi qua workflow. Hướng dẫn: deploy/docker/README.md.
