@@ -36,7 +36,8 @@ if [[ "$PROFILES" != keep ]]; then
   [[ "$PROFILES" != *messenger* ]] || init_args+=(--with-matrix)
   set_env COMPOSE_PROFILES "$([[ "$PROFILES" == none ]] || echo "$PROFILES")"
 fi
-logged "init.sh (secret còn thiếu, không đổi secret đã có)" sh init.sh "${init_args[@]}"
+# bash < 4.4 under set -u treats an empty "${arr[@]}" as unbound; expand only when non-empty.
+logged "init.sh (secret còn thiếu, không đổi secret đã có)" sh init.sh ${init_args[@]+"${init_args[@]}"}
 
 PREV="$(sed -n 's/^SALESBOT_TAG=//p' .env | tail -n 1)"
 set_env GHCR_OWNER "$OWNER"
