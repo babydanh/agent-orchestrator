@@ -30,6 +30,7 @@ on:
           - 'aicheckvar'
           - 'auto25d'
           - 'auto3dvideo'
+          - 'agent-board-e2e'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -1248,3 +1249,55 @@ jobs:
       - name: 9. cargo test
         working-directory: desktop/src-tauri
         run: cargo test --locked
+
+  # =========================================================================
+  # AGENT BOARD (fork pixel-agents, repo PRIVATE agent-board-private): Playwright E2E của board trên Linux
+  # =========================================================================
+  test-agent-board-e2e:
+    name: 🧩 Agent Board E2E (Playwright, Linux)
+    if: github.event.inputs.target_project == 'agent-board-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: .playwright-browsers
+
+    steps:
+      - name: 1. Checkout agent-board-private
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/agent-board-private
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+          fetch-depth: 0
+
+      - name: 2. Setup Node (.nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: 3. Install
+        run: npm ci
+
+      # Bundles only: main still has known type errors (check-types / webview tsc -b), which the E2E does not depend on.
+      - name: 4. Build extension, CLI, webview (no type check)
+        run: |
+          npm run asyncapi:generate
+          npm run build:extension
+          cd webview-ui && npx vite build
+
+      - name: 5. Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # This repo is PUBLIC and the code is private: results stay in the log only, no report/video/trace artifact.
+      - name: 6. E2E
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          # SPECS comes through env (never interpolated into the script) and only accepts path characters.
+          if [ -n "$SPECS" ] && ! printf '%s' "$SPECS" | grep -qE '^[A-Za-z0-9_./ -]+$'; then
+            echo "::error::specs chứa ký tự không hợp lệ"; exit 1
+          fi
+          # shellcheck disable=SC2086
+          npm run e2e -- --workers=1 --reporter=list $SPECS
