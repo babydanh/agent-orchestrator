@@ -78,8 +78,54 @@ wait_healthy() {
   return 1
 }
 
+# The bot's config lives in the gateway's state volume, not in the image, so a new tool or prompt in deploy/vps used to
+# reach production only by hand. Every deploy re-applies it from the new image once the manager agent exists (the first
+# install stays manual, README step 7) and a Zalo number is connected (setup-manager.sh writes the account ids into the
+# prompt). --keep-sessions keeps the staff-group sessions. The gateway restarts only when openclaw.json changed.
+gw() { docker compose exec -T gateway "$@"; }
+# Captured first: piping into grep -q under pipefail can fail on SIGPIPE even when the line matched.
+zalo_connected() {
+  local out
+  out="$(gw /data/openclaw/oc gateway call channels.status --json --params '{"channel":"zalouser"}' 2>/dev/null)" || return 1
+  grep -Eq '"connected": *true' <<<"$out"
+}
+wait_zalo() {
+  local _
+  for _ in $(seq 1 24); do
+    zalo_connected && return 0
+    sleep 5
+  done
+  return 1
+}
+config_sum() { gw md5sum /data/openclaw/state/openclaw.json | cut -d' ' -f1; }
+apply_bot_config() {
+  local before
+  before="$(config_sum)"
+  gw sh /data/workspace/salesbot-admin/deploy/vps/setup-manager.sh --keep-sessions || return 1
+  if gw /data/openclaw/oc config get agents.entries.coordinator >/dev/null 2>&1; then
+    gw sh /data/workspace/salesbot-admin/deploy/vps/setup-reactions.sh || return 1
+  fi
+  [[ "$(config_sum)" != "$before" ]] || return 0
+  docker compose restart gateway && wait_healthy
+}
+bot_config() {
+  if ! gw /data/openclaw/oc config get agents.entries.manager >/dev/null 2>&1; then
+    echo "BỎ QUA cấu hình bot: chưa có agent manager (lần cài đầu làm tay, README bước 7)"
+    return 0
+  fi
+  if ! wait_zalo; then
+    echo "CẢNH BÁO: chưa có số Zalo nào kết nối sau 120 giây; giữ cấu hình bot cũ"
+    return 0
+  fi
+  logged "áp cấu hình bot (setup-manager, setup-reactions; restart gateway nếu đổi)" apply_bot_config
+}
+
 if logged "docker compose up -d" docker compose up -d && logged "chờ api/web/bot khoẻ (tối đa 300 giây)" wait_healthy; then
   logged "docker image prune" docker image prune -f || echo "CẢNH BÁO: prune lỗi; bỏ qua."
+  bot_config || {
+    echo "LỖI  bản ${SHA:0:8} đã chạy nhưng áp cấu hình bot lỗi; chi tiết trong log trên VPS"
+    exit 1
+  }
   echo "OK    salesbot chạy bản ${SHA:0:8}"
   exit 0
 fi
