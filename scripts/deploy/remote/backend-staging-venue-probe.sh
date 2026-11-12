@@ -4,45 +4,34 @@
 STAGING_DIR="$1"
 init_log "backend-staging-venue-probe"
 APP_API_KEY="$(sed -n 's/^APP_API_KEY=//p' "$STAGING_DIR/.env.staging" | tail -n 1 | tr -d "\"'\r")"
-export APP_API_KEY
-command -v python3 >/dev/null || { echo "LỖI  VPS không có python3"; exit 1; }
-script="$(mktemp)"
-trap 'rm -f "$script"' EXIT
-cat >"$script" <<'PY'
-import json, os, time, urllib.parse, urllib.request, urllib.error
-BASE = "http://172.17.0.1:3100/api/v1"
-KEY = os.environ["APP_API_KEY"]
+BASE="http://172.17.0.1:3100/api/v1"
+body="$(mktemp)"
+trap 'rm -f "$body"' EXIT
 
-def get(path, params=None):
-    url = BASE + path + ("?" + urllib.parse.urlencode(params) if params else "")
-    req = urllib.request.Request(url, headers={"x-app-key": KEY})
-    t = time.perf_counter()
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            body, code = r.read(), r.status
-    except urllib.error.HTTPError as e:
-        body, code = b"", e.code
-    return code, (time.perf_counter() - t) * 1000, body
+# Id môn Pickleball từ /categories (khớp object có chữ pickleball, lấy "id").
+api_get -o "$body" -w '%{http_code}' "$BASE/categories" >"$body.code" 2>>"$DEPLOY_LOG" || true
+cat_http="$(cat "$body.code")"; rm -f "$body.code"
+cat_id="$(grep -oiE '\{[^{}]*pickleball[^{}]*\}' "$body" | grep -oE '"id":"[0-9a-f-]{36}"' | head -n 1 | cut -d'"' -f4 || true)"
+echo "categories: http=$cat_http pickleball_id=$([[ -n "$cat_id" ]] && echo có || echo KHÔNG_TÌM_THẤY)"
 
-code, _, body = get("/categories")
-cats = json.loads(body) if code == 200 else []
-cats = cats.get("data", cats) if isinstance(cats, dict) else cats
-cat = next((c["id"] for c in cats if "pickle" in str(c.get("name", "")).lower()), None)
-print(f"categories: http={code} pickleball_id={'có' if cat else 'KHÔNG TÌM THẤY'}")
-
-cases = [("pickleball", None), ("sân", None), ("sân", cat), ("tennis", None)]
-for q, cid in cases:
-    params = {"q": q, "limit": 10}
-    if cid: params["categoryId"] = cid
-    lat, code, rows = [], 0, []
-    for _ in range(3):  # tổng 12 lần, dưới trần 20 lần/phút
-        code, ms, body = get("/social-locations/search", params)
-        lat.append(ms)
-        if code == 200: rows = json.loads(body)
-    verified = sum(1 for r in rows if "isVerified" in r)
-    region = sum(1 for r in rows if r.get("provinceCode") and r.get("wardCode"))
-    tag = "q=%s%s" % (q, "+categoryId" if cid else "")
-    print(f"{tag}: http={code} ketqua={len(rows)} co_isVerified={verified} co_maVung={region} do_tre_ms_max={max(lat):.0f}")
-PY
-python3 "$script" 2>>"$DEPLOY_LOG" || { echo "LỖI  probe lỗi; chi tiết trong $DEPLOY_LOG trên VPS"; exit 1; }
+# probe <nhãn> <q> [categoryId]: 3 lần gọi, in số kết quả của lần cuối và độ trễ lớn nhất (tổng 12 lần, dưới trần 20 lần/phút).
+probe() {
+  local tag="$1" q="$2" cid="${3:-}" args=(-G --data-urlencode "q=$q" --data-urlencode "limit=10") i meta code max=0 ms
+  [[ -n "$cid" ]] && args+=(--data-urlencode "categoryId=$cid")
+  for i in 1 2 3; do
+    meta="$(api_get "${args[@]}" -o "$body" -w '%{http_code} %{time_total}' "$BASE/social-locations/search" 2>>"$DEPLOY_LOG" || true)"
+    code="${meta% *}"
+    ms="$(awk -v t="${meta#* }" 'BEGIN{printf "%d", t*1000}')"
+    ((ms > max)) && max=$ms
+  done
+  local n v r
+  n="$(grep -o '"venueId"' "$body" | wc -l)"
+  v="$(grep -o '"isVerified"' "$body" | wc -l)"
+  r="$(grep -oE '"provinceCode":"[^"]+","wardCode":"[^"]+"|"wardCode":"[^"]+"' "$body" | wc -l)"
+  echo "$tag: http=$code ketqua=$n co_isVerified=$v co_maPhuong=$r do_tre_ms_max=$max"
+}
+probe "q=pickleball" "pickleball"
+probe "q=sân" "sân"
+[[ -n "$cat_id" ]] && probe "q=sân+categoryId(pickleball)" "sân" "$cat_id"
+probe "q=tennis" "tennis"
 echo "OK    probe search staging"
