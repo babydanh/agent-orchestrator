@@ -1,0 +1,34 @@
+name: Staging - thử API tìm sân (chỉ đọc)
+
+# Gọi GET /social-locations/search trên backend staging qua cổng nội bộ của VPS, in số kết quả và độ trễ.
+# Repo public: log chỉ có mã HTTP và số đếm, không in tên/địa chỉ sân. Không ghi DB, không upload artifact.
+#   gh workflow run staging-venue-probe.yml -R babydanh/agent-orchestrator
+run-name: "probe tìm sân staging"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Thử search sân trên staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Chuẩn bị SSH
+        run: bash scripts/deploy/ssh-setup.sh
+      - name: Thử API trên VPS
+        run: bash scripts/deploy/remote.sh backend-staging-venue-probe.sh "$APP_DIR"
