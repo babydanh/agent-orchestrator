@@ -17,7 +17,9 @@ echo "categories: http=$cat_http pickleball_id=$([[ -n "$cat_id" ]] && echo có 
 
 # probe <nhãn> <q> [categoryId]: 3 lần gọi, in số kết quả của lần cuối và độ trễ lớn nhất (tổng 12 lần, dưới trần 20 lần/phút).
 probe() {
-  local tag="$1" q="$2" cid="${3:-}" args=(-G --data-urlencode "q=$q" --data-urlencode "limit=10") i meta code max=0 ms
+  local tag="$1" q="$2" cid="${3:-}"
+  local args=(-G --data-urlencode "q=$q" --data-urlencode "limit=10")
+  local i meta code="" max=0 ms
   [[ -n "$cid" ]] && args+=(--data-urlencode "categoryId=$cid")
   for i in 1 2 3; do
     meta="$(api_get "${args[@]}" -o "$body" -w '%{http_code} %{time_total}' "$BASE/social-locations/search" 2>>"$DEPLOY_LOG" || true)"
