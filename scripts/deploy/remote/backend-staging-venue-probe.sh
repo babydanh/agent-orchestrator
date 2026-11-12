@@ -11,7 +11,8 @@ trap 'rm -f "$body"' EXIT
 # Id môn Pickleball từ /categories (khớp object có chữ pickleball, lấy "id").
 api_get -o "$body" -w '%{http_code}' "$BASE/categories" >"$body.code" 2>>"$DEPLOY_LOG" || true
 cat_http="$(cat "$body.code")"; rm -f "$body.code"
-cat_id="$(grep -oiE '\{[^{}]*pickleball[^{}]*\}' "$body" | grep -oE '"id":"[0-9a-f-]{36}"' | head -n 1 | cut -d'"' -f4 || true)"
+cat_id="$(tr '{' '
+' <"$body" | grep -i pickleball | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1 || true)"
 echo "categories: http=$cat_http pickleball_id=$([[ -n "$cat_id" ]] && echo có || echo KHÔNG_TÌM_THẤY)"
 
 # probe <nhãn> <q> [categoryId]: 3 lần gọi, in số kết quả của lần cuối và độ trễ lớn nhất (tổng 12 lần, dưới trần 20 lần/phút).
@@ -22,12 +23,13 @@ probe() {
     meta="$(api_get "${args[@]}" -o "$body" -w '%{http_code} %{time_total}' "$BASE/social-locations/search" 2>>"$DEPLOY_LOG" || true)"
     code="${meta% *}"
     ms="$(awk -v t="${meta#* }" 'BEGIN{printf "%d", t*1000}')"
-    ((ms > max)) && max=$ms
+    if ((ms > max)); then max=$ms; fi
   done
+  # grep không khớp trả 1; với set -e + pipefail sẽ giết script, nên mọi lệnh đếm có || true.
   local n v r
-  n="$(grep -o '"venueId"' "$body" | wc -l)"
-  v="$(grep -o '"isVerified"' "$body" | wc -l)"
-  r="$(grep -oE '"provinceCode":"[^"]+","wardCode":"[^"]+"|"wardCode":"[^"]+"' "$body" | wc -l)"
+  n="$( (grep -o '"venueId"' "$body" || true) | wc -l)"
+  v="$( (grep -o '"isVerified"' "$body" || true) | wc -l)"
+  r="$( (grep -oE '"wardCode":"[^"]+"' "$body" || true) | wc -l)"
   echo "$tag: http=$code ketqua=$n co_isVerified=$v co_maPhuong=$r do_tre_ms_max=$max"
 }
 probe "q=pickleball" "pickleball"
