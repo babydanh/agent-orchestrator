@@ -1,0 +1,69 @@
+name: Staging - nạp sân 5 môn
+
+# Nạp danh bạ sân (Pickleball, Tennis, Cầu lông, Bóng bàn, Bóng đá) vào DB staging. Chỉ staging, không có đường tới prod.
+# Mặc định chỉ dry-run (không ghi DB). Ghi thật: apply=true. Chạy lại apply an toàn (ON CONFLICT DO NOTHING, lần 2 inserted=0).
+#   gh workflow run staging-seed-venues.yml -R babydanh/agent-orchestrator -f apply=false
+#
+# Repo public nên log ai cũng đọc:
+# - File dữ liệu nằm ở nhánh venue-data-staging của repo Backend (private), lấy bằng GH_PAT; KHÔNG commit vào repo này
+#   (nguồn Overture chưa xác nhận giấy phép phân phối lại).
+# - Output thô của migrate/seed chỉ ghi vào /var/log/sporto-deploy trên VPS; log Actions chỉ có OK/LỖI và dòng tổng kết
+#   là số đếm (số sân theo môn, số bỏ qua theo lý do). Không in tên sân, địa chỉ, câu SQL.
+# - Không upload artifact.
+run-name: "seed sân staging${{ inputs.apply && ' (apply)' || ' (dry-run)' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'true = ghi vào DB staging; false = chỉ dry-run'
+        type: boolean
+        default: false
+
+# Chung hàng đợi với deploy backend staging để không chạy chồng lúc migrate.
+concurrency:
+  group: deploy-backend-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    name: Nạp sân vào DB staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+      APPLY: ${{ inputs.apply }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Lấy file dữ liệu sân (repo Backend private, nhánh venue-data-staging)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongBackendApi_QuanlyGiaiDau
+          ref: venue-data-staging
+          token: ${{ secrets.GH_PAT }}
+          path: data
+          sparse-checkout: venue-directory.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Chuẩn bị SSH
+        run: bash scripts/deploy/ssh-setup.sh
+      - name: Chép file dữ liệu lên VPS
+        run: |
+          set -euo pipefail
+          test -s data/venue-directory.json
+          "$RUNNER_TEMP/ssh-vps" "mkdir -p '$APP_DIR/tmp'"
+          "$RUNNER_TEMP/scp-vps" data/venue-directory.json "$APP_DIR/tmp/"
+          echo "OK    đã chép file dữ liệu sân"
+      - name: Nạp sân trên VPS
+        run: bash scripts/deploy/remote.sh backend-staging-seed-venues.sh "$APP_DIR" "$APPLY"
