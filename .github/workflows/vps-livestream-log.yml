@@ -1,0 +1,91 @@
+name: VPS Livestream Log (read-only)
+
+# Chỉ ĐỌC log container Backend, chỉ in mốc giờ UTC + loại sự kiện + 8 ký tự cuối camera id + đếm.
+# Log Actions CÔNG KHAI nên: không in token/key/host/IP/email/env, không in nguyên dòng log.
+# Lọc bằng mẫu cố định; mọi chuỗi in ra đều là nhãn cố định trong script này.
+#   gh workflow run vps-livestream-log.yml -R babydanh/agent-orchestrator -f since=2026-11-11T10:00:00 -f until=2026-11-11T11:20:00
+on:
+  push:
+    branches: ['cloud/danh4-luong-rot-5-phut-log']
+    paths: ['.github/workflows/vps-livestream-log.yml']
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'UTC, dạng 2026-11-11T10:00:00'
+        type: string
+        default: '2026-11-11T10:00:00'
+      until:
+        description: 'UTC, dạng 2026-11-11T11:20:00'
+        type: string
+        default: '2026-11-11T11:20:00'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-livestream-log
+  cancel-in-progress: false
+
+jobs:
+  livestream-log:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      LOG_SINCE: ${{ inputs.since || '2026-11-11T10:00:00' }}
+      LOG_UNTIL: ${{ inputs.until || '2026-11-11T11:20:00' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate input
+        run: |
+          re='^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$'
+          [[ "$LOG_SINCE" =~ $re && "$LOG_UNTIL" =~ $re ]] || { echo "::error::since/until phải dạng YYYY-MM-DDTHH:MM:SS (UTC)."; exit 1; }
+
+      - name: SSH setup
+        run: bash scripts/deploy/ssh-setup.sh
+
+      - name: Livestream events (timestamp + kind + camera suffix only)
+        run: |
+          "$RUNNER_TEMP/ssh-vps" "LOG_SINCE=$LOG_SINCE LOG_UNTIL=$LOG_UNTIL bash -s" <<'REMOTE'
+          set -u
+          for c in $(docker ps --format '{{.Names}}' | grep -iE 'backend|api' | grep -viE 'web|front'); do
+            echo "== container: $c =="
+            first=$(docker logs -t "$c" 2>&1 | head -n 1 | cut -c1-19)
+            echo "earliest log line available: ${first:-none}"
+            docker logs -t --since "${LOG_SINCE}Z" --until "${LOG_UNTIL}Z" "$c" 2>&1 \
+            | awk '
+              function kind(l) {
+                if (l ~ /Started MP4 recording/) return "START_RECORD";
+                if (l ~ /Stopped MP4 recording after offline grace/) return "STOP_RECORD_OFFLINE";
+                if (l ~ /Stopped MP4 recording/) return "STOP_RECORD";
+                if (l ~ /Finalized MP4 recording/) return "FINALIZE_RECORD";
+                if (l ~ /Camera back online before offline confirmation/) return "BACK_ONLINE";
+                if (l ~ /Scheduled offline confirmation/) return "OFFLINE_SCHEDULED";
+                if (l ~ /Camera offline confirmation failed/) return "OFFLINE_CONFIRM_FAILED";
+                if (l ~ /Camera recording reconciliation failed/) return "RECONCILE_FAILED";
+                if (l ~ /Camera recording reconciliation skipped/) return "RECONCILE_LOCK_SKIP";
+                if (l ~ /Set live matches OFFLINE/) return "MATCH_SET_OFFLINE";
+                if (l ~ /[Oo]ffline/ && l ~ /amera/) return "CAMERA_OFFLINE_OTHER";
+                if (l ~ /StreamProxy|stream proxy|proxy/) return "PROXY_EVENT";
+                if (l ~ /rotate|Rotate/) return "KEY_ROTATE_EVENT";
+                return "";
+              }
+              {
+                k = kind($0); if (k == "") next;
+                ts = substr($1, 12, 8);
+                cam = "--------";
+                if (match($0, /camera=[0-9a-f-]{36}/)) { cam = substr($0, RSTART + 7 + 28, 8) }
+                print ts, k, cam
+              }' | tee /tmp/ls_events.txt
+            echo "-- count by kind --"
+            awk '{print $2}' /tmp/ls_events.txt | sort | uniq -c
+            echo "-- count by camera suffix + kind --"
+            awk '{print $3, $2}' /tmp/ls_events.txt | sort | uniq -c
+          done
+          REMOTE
