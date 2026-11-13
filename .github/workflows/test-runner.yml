@@ -32,6 +32,7 @@ on:
           - 'auto3dvideo'
           - 'itservice-flutter'
           - 'itservice-api'
+          - 'itservice-mobile'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -840,6 +841,48 @@ jobs:
           flutter gen-l10n
           # Errors fail the job; infos/warnings are reported, not fatal (flutter analyze was never run on this repo before).
           flutter analyze --no-fatal-infos --no-fatal-warnings
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE: app Flutter thật của HethongQuanLiITService (apps/mobile: Riverpod + dio), khác prototype ở design/.
+  # Chỉ chạy khi chọn target_project = itservice-mobile (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH.
+  # specs (tuỳ chọn): file test cách nhau bằng dấu cách, tính từ apps/mobile; trống = cả bộ.
+  # =========================================================================
+  test-itservice-mobile:
+    name: 📱 Test ITService Mobile (analyze, test)
+    if: github.event.inputs.target_project == 'itservice-mobile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: 2. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          # pubspec needs Dart ^3.13.3 (Flutter 3.47.x), same line as the prototype job.
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 3. Analyze and test
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          flutter pub get
+          # Errors and warnings fail the job; infos are reported only.
+          flutter analyze --no-fatal-infos
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
           flutter test --no-pub $SPECS
