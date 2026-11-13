@@ -1,0 +1,53 @@
+name: Production - đổi cách thu lệ phí của 1 giải
+
+# Đổi tournaments.fee_collection_mode của đúng một giải trên DB PRODUCTION (không có API đổi cho giải đã tạo).
+# Chỉ chạy tay. Log Actions là công khai: chỉ in chế độ trước/sau, không in tên giải hay dữ liệu khác.
+#   gh workflow run prod-tournament-fee-mode.yml -R babydanh/agent-orchestrator -f tournament_id=<uuid> -f mode=DIRECT
+on:
+  workflow_dispatch:
+    inputs:
+      tournament_id:
+        description: 'UUID của giải (trong URL /tournaments/<uuid>)'
+        required: true
+        type: string
+      mode:
+        description: 'Cách thu lệ phí mới'
+        required: true
+        type: choice
+        options: [DIRECT, PAYOS]
+        default: DIRECT
+
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  set-mode:
+    name: Đổi cách thu lệ phí (production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      APP_DIR: ${{ secrets.APP_DIR }}
+      TOURNAMENT_ID: ${{ inputs.tournament_id }}
+      MODE: ${{ inputs.mode }}
+    steps:
+      - name: Kiểm đầu vào
+        run: |
+          [[ "$TOURNAMENT_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] || { echo "::error::tournament_id phải là UUID."; exit 1; }
+          [[ "$MODE" == DIRECT || "$MODE" == PAYOS ]] || { echo "::error::mode chỉ nhận DIRECT hoặc PAYOS."; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - name: Chuẩn bị SSH
+        run: bash scripts/deploy/ssh-setup.sh
+      - name: Đổi chế độ thu lệ phí trên DB production
+        run: bash scripts/deploy/remote.sh backend-tournament-fee-mode.sh "$APP_DIR" "$TOURNAMENT_ID" "$MODE"
