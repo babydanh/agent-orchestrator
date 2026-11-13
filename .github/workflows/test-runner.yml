@@ -35,6 +35,7 @@ on:
           - 'itservice-mobile'
           - 'itservice-web'
           - 'itservice-web-e2e'
+          - 'itservice-mobile-e2e'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -1063,6 +1064,153 @@ jobs:
             apps/web/allure-results
             ${{ runner.temp }}/api.log
             ${{ runner.temp }}/web.log
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE-E2E: app Flutter (apps/mobile) chạy test E2E gắn @Tags(['e2e']) ở test/e2e/ NỐI API THẬT
+  # (Postgres 17 + apps/api e2e-main, cùng cách dựng với itservice-web-e2e). Không cần emulator: flutter test chạy trên VM
+  # và dùng dio thật. Chỉ chạy khi chọn target_project = itservice-mobile-e2e. custom_branch phải là nhánh ĐÃ PUSH.
+  # Test đọc E2E_API_URL, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD (dart-define); thiếu E2E_API_URL thì tự skip.
+  # =========================================================================
+  test-itservice-mobile-e2e:
+    name: 📱🧪 E2E VNCare Mobile (Postgres 17 + api e2e-main + flutter test --tags e2e)
+    if: github.event.inputs.target_project == 'itservice-mobile-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 2b. Run-only admin password (seed and Flutter tests share it)
+        run: |
+          pw="Aa1-$(openssl rand -hex 16)"
+          echo "::add-mask::$pw"
+          {
+            echo "SUPER_ADMIN_PASSWORD=$pw"
+            echo "E2E_ADMIN_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier) and wait for /health
+        working-directory: apps/api
+        run: |
+          # Throwaway secret for this run only; never stored.
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          AUTH_GOOGLE_ENABLED=true \
+          SCHEDULER_ENABLED=false \
+          UPLOAD_DIR="$RUNNER_TEMP/uploads" \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 6. Flutter E2E against the real api (tests tagged e2e under test/e2e)
+        working-directory: apps/mobile
+        env:
+          E2E_API_URL: http://127.0.0.1:3000
+        run: |
+          flutter pub get
+          if [ ! -d test/e2e ]; then echo "no test/e2e yet: nothing to run"; exit 0; fi
+          flutter test --no-pub --tags e2e \
+            --dart-define=E2E_API_URL="$E2E_API_URL" \
+            --dart-define=E2E_ADMIN_EMAIL="$E2E_ADMIN_EMAIL" \
+            --dart-define=E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
+            --file-reporter "json:$RUNNER_TEMP/flutter-e2e.json" \
+            --reporter expanded test/e2e
+
+      - name: 7. Summary table of every E2E test (job summary)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          p = os.path.join(os.environ["RUNNER_TEMP"], "flutter-e2e.json")
+          names, rows = {}, []
+          if os.path.exists(p):
+              for line in open(p, encoding="utf-8"):
+                  try:
+                      e = json.loads(line)
+                  except ValueError:
+                      continue
+                  t = e.get("type")
+                  if t == "testStart":
+                      names[e["test"]["id"]] = e["test"]["name"]
+                  elif t == "testDone" and not e.get("hidden"):
+                      mark = "skip" if e.get("skipped") else e.get("result")
+                      rows.append((mark, names.get(e["testID"], "?")))
+          icon = {"success": "PASS", "skip": "SKIP", "failure": "FAIL", "error": "FAIL"}
+          out = ["## Flutter E2E (real api)", "", "| Result | Test |", "|---|---|"]
+          out += [f"| {icon.get(m, m)} | {n} |" for m, n in rows]
+          total = len(rows)
+          ok = sum(1 for m, _ in rows if m == "success")
+          out += ["", f"{ok}/{total} passed, {sum(1 for m, _ in rows if m == 'skip')} skipped"]
+          open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8").write("\n".join(out) + "\n")
+          PY
+
+      - name: 8. Upload the test report and api log (1 day, fake data only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-mobile-e2e
+          retention-days: 1
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/flutter-e2e.json
+            ${{ runner.temp }}/api.log
 
   # =========================================================================
   # JOB ITSERVICE-API: backend NestJS của HethongQuanLiITService (apps/api) + hợp đồng OpenAPI.
