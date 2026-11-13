@@ -33,6 +33,7 @@ on:
           - 'itservice-flutter'
           - 'itservice-api'
           - 'itservice-mobile'
+          - 'itservice-web'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -886,6 +887,44 @@ jobs:
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
           flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-WEB: Next.js của HethongQuanLiITService (apps/web): typecheck, lint, unit (vitest), build.
+  # Chưa chạy Playwright E2E (cần Backend thật + seed). Chỉ chạy khi chọn target_project = itservice-web.
+  # custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-web:
+    name: 🌐 ITService Web (typecheck, lint, unit, build)
+    if: github.event.inputs.target_project == 'itservice-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      # apps/web has no "packageManager"; take the monorepo's pnpm version from apps/api.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
 
   # =========================================================================
   # JOB ITSERVICE-API: backend NestJS của HethongQuanLiITService (apps/api) + hợp đồng OpenAPI.
