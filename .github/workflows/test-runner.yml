@@ -31,6 +31,7 @@ on:
           - 'auto25d'
           - 'auto3dvideo'
           - 'itservice-flutter'
+          - 'itservice-api'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -842,6 +843,110 @@ jobs:
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
           flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-API: backend NestJS của HethongQuanLiITService (apps/api) + hợp đồng OpenAPI.
+  # Chạy lại đúng các bước của .github/workflows/api-ci.yml trong repo đó, vì CI riêng của repo này bị chặn billing.
+  # Chỉ chạy khi chọn target_project = itservice-api (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-api:
+    name: 🛡️ ITService API (typecheck, build, unit, int, e2e, audit)
+    if: github.event.inputs.target_project == 'itservice-api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway container reachable only from this job: no password needed.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: itservice_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      # pnpm version comes from "packageManager" in apps/api/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      # Node 24 matches "engines" (>=24 <25).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/api/pnpm-lock.yaml
+
+      - name: 2. Test environment
+        run: |
+          jwt="$(openssl rand -hex 32)"
+          echo "::add-mask::$jwt"
+          {
+            echo "JWT_ACCESS_SECRET=$jwt"
+            echo "DATABASE_URL=postgres://postgres@localhost:5432/itservice_ci"
+            echo "GOOGLE_CLIENT_IDS=ci-test.apps.googleusercontent.com"
+            echo "SUPER_ADMIN_EMAIL=ci-admin@example.com"
+            echo "SCHEDULER_ENABLED=false"
+            echo "AUTH_GOOGLE_ENABLED=true"
+          } >> "$GITHUB_ENV"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test:unit
+      - run: pnpm db:migrate
+      - name: 3. Integration + E2E tests
+        # The pattern also matches src/test/e2e/*.int.spec.ts, so E2E runs in this step.
+        run: pnpm test:int '\.int\.spec\.ts$'
+      - run: pnpm audit --audit-level high
+
+  test-itservice-contracts:
+    name: 📜 ITService API contract (openapi:check + contracts typecheck)
+    if: github.event.inputs.target_project == 'itservice-api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: |
+            apps/api/pnpm-lock.yaml
+            packages/contracts/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C ../../packages/contracts install --frozen-lockfile
+      # No database or secrets needed: the exporter uses fake env values and never connects.
+      - run: pnpm openapi:check
+      - run: pnpm -C ../../packages/contracts typecheck
 
   # =========================================================================
   # JOB E2E APP: integration_test CHẠY TRÊN EMULATOR ANDROID + BACKEND THẬT
