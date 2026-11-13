@@ -1037,12 +1037,19 @@ jobs:
           E2E_API_URL: http://127.0.0.1:3000
           CI: 'true'
         run: |
+          # Allure is added only in this runner (package.json and lockfile of the repo stay untouched).
+          pnpm add -D allure-playwright@3.14.0 allure-commandline@2.46.1
           pnpm exec playwright install --with-deps chromium
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
-          pnpm exec playwright test $SPECS
+          pnpm exec playwright test --reporter=list,html,allure-playwright $SPECS
 
-      - name: 7. Upload screenshots (375/768/1440), traces and logs (1 day, fake data only)
+      - name: 6b. Generate Allure report
+        if: always()
+        working-directory: apps/web
+        run: pnpm exec allure generate allure-results --clean -o allure-report || echo "Allure generate failed"
+
+      - name: 7. Upload screenshots (375/768/1440), traces, Allure and logs (1 day, fake data only)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -1052,6 +1059,8 @@ jobs:
           path: |
             apps/web/test-results
             apps/web/playwright-report
+            apps/web/allure-report
+            apps/web/allure-results
             ${{ runner.temp }}/api.log
             ${{ runner.temp }}/web.log
 
