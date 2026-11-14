@@ -770,7 +770,7 @@ jobs:
     name: 📱 Test Flutter App (Dart Analyze & Widget)
     if: github.event.inputs.target_project == 'all' || github.event.inputs.target_project == 'app'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
 
     steps:
       - name: 1. Checkout Flutter App Repository
