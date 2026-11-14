@@ -1166,7 +1166,8 @@ jobs:
         run: |
           flutter pub get
           if [ ! -d test/e2e ]; then echo "no test/e2e yet: nothing to run"; exit 0; fi
-          flutter test --no-pub --tags e2e \
+          # One file at a time: the api allows 20 sign-ins a minute per IP and the login budget is per file.
+          flutter test --no-pub --tags e2e --concurrency=1 \
             --dart-define=E2E_API_URL="$E2E_API_URL" \
             --dart-define=E2E_ADMIN_EMAIL="$E2E_ADMIN_EMAIL" \
             --dart-define=E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
