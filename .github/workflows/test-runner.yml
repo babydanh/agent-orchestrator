@@ -1036,11 +1036,30 @@ jobs:
           # - JSON đầy đủ (có ảnh) ghi vào app-e2e-private/ (không upload), để bước Allure đổi thành allure-results.
           # - stdout/log chữ lọc bỏ dòng [[SHOT: log công khai của job và flutter-test.log không chứa ảnh.
           # --file-reporter giữ reporter expanded ở stdout nên dòng "+N ~M -K:" mà script bên dưới đọc không đổi.
-          mkdir -p app-e2e-private
+          mkdir -p app-e2e-private/video
+          # Quay màn hình emulator liên tục thành các đoạn <= 170 giây (seg_<epoch_ms>.mp4), để bước Allure cắt video
+          # riêng cho từng ca (cả ca đạt). Video chỉ ở app-e2e-private/ (không upload), vào kho private cùng báo cáo.
+          touch "$RUNNER_TEMP/rec.on"
+          (
+            while [ -f "$RUNNER_TEMP/rec.on" ]; do
+              T=$(date +%s%3N)
+              adb shell screenrecord --size 540x960 --bit-rate 1500000 --time-limit 170 "/sdcard/seg_$T.mp4" >/dev/null 2>&1
+              adb pull "/sdcard/seg_$T.mp4" "app-e2e-private/video/seg_$T.mp4" >/dev/null 2>&1 || true
+              adb shell rm -f "/sdcard/seg_$T.mp4" >/dev/null 2>&1 || true
+            done
+          ) &
+          REC_PID=$!
+          RUN_START_MS=$(date +%s%3N)
+          echo "$RUN_START_MS" > app-e2e-private/run-start-ms.txt
           timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded \
             --file-reporter json:app-e2e-private/flutter-test.json "${SPECS_ARR[@]}" 2>&1 \
             | grep --line-buffered -v '\[\[SHOT' | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
+          # Dừng quay: bỏ cờ rồi gửi SIGINT cho screenrecord để nó đóng file mp4 đúng cách, chờ vòng lặp kéo đoạn cuối về.
+          rm -f "$RUNNER_TEMP/rec.on"
+          adb shell 'kill -2 $(pidof screenrecord)' >/dev/null 2>&1 || true
+          wait "$REC_PID" 2>/dev/null || true
+          echo "MỐC video: $(ls app-e2e-private/video 2>/dev/null | wc -l) đoạn quay màn hình"
           T_TEST1=$(date +%s)
           GRADLE_S=$(grep -oE "assembleDebug'[^0-9]*[0-9]+\.[0-9]+s" app-e2e-report/flutter-test.log | grep -oE "[0-9]+\.[0-9]+" | awk '{s+=$1} END {printf "%.0f", s}')
           echo "MỐC $(date -u +%H:%M:%S) UTC: flutter test xong sau $((T_TEST1 - T_TEST0)) s; Gradle assembleDebug cộng dồn ${GRADLE_S:-0} s (phần còn lại: cài APK và chạy test)"
@@ -1136,12 +1155,22 @@ jobs:
           path: orchestrator
           sparse-checkout: scripts/e2e
 
-      - name: 14b. Đổi JSON của flutter test thành allure-results
+      - name: 14a. Cài ffmpeg để cắt video từng ca
+        if: always() && github.event.inputs.no_report != 'true'
+        continue-on-error: true
+        run: command -v ffmpeg >/dev/null 2>&1 || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
+      - name: 14b. Đổi JSON của flutter test thành allure-results (kèm video từng ca)
         if: always() && github.event.inputs.no_report != 'true'
         continue-on-error: true
         run: |
           if [ -f app/app-e2e-private/flutter-test.json ]; then
-            python3 orchestrator/scripts/e2e/flutter_json_to_allure.py app/app-e2e-private/flutter-test.json app/allure-results
+            VIDEO_ARGS=()
+            if [ -d app/app-e2e-private/video ] && [ -f app/app-e2e-private/run-start-ms.txt ]; then
+              VIDEO_ARGS=(--video-dir app/app-e2e-private/video --run-start-ms "$(cat app/app-e2e-private/run-start-ms.txt)")
+            fi
+            python3 orchestrator/scripts/e2e/flutter_json_to_allure.py app/app-e2e-private/flutter-test.json app/allure-results "${VIDEO_ARGS[@]}"
+            echo "Video đính vào Allure: $(ls app/allure-results/*-attachment.mp4 2>/dev/null | wc -l) clip"
           else
             echo "Không có flutter-test.json (test chưa chạy tới), bỏ qua Allure"
           fi

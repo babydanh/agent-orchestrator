@@ -152,15 +152,34 @@ def build_result(test, done, errors, shots, suite, out_dir, base_ms):
     return result
 
 
-def convert(src, out_dir):
-    """Trả về số ca đã ghi. Ném OSError nếu không đọc được src."""
+def attach_video(result, segments, video_dir, out_dir):
+    """Cắt clip của ca từ các đoạn quay màn hình và đính vào result (mọi ca, không chỉ ca đỏ). Lỗi thì bỏ qua."""
+    import app_video_clips as av
+
+    plan = av.plan_clips(segments, result["start"], result["stop"])
+    if not plan:
+        return
+    source = f"{uuid.uuid4()}-attachment.mp4"
+    if av.cut_clip(plan, os.path.join(out_dir, source), video_dir):
+        result["attachments"].append({"name": "video", "source": source, "type": "video/mp4"})
+
+
+def convert(src, out_dir, video_dir=None, run_start_ms=None):
+    """Trả về số ca đã ghi. Ném OSError nếu không đọc được src.
+
+    Có `video_dir` (và `run_start_ms`: epoch ms lúc `flutter test` bắt đầu) thì mỗi ca có thêm clip video."""
     import time
 
     events = list(read_events(src))
     os.makedirs(out_dir, exist_ok=True)
     suites, tests, errors, shots = {}, {}, {}, {}
     last_time = max((e.get("time", 0) for e in events if isinstance(e.get("time"), int)), default=0)
-    base_ms = int(time.time() * 1000) - last_time
+    base_ms = run_start_ms if run_start_ms is not None else int(time.time() * 1000) - last_time
+    segments = []
+    if video_dir and os.path.isdir(video_dir):
+        import app_video_clips as av
+
+        segments = av.list_segments(video_dir)
     written = 0
     for e in events:
         kind = e.get("type")
@@ -188,6 +207,8 @@ def convert(src, out_dir):
             suite = short_suite(suites.get(test["suiteID"]))
             result = build_result(test, e, errors.get(e["testID"], []), collector.finish() if collector else [],
                                   suite, out_dir, base_ms)
+            if segments:
+                attach_video(result, segments, video_dir, out_dir)
             with open(os.path.join(out_dir, f"{result['uuid']}-result.json"), "w", encoding="utf-8") as fh:
                 json.dump(result, fh, ensure_ascii=False)
             written += 1
@@ -195,11 +216,26 @@ def convert(src, out_dir):
 
 
 def main(argv):
-    if len(argv) != 3:
-        print("Cách dùng: flutter_json_to_allure.py <flutter-test.json> <allure-results-dir>", file=sys.stderr)
-        return 2
+    args = list(argv[1:])
+    video_dir = run_start_ms = None
     try:
-        count = convert(argv[1], argv[2])
+        if "--video-dir" in args:
+            i = args.index("--video-dir")
+            video_dir = args[i + 1]
+            del args[i:i + 2]
+        if "--run-start-ms" in args:
+            i = args.index("--run-start-ms")
+            run_start_ms = int(args[i + 1])
+            del args[i:i + 2]
+    except (IndexError, ValueError):
+        args = []
+    if len(args) != 2:
+        print("Cách dùng: flutter_json_to_allure.py <flutter-test.json> <allure-results-dir> "
+              "[--video-dir <thư mục seg_*.mp4> --run-start-ms <epoch ms>]", file=sys.stderr)
+        return 2
+    argv = [argv[0]] + args
+    try:
+        count = convert(argv[1], argv[2], video_dir=video_dir, run_start_ms=run_start_ms)
     except OSError as exc:
         print(f"Không đọc được {argv[1]}: {exc.strerror or exc}", file=sys.stderr)
         return 2
