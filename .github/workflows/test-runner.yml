@@ -806,7 +806,7 @@ jobs:
     name: 📱🧪 E2E Flutter App (emulator Android API 34 + Backend thật)
     if: github.event.inputs.target_project == 'app-e2e'
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 180
 
     # Postgres + Redis giống test-fullstack: Backend thật cần cả hai.
     services:
@@ -1025,11 +1025,14 @@ jobs:
           echo "MỐC $(date -u +%H:%M:%S) UTC: emulator sẵn sàng; khởi động mất $(( $(date +%s) - ${E2E_BOOT_T0:-$(date +%s)} )) s (gồm cài SDK/AVD và boot)"
           if [ -n "${E2E_SPECS:-}" ]; then
             read -r -a SPECS_ARR <<< "$E2E_SPECS"
+            TEST_TIMEOUT_S=2400
           else
             SPECS_ARR=(integration_test)
+            # Cả bộ: mỗi file build + cài APK (~1 phút) rồi chạy; run 43621672147 hết 2400 s khi mới xong 17/33 file.
+            TEST_TIMEOUT_S=9600
           fi
           echo "Thiết bị đang chạy:"; adb devices
-          # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
+          # timeout 40 phút (chạy theo --specs; cả bộ 160 phút): run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
           T_TEST0=$(date +%s)
           echo "MỐC $(date -u +%H:%M:%S) UTC: bắt đầu flutter test (mỗi file test: Gradle assembleDebug, cài APK, chạy)"
           # Repo PUBLIC: artifact app-e2e-report ai cũng tải được, nên ảnh [[SHOT ...]] (base64) KHÔNG được vào đó.
@@ -1051,7 +1054,7 @@ jobs:
           REC_PID=$!
           RUN_START_MS=$(date +%s%3N)
           echo "$RUN_START_MS" > app-e2e-private/run-start-ms.txt
-          timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded \
+          timeout --kill-after=60 "$TEST_TIMEOUT_S" flutter test --no-pub -d emulator-5554 --reporter expanded \
             --file-reporter json:app-e2e-private/flutter-test.json "${SPECS_ARR[@]}" 2>&1 \
             | grep --line-buffered -v '\[\[SHOT' | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
