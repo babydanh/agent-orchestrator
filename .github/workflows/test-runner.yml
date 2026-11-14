@@ -1032,7 +1032,14 @@ jobs:
           # timeout 40 phút: run 39103144997 treo sau khi cài APK, không có dòng test nào (>50 phút). Quá hạn thì RC khác 0; bước 13b/13c vẫn chạy (if: always()).
           T_TEST0=$(date +%s)
           echo "MỐC $(date -u +%H:%M:%S) UTC: bắt đầu flutter test (mỗi file test: Gradle assembleDebug, cài APK, chạy)"
-          timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded "${SPECS_ARR[@]}" 2>&1 | tee app-e2e-report/flutter-test.log
+          # Repo PUBLIC: artifact app-e2e-report ai cũng tải được, nên ảnh [[SHOT ...]] (base64) KHÔNG được vào đó.
+          # - JSON đầy đủ (có ảnh) ghi vào app-e2e-private/ (không upload), để bước Allure đổi thành allure-results.
+          # - stdout/log chữ lọc bỏ dòng [[SHOT: log công khai của job và flutter-test.log không chứa ảnh.
+          # --file-reporter giữ reporter expanded ở stdout nên dòng "+N ~M -K:" mà script bên dưới đọc không đổi.
+          mkdir -p app-e2e-private
+          timeout --kill-after=60 2400 flutter test --no-pub -d emulator-5554 --reporter expanded \
+            --file-reporter json:app-e2e-private/flutter-test.json "${SPECS_ARR[@]}" 2>&1 \
+            | grep --line-buffered -v '\[\[SHOT' | tee app-e2e-report/flutter-test.log
           RC=${PIPESTATUS[0]}
           T_TEST1=$(date +%s)
           GRADLE_S=$(grep -oE "assembleDebug'[^0-9]*[0-9]+\.[0-9]+s" app-e2e-report/flutter-test.log | grep -oE "[0-9]+\.[0-9]+" | awk '{s+=$1} END {printf "%.0f", s}')
@@ -1048,7 +1055,8 @@ jobs:
           PY
           # Ảnh màn hình cuối và logcat: bằng chứng khi test không lưu ảnh ra đĩa.
           adb exec-out screencap -p > app-e2e-report/emulator-cuoi.png || true
-          adb logcat -d -t 3000 > app-e2e-report/logcat.txt || true
+          # logcat có cả các dòng print của test (ảnh base64): lọc trước khi vào artifact công khai.
+          adb logcat -d -t 3000 | grep -v '\[\[SHOT' > app-e2e-report/logcat.txt || true
           exit "$RC"
           SH
           chmod +x "$RUNNER_TEMP/run-e2e.sh"
@@ -1119,6 +1127,48 @@ jobs:
         run: |
           mkdir -p app/app-e2e-report
           cp "$RUNNER_TEMP/backend.log" app/app-e2e-report/backend.log || echo "Không có backend.log"
+
+      # Allure cho E2E App: giống job Web. Repo này PUBLIC nên report/ảnh chỉ vào repo kho private (allure_archive.py
+      # kiểm private trước khi tải lên), KHÔNG upload-artifact. Lưu kho lỗi không đổi kết quả test (continue-on-error).
+      - uses: actions/checkout@v4
+        if: always() && github.event.inputs.no_report != 'true'
+        with:
+          path: orchestrator
+          sparse-checkout: scripts/e2e
+
+      - name: 14b. Đổi JSON của flutter test thành allure-results
+        if: always() && github.event.inputs.no_report != 'true'
+        continue-on-error: true
+        run: |
+          if [ -f app/app-e2e-private/flutter-test.json ]; then
+            python3 orchestrator/scripts/e2e/flutter_json_to_allure.py app/app-e2e-private/flutter-test.json app/allure-results
+          else
+            echo "Không có flutter-test.json (test chưa chạy tới), bỏ qua Allure"
+          fi
+
+      - name: 14c. Lấy history Allure từ repo kho
+        if: always() && github.event.inputs.no_report != 'true' && hashFiles('app/allure-results/*-result.json') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: python3 orchestrator/scripts/e2e/allure_archive.py history --project qlgd-app-e2e --dest app/allure-results
+
+      - name: 14d. Generate Allure Report Dashboard
+        if: always() && github.event.inputs.no_report != 'true' && hashFiles('app/allure-results/*-result.json') != ''
+        continue-on-error: true
+        run: npx --yes allure-commandline@2.46.1 generate app/allure-results --clean -o app/allure-report
+
+      - name: 14e. Lưu kho Allure (repo private)
+        if: always() && github.event.inputs.no_report != 'true' && hashFiles('app/allure-report/index.html') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          E2E_BRANCH: ${{ github.event.inputs.app_ref || github.event.inputs.custom_branch || 'main' }}
+        run: >-
+          python3 orchestrator/scripts/e2e/allure_archive.py publish --project qlgd-app-e2e
+          --report app/allure-report
+          --run-id "$GITHUB_RUN_ID" --run-url "$RUN_URL" --branch "$E2E_BRANCH" --commit "$(git -C app rev-parse --short=7 HEAD)"
 
       - name: 15. Upload app-e2e-report
         if: always()
