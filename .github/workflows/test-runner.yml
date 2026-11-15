@@ -36,6 +36,7 @@ on:
           - 'itservice-web'
           - 'itservice-web-e2e'
           - 'itservice-mobile-e2e'
+          - 'itservice-mobile-ui-e2e'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -1212,6 +1213,212 @@ jobs:
           if-no-files-found: ignore
           path: |
             ${{ runner.temp }}/flutter-e2e.json
+            ${{ runner.temp }}/api.log
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE-UI-E2E: APP THẬT (apps/mobile) trên emulator Android API 34 + API thật (Postgres 17 + apps/api e2e-main).
+  # Test UI = integration_test ở apps/mobile/integration_test (mã TC-APPX-<NHÓM>-<số>). Mỗi test một video riêng quay bằng
+  # `adb shell screenrecord` (đoạn <=170 s) do scripts/e2e/app_ui_runner.py bám theo reporter JSON; scripts/e2e/flutter_to_allure.py
+  # đổi kết quả + video + ảnh thành allure-results, rồi allure generate. Artifact `itservice-mobile-ui-e2e` 7 ngày, KHÔNG đăng Pages.
+  # Chỉ chạy khi chọn target_project = itservice-mobile-ui-e2e. custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-mobile-ui-e2e:
+    name: 📱🎬 UI E2E VNCare Mobile (emulator Android API 34 + api e2e-main + video + Allure)
+    if: github.event.inputs.target_project == 'itservice-mobile-ui-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+          path: app
+
+      - name: 1b. Checkout orchestrator (scripts/e2e)
+        uses: actions/checkout@v4
+        with:
+          path: orchestrator
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 2b. Setup Java 17 (Gradle and Allure)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 2c. Run-only admin password (seed and Flutter tests share it)
+        run: |
+          pw="Aa1-$(openssl rand -hex 16)"
+          echo "::add-mask::$pw"
+          {
+            echo "SUPER_ADMIN_PASSWORD=$pw"
+            echo "E2E_ADMIN_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: app/apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier, sandbox OTP) and wait for /health
+        working-directory: app/apps/api
+        run: |
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          AUTH_GOOGLE_ENABLED=true \
+          AUTH_PHONE_OTP_ENABLED=true \
+          SCHEDULER_ENABLED=false \
+          UPLOAD_DIR="$RUNNER_TEMP/uploads" \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 5b. Flutter pub get
+        working-directory: app/apps/mobile
+        run: flutter pub get
+
+      - name: 5c. Cache Gradle (setup-gradle)
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: 6. Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: 7. Write the run script
+        run: |
+          cat > "$RUNNER_TEMP/run-ui-e2e.sh" <<'SH'
+          #!/usr/bin/env bash
+          set +e
+          cd "$GITHUB_WORKSPACE/app/apps/mobile"
+          OUT="$GITHUB_WORKSPACE/ui-e2e-out"
+          mkdir -p "$OUT"
+          adb devices
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          # Same API address for the app (API_BASE_URL) and for the seeding helpers (E2E_API_URL): the host as seen from the emulator.
+          timeout --kill-after=60 6000 python3 "$GITHUB_WORKSPACE/orchestrator/scripts/e2e/app_ui_runner.py" --out "$OUT" -- \
+            flutter test --no-pub -d emulator-5554 \
+            --dart-define=API_BASE_URL=http://10.0.2.2:3000 \
+            --dart-define=E2E_API_URL=http://10.0.2.2:3000 \
+            --dart-define=E2E_ADMIN_EMAIL="$E2E_ADMIN_EMAIL" \
+            --dart-define=E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
+            ${E2E_UI_FILES:-integration_test/app_ui_e2e_test.dart}
+          RC=$?
+          adb logcat -d -t 4000 > "$OUT/logcat.txt" || true
+          exit "$RC"
+          SH
+          chmod +x "$RUNNER_TEMP/run-ui-e2e.sh"
+
+      - name: 8. Run integration_test on emulator Android API 34 (x86_64) with one video per test
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_UI_FILES: ${{ github.event.inputs.specs }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash "$RUNNER_TEMP/run-ui-e2e.sh"
+
+      - name: 9. Convert to Allure results and generate the report
+        if: always()
+        run: |
+          python3 orchestrator/scripts/e2e/flutter_to_allure.py --json ui-e2e-out/flutter.json --media ui-e2e-out --results ui-e2e-out/allure-results
+          npx --yes allure-commandline@2.46.1 generate ui-e2e-out/allure-results --clean -o ui-e2e-out/allure-report || echo "Allure generate failed"
+
+      - name: 10. Summary table of every UI E2E test (job summary)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          p = "ui-e2e-out/flutter.json"
+          names, rows = {}, []
+          if os.path.exists(p):
+              for line in open(p, encoding="utf-8"):
+                  try:
+                      e = json.loads(line)
+                  except ValueError:
+                      continue
+                  t = e.get("type")
+                  if t == "testStart":
+                      names[e["test"]["id"]] = e["test"]["name"]
+                  elif t == "testDone" and not e.get("hidden"):
+                      mark = "SKIP" if e.get("skipped") else ("PASS" if e.get("result") == "success" else "FAIL")
+                      rows.append((mark, names.get(e["testID"], "?")))
+          out = ["## Flutter UI E2E (emulator, real api)", "", "| Result | Test |", "|---|---|"]
+          out += [f"| {m} | {n} |" for m, n in rows]
+          out += ["", f"{sum(1 for m, _ in rows if m == 'PASS')}/{len(rows)} passed, {sum(1 for m, _ in rows if m == 'SKIP')} skipped"]
+          open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8").write("\n".join(out) + "\n")
+          ok = sum(1 for m, _ in rows if m == "PASS"); fail = sum(1 for m, _ in rows if m == "FAIL"); skip = sum(1 for m, _ in rows if m == "SKIP")
+          print(f"Tests: {ok} passed, {fail} failed, {skip} skipped")
+          PY
+
+      - name: 11. Upload videos, screenshots, Allure and logs (7 days, fake data only; not published to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-mobile-ui-e2e
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ui-e2e-out
             ${{ runner.temp }}/api.log
 
   # =========================================================================
