@@ -42,7 +42,7 @@ def convert(events, media, media_dir, results, epoch_ms):
             tt, msg = tests[e["testID"]], e.get("message", "")
             if msg.startswith(STEP):
                 tt["steps"].append((msg[len(STEP):], e["time"]))
-            else:
+            elif not msg.startswith("[[SHOT]]"):
                 tt["logs"].append(msg)
         elif t == "error" and e.get("testID") in tests:
             tests[e["testID"]]["errors"].append((e.get("error", ""), e.get("stackTrace", "")))

@@ -81,6 +81,7 @@ def main():
     os.makedirs(os.path.join(a.out, "screenshots"), exist_ok=True)
     media = {"t0_epoch_ms": int(time.time() * 1000), "tests": {}}
     names, rec, synced = {}, None, False
+    shot_taken = set()
     raw = open(os.path.join(a.out, "flutter.json"), "w", encoding="utf-8")
     proc = subprocess.Popen(cmd + ["--reporter", "json"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace", bufsize=1)
@@ -107,15 +108,23 @@ def main():
             rec = Recorder(a.device, test["id"], a.out, a.segment, a.size)
             media["tests"][str(test["id"])] = {"videos": [], "screenshot": None}
         elif t == "print":
-            print(f"    {e.get('message', '')}", flush=True)
+            msg = e.get("message", "")
+            print(f"    {msg}", flush=True)
+            # The test prints [[SHOT]] while its last screen is still up (after the body, before teardown of the app).
+            if msg.startswith("[[SHOT]]") and rec is not None and str(rec.test_id) == str(e.get("testID")):
+                shot = os.path.join(a.out, "screenshots", f"{e['testID']}.png")
+                with open(shot, "wb") as f:
+                    f.write(adb(a.device, "exec-out", "screencap", "-p").stdout)
+                shot_taken.add(str(e["testID"]))
         elif t == "error":
             print(f"    ERROR: {e.get('error', '')[:600]}", flush=True)
         elif t == "testDone" and not e.get("hidden"):
             tid = str(e["testID"])
             if rec is not None and str(rec.test_id) == tid:
                 shot = os.path.join(a.out, "screenshots", f"{tid}.png")
-                with open(shot, "wb") as f:
-                    f.write(adb(a.device, "exec-out", "screencap", "-p").stdout)
+                if tid not in shot_taken:
+                    with open(shot, "wb") as f:
+                        f.write(adb(a.device, "exec-out", "screencap", "-p").stdout)
                 videos = rec.stop()
                 rec = None
                 media["tests"][tid] = {"videos": videos, "screenshot": os.path.basename(shot)}
