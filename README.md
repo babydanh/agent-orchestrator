@@ -3,6 +3,105 @@
 Bộ điều phối để **đẩy việc đang làm dở từ máy local lên cloud và làm tiếp**, cho cả cụm dự án giải đấu
 (Backend, Web, App, ...). Bản thân repo này không chứa code dự án, chỉ chứa workflow.
 
+Repo này là **trung tâm chạy việc nặng** của cụm dự án Sporto (`sporto.asia`): máy phát triển yếu, nên test nặng, deploy và quét bảo mật chạy ở đây trên runner GitHub. Repo **public** nên runner chuẩn không tính phút; vì vậy mọi log công khai đều đã được lọc (không có địa chỉ VPS, khoá hay output thô).
+
+## Tổng quan: 4 repo và ai làm gì
+
+| Repo | Là gì | Test chạy ở đâu | Deploy lên đâu |
+|---|---|---|---|
+| [`HethongBackendApi_QuanlyGiaiDau`](https://github.com/babydanh/HethongBackendApi_QuanlyGiaiDau) | Backend NestJS | `ci.yml` của repo (nhẹ) + `test-runner.yml` ở đây (target `backend`, `api-contract`, `fullstack-e2e`) | VPS qua `deploy.yml` **của repo này** |
+| [`HethongFrontEndWeb_QLgiaidau`](https://github.com/babydanh/HethongFrontEndWeb_QLgiaidau) | Web Next.js | `ci.yml` của repo (nhẹ) + `test-runner.yml` (target `fullstack-e2e`, `web`) | VPS qua `deploy.yml` **của repo này** |
+| [`HethongFrontEndApp_QLgiaidau`](https://github.com/babydanh/HethongFrontEndApp_QLgiaidau) | App Flutter | `ci.yml` của repo + `test-runner.yml` (target `app`, `app-e2e`) | Không deploy production. iOS/App Store: `deploy-ios.yml` **trong repo App**, chạy tay |
+| `agent-orchestrator` (repo này) | Workflow, script deploy, script test | Test script Python (`scripts/**/test_*.py`) | Không có |
+
+Môi trường: **production** = `https://sporto.asia`, **staging** = `https://staging.sporto.asia` (chung một VPS, tách container và compose).
+
+```mermaid
+flowchart LR
+  Dev["Máy phát triển<br/>(worktree + script ~/.omp/scripts)"] -->|push nhánh| GH["GitHub (3 repo dự án)"]
+  Dev -->|cloud-test-runner.py| TR["test-runner.yml<br/>(repo này)"]
+  Dev -->|staging-sync.py / merge-lane.py| DP["deploy.yml<br/>(repo này)"]
+  AD["auto-deploy-web.yml<br/>(quét main mỗi ~60 giây)"] --> DP
+  TR -->|Playwright / Jest / Flutter| R["Kết quả + Allure<br/>(kho private qlgd-e2e-archive)"]
+  DP -->|build image, đẩy GHCR, SSH| VPS["VPS: staging + production"]
+```
+
+## Cài đặt
+
+### 1. Yêu cầu
+- Tài khoản GitHub có quyền ghi 4 repo ở trên, `gh` CLI đã đăng nhập (`gh auth login`)
+- Python 3 và PowerShell 7 (`pwsh`) trên máy phát triển
+- Một VPS chạy Docker cho staging và production (đã có compose cho Backend/Web)
+
+### 2. Lấy repo
+
+```bash
+git clone https://github.com/babydanh/agent-orchestrator.git
+```
+
+### 3. Đặt secrets và environment
+Làm một lần, chạy lại được (bước nào xong thì bỏ qua):
+
+```powershell
+pwsh -File scripts\setup-deploy.ps1 [-BackendRepo <đường dẫn clone Backend>]
+```
+
+Script tạo environment `production` và `staging`, đặt secret VPS (SSH key, known_hosts, host, port, user, thư mục compose, khoá Basic Auth staging) và mở trang cấp quyền package GHCR. Danh sách secret đầy đủ ở mục [Secrets cần có](#secrets-cần-có-settings---secrets-and-variables---actions). Không commit giá trị secret.
+
+### 4. Cài công cụ phía máy phát triển
+Các lệnh dưới đây nằm trong `~/.omp/scripts/` (cấu hình chung của OMP trên máy), không nằm trong repo này:
+
+| Script | Làm gì |
+|---|---|
+| `cloud-test-runner.py` | Gọi `test-runner.yml`, chờ xong, in kết quả; `summary`, `ds`, `xem` để đọc lỗi và xem báo cáo |
+| `staging-sync.py` | Đẩy nhánh việc lên `staging` rồi gọi deploy staging |
+| `merge-lane.py` | Rebase, chạy kiểm tra, (tuỳ chọn `--push`) đẩy `main` rồi gọi deploy production |
+| `orchestrator-deploy.py` | Gọi `deploy.yml` (dùng nội bộ bởi hai script trên, gọi tay được) |
+| `e2e-impact.py` | Chọn spec Playwright bị ảnh hưởng bởi thay đổi |
+
+Biến môi trường người dùng `ORCH_DISPATCH_TOKEN` (token GitHub có quyền dispatch workflow) cho `cloud-test-runner.py`. Không in, không ghi file.
+
+## Cách dùng (theo việc cần làm)
+
+| Muốn | Lệnh | Chạy workflow nào |
+|---|---|---|
+| Chạy một spec E2E Web trên cloud | `python ~/.omp/scripts/cloud-test-runner.py run --target fullstack-e2e --web-ref <nhánh> --specs test/e2e/<tên>.spec.ts` | `test-runner.yml` |
+| Chạy test Backend (Jest) | `... run --target backend --branch <nhánh>` | `test-runner.yml` |
+| Kiểm hợp đồng OpenAPI | `... run --target api-contract --backend-ref <nhánh>` | `test-runner.yml` |
+| Test App (analyze + test) | `... run --target app --branch <nhánh>` | `test-runner.yml` |
+| E2E App trên emulator | `... run --target app-e2e --app-ref <nhánh> --specs integration_test/<tên>_test.dart` | `test-runner.yml` |
+| Đọc lỗi lượt vừa chạy | `... summary <run_id\|last>` | (đọc log) |
+| Xem ảnh/video/trace E2E | `... xem <run_id\|last>` | (kho `qlgd-e2e-archive`) |
+| Lên **staging** | `python ~/.omp/scripts/staging-sync.py <worktree Backend> <worktree Web> --branch <nhánh>` (commit hết trước) | `deploy.yml` env=staging |
+| Lên **production** | `python ~/.omp/scripts/merge-lane.py <worktree> --check "<test liên quan>" --push` | `deploy.yml` env=production |
+| Deploy tay | `gh workflow run deploy.yml -R babydanh/agent-orchestrator -f project=backend\|web -f env=staging\|production -f sha=<40 ký tự>` | `deploy.yml` |
+| Quét bảo mật | `gh workflow run security-scan.yml -R babydanh/agent-orchestrator -f target=all -f ref=main` | `security-scan.yml` |
+| Chụp trang Web trên iPhone (Safari thật, simulator) | `gh workflow run ios-safari-shot.yml -R babydanh/agent-orchestrator -f paths=/live` | `ios-safari-shot.yml` |
+| Đẩy việc dở lên cloud làm tiếp | nói "đẩy session lên github làm tiếp" (`scripts/fast-handoff.ps1`) | `agent-task.yml` |
+
+Chỉ `--specs` cho spec liên quan; chạy cả bộ (`--all-specs`, 4 máy song song, ~26 phút) chỉ khi thật cần.
+
+## Danh sách workflow
+
+| Workflow | Kích hoạt | Làm gì |
+|---|---|---|
+| `test-runner.yml` | Tay (`workflow_dispatch`), hoặc lịch đêm 02:00 giờ VN | Test Backend, Web, App, E2E full-stack, E2E App |
+| `deploy.yml` | Tay, hoặc gọi bởi `merge-lane.py` / `staging-sync.py` / `auto-deploy-web.yml` | Build image, đẩy GHCR, deploy Backend/Web lên VPS (staging hoặc production) |
+| `auto-deploy-web.yml` | Lịch (cron `*/5`, tự lặp ~60 giây) | So SHA mới nhất của `main` Web/Backend với các lần đã deploy; SHA chưa deploy thì gọi `deploy.yml` production |
+| `staging-refresh-db.yml` | Tay, phải gõ `REFRESH` | Chép đè DB staging từ bản sao production |
+| `agent-task.yml` | Mở Issue / gắn nhãn `agent-task` / tay | Chạy tiếp session OMP trên cloud (xem mục sau) |
+| `security-scan.yml` | Tay, thứ Hai 02:20 UTC | Gitleaks, OSV-Scanner, Semgrep |
+| `ios-safari-shot.yml` | Tay | Chụp/quay trang trên Safari iOS (simulator macOS) |
+| `deploy-log.yml`, `vps-diagnose.yml`, `vps-livestream-log.yml` | Tay | Đọc log deploy / tình trạng VPS (chỉ đọc) |
+| `prod-seed-venues.yml`, `staging-seed-venues.yml`, `staging-venue-probe.yml`, `prod-tournament-fee-mode.yml` | Tay | Nạp/kiểm dữ liệu sân, chế độ phí giải (production tự `pg_dump` sao lưu trước khi áp) |
+| `k6-live-load.yml`, `web-capacity.yml`, `web-cpu-profile.yml` | Tay | Đo tải staging, sức chứa Web, CPU profile |
+| `deploy-salesbot.yml` | Tay (hoặc `auto-deploy-web.yml` khi bật `SALESBOT_AUTO_DEPLOY`) | Deploy `salesbot-admin` (dự án khác) |
+| `cleanup-merged.yml` | Khi merge Pull Request | Dọn nhánh/session (quy trình hiện không dùng PR nên ít chạy) |
+
+> **Lưu ý:** workflow `deploy.yml` / `deploy-staging.yml` trong repo Backend và Web đã bị **tắt**; deploy chỉ chạy ở repo này. Đẩy `main` của Backend/Web kéo theo deploy production (qua `merge-lane.py` hoặc `auto-deploy-web.yml`), nên không push thẳng `main`.
+
+---
+
 ## Mục tiêu
 
 Trước khi đi ngủ, bạn nói "đẩy lên cloud làm tiếp". Session dở dang được lưu và đẩy lên GitHub, cloud được cấu hình
