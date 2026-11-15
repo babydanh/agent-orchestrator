@@ -1349,6 +1349,8 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
+          # A busy CI emulator makes launcher/system UI miss the ANR deadline; the dialog would sit on top of the app in videos.
+          adb shell settings put global hide_error_dialogs 1
           # Same API address for the app (API_BASE_URL) and for the seeding helpers (E2E_API_URL): the host as seen from the emulator.
           timeout --kill-after=60 6000 python3 "$GITHUB_WORKSPACE/orchestrator/scripts/e2e/app_ui_runner.py" --out "$OUT" -- \
             flutter test --no-pub -d emulator-5554 \
