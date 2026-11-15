@@ -1038,8 +1038,9 @@ jobs:
           E2E_API_URL: http://127.0.0.1:3000
           CI: 'true'
         run: |
-          # Allure is added only in this runner (package.json and lockfile of the repo stay untouched).
-          pnpm add -D allure-playwright@3.14.0 allure-commandline@2.46.1
+          # allure-playwright and allure-commandline are devDependencies of apps/web since change cloud-complete-all;
+          # older branches do not have them, so add them in the runner only when missing.
+          pnpm exec allure --version >/dev/null 2>&1 || pnpm add -D allure-playwright@3.14.0 allure-commandline@2.46.1
           pnpm exec playwright install --with-deps chromium
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
@@ -1055,7 +1056,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: itservice-web-e2e
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: ignore
           path: |
             apps/web/test-results
