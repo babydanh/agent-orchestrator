@@ -234,6 +234,7 @@ jobs:
           SHA: ${{ inputs.sha }}
           DRY_RUN: ${{ inputs.dry_run }}
           NEXT_PUBLIC_APP_API_KEY: ${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
         run: |
           set -euo pipefail
           if [[ "$DEPLOY_ENV" == production ]]; then
@@ -255,6 +256,10 @@ jobs:
                 --build-arg "NEXT_PUBLIC_BUILD_SHA=$SHA")
             fi
             args+=(--build-arg "NEXT_PUBLIC_APP_API_KEY=$NEXT_PUBLIC_APP_API_KEY")
+            # Browser error reporting: production only, so staging never reports into the production project.
+            if [[ "$DEPLOY_ENV" == production && -n "$NEXT_PUBLIC_SENTRY_DSN" ]]; then
+              args+=(--build-arg "NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN")
+            fi
           fi
           cache=(--cache-from "type=registry,ref=$IMAGE:buildcache")
           if [[ "$DRY_RUN" == true ]]; then
