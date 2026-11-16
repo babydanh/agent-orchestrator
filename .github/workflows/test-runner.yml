@@ -30,6 +30,13 @@ on:
           - 'aicheckvar'
           - 'auto25d'
           - 'auto3dvideo'
+          - 'itservice-flutter'
+          - 'itservice-api'
+          - 'itservice-mobile'
+          - 'itservice-web'
+          - 'itservice-web-e2e'
+          - 'itservice-mobile-e2e'
+          - 'itservice-mobile-ui-e2e'
       custom_branch:
         description: 'Tên branch muốn kiểm tra (để trống sẽ dùng nhánh mặc định)'
         required: false
@@ -797,6 +804,728 @@ jobs:
           # Errors fail the job; the ~200 existing info/warning lints are reported, not fatal.
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
+
+  # =========================================================================
+  # JOB ITSERVICE-FLUTTER: prototype Flutter của HethongQuanLiITService (VNCare)
+  # Chỉ chạy khi chọn đúng target này (không nằm trong 'all'). Repo nằm ở design/flutter-splash, không phải gốc repo.
+  # custom_branch phải là nhánh ĐÃ PUSH lên GitHub; để trống thì kiểm main (chỉ có khung rỗng).
+  # specs (tuỳ chọn): file test cách nhau bằng dấu cách, tính từ design/flutter-splash; trống = cả bộ.
+  # =========================================================================
+  test-itservice-flutter:
+    name: 📱 Test VNCare Flutter (gen-l10n, analyze, test)
+    if: github.event.inputs.target_project == 'itservice-flutter'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: design/flutter-splash
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: 2. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          # pubspec needs Dart ^3.13.3 (Flutter 3.47.x), same line as the dev machine.
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 3. Generate l10n, analyze, test
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          # Errors fail the job; infos/warnings are reported, not fatal (flutter analyze was never run on this repo before).
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE: app Flutter thật của HethongQuanLiITService (apps/mobile: Riverpod + dio), khác prototype ở design/.
+  # Chỉ chạy khi chọn target_project = itservice-mobile (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH.
+  # specs (tuỳ chọn): file test cách nhau bằng dấu cách, tính từ apps/mobile; trống = cả bộ.
+  # =========================================================================
+  test-itservice-mobile:
+    name: 📱 Test ITService Mobile (analyze, test)
+    if: github.event.inputs.target_project == 'itservice-mobile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: 2. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          # pubspec needs Dart ^3.13.3 (Flutter 3.47.x), same line as the prototype job.
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 3. Analyze and test
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+        run: |
+          flutter pub get
+          # Errors and warnings fail the job; infos are reported only.
+          flutter analyze --no-fatal-infos
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          flutter test --no-pub $SPECS
+
+  # =========================================================================
+  # JOB ITSERVICE-WEB: Next.js của HethongQuanLiITService (apps/web): typecheck, lint, unit (vitest), build.
+  # Chưa chạy Playwright E2E (cần Backend thật + seed). Chỉ chạy khi chọn target_project = itservice-web.
+  # custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-web:
+    name: 🌐 ITService Web (typecheck, lint, unit, build)
+    if: github.event.inputs.target_project == 'itservice-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      # apps/web has no "packageManager"; take the monorepo's pnpm version from apps/api.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+  # =========================================================================
+  # JOB ITSERVICE-WEB-E2E: web quản trị VNCare (apps/web) + api thật (apps/api, chạy bằng e2e-main) + Postgres 17
+  # custom_branch phải có CẢ apps/api (có module ticket) và apps/web: dùng nhánh ghép, không dùng nhánh chỉ có web.
+  # Chỉ chạy khi chọn đúng target này (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH của
+  # HethongQuanLiITService. specs (tuỳ chọn): file spec tính từ apps/web, vd e2e/users.spec.ts; trống = cả bộ.
+  # Dữ liệu chỉ là dữ liệu giả; artifact giữ 1 ngày (repo công khai). Google thật KHÔNG được E2E (e2e-main thay bộ xác minh).
+  # =========================================================================
+  test-itservice-web-e2e:
+    name: 🖥️🧪 E2E VNCare Web (Postgres 17 + api e2e-main + next start + Playwright)
+    if: github.event.inputs.target_project == 'itservice-web-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_WEB_PORT: '3100'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 2b. Run-only admin password (seed and Playwright fixtures share it)
+        run: |
+          pw="Aa1-$(openssl rand -hex 16)"
+          echo "::add-mask::$pw"
+          {
+            echo "SUPER_ADMIN_PASSWORD=$pw"
+            echo "E2E_ADMIN_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier) and wait for /health
+        working-directory: apps/api
+        run: |
+          # Throwaway secret for this run only; never stored.
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          AUTH_GOOGLE_ENABLED=true \
+          SCHEDULER_ENABLED=false \
+          UPLOAD_DIR="$RUNNER_TEMP/uploads" \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Web - install, build, start and wait for /login
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: e2e.apps.googleusercontent.com
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          API_URL="http://127.0.0.1:$E2E_API_PORT" PORT="$E2E_WEB_PORT" nohup pnpm start > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://localhost:$E2E_WEB_PORT/login" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "web did not become ready"; tail -n 50 "$RUNNER_TEMP/web.log"; exit 1
+
+      - name: 6. Playwright (chromium only, one worker)
+        working-directory: apps/web
+        env:
+          SPECS: ${{ github.event.inputs.specs }}
+          E2E_BASE_URL: http://localhost:3100
+          E2E_API_URL: http://127.0.0.1:3000
+          CI: 'true'
+        run: |
+          # allure-playwright and allure-commandline are devDependencies of apps/web since change cloud-complete-all;
+          # older branches do not have them, so add them in the runner only when missing.
+          pnpm exec allure --version >/dev/null 2>&1 || pnpm add -D allure-playwright@3.14.0 allure-commandline@2.46.1
+          pnpm exec playwright install --with-deps chromium
+          # SPECS is passed as separate words on purpose (file paths without spaces).
+          # shellcheck disable=SC2086
+          pnpm exec playwright test --reporter=list,html,allure-playwright $SPECS
+
+      - name: 6b. Generate Allure report
+        if: always()
+        working-directory: apps/web
+        run: pnpm exec allure generate allure-results --clean -o allure-report || echo "Allure generate failed"
+
+      - name: 7. Upload screenshots (375/768/1440), traces, Allure and logs (1 day, fake data only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-web-e2e
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+            apps/web/allure-report
+            apps/web/allure-results
+            ${{ runner.temp }}/api.log
+            ${{ runner.temp }}/web.log
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE-E2E: app Flutter (apps/mobile) chạy test E2E gắn @Tags(['e2e']) ở test/e2e/ NỐI API THẬT
+  # (Postgres 17 + apps/api e2e-main, cùng cách dựng với itservice-web-e2e). Không cần emulator: flutter test chạy trên VM
+  # và dùng dio thật. Chỉ chạy khi chọn target_project = itservice-mobile-e2e. custom_branch phải là nhánh ĐÃ PUSH.
+  # Test đọc E2E_API_URL, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD (dart-define); thiếu E2E_API_URL thì tự skip.
+  # =========================================================================
+  test-itservice-mobile-e2e:
+    name: 📱🧪 E2E VNCare Mobile (Postgres 17 + api e2e-main + flutter test --tags e2e)
+    if: github.event.inputs.target_project == 'itservice-mobile-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 2b. Run-only admin password (seed and Flutter tests share it)
+        run: |
+          pw="Aa1-$(openssl rand -hex 16)"
+          echo "::add-mask::$pw"
+          {
+            echo "SUPER_ADMIN_PASSWORD=$pw"
+            echo "E2E_ADMIN_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier) and wait for /health
+        working-directory: apps/api
+        run: |
+          # Throwaway secret for this run only; never stored.
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          AUTH_GOOGLE_ENABLED=true \
+          SCHEDULER_ENABLED=false \
+          UPLOAD_DIR="$RUNNER_TEMP/uploads" \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 6. Flutter E2E against the real api (tests tagged e2e under test/e2e)
+        working-directory: apps/mobile
+        env:
+          E2E_API_URL: http://127.0.0.1:3000
+        run: |
+          flutter pub get
+          if [ ! -d test/e2e ]; then echo "no test/e2e yet: nothing to run"; exit 0; fi
+          # One file at a time: the api allows 20 sign-ins a minute per IP and the login budget is per file.
+          flutter test --no-pub --tags e2e --concurrency=1 \
+            --dart-define=E2E_API_URL="$E2E_API_URL" \
+            --dart-define=E2E_ADMIN_EMAIL="$E2E_ADMIN_EMAIL" \
+            --dart-define=E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
+            --file-reporter "json:$RUNNER_TEMP/flutter-e2e.json" \
+            --reporter expanded test/e2e
+
+      - name: 7. Summary table of every E2E test (job summary)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          p = os.path.join(os.environ["RUNNER_TEMP"], "flutter-e2e.json")
+          names, rows = {}, []
+          if os.path.exists(p):
+              for line in open(p, encoding="utf-8"):
+                  try:
+                      e = json.loads(line)
+                  except ValueError:
+                      continue
+                  t = e.get("type")
+                  if t == "testStart":
+                      names[e["test"]["id"]] = e["test"]["name"]
+                  elif t == "testDone" and not e.get("hidden"):
+                      mark = "skip" if e.get("skipped") else e.get("result")
+                      rows.append((mark, names.get(e["testID"], "?")))
+          icon = {"success": "PASS", "skip": "SKIP", "failure": "FAIL", "error": "FAIL"}
+          out = ["## Flutter E2E (real api)", "", "| Result | Test |", "|---|---|"]
+          out += [f"| {icon.get(m, m)} | {n} |" for m, n in rows]
+          total = len(rows)
+          ok = sum(1 for m, _ in rows if m == "success")
+          out += ["", f"{ok}/{total} passed, {sum(1 for m, _ in rows if m == 'skip')} skipped"]
+          open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8").write("\n".join(out) + "\n")
+          PY
+
+      - name: 8. Upload the test report and api log (1 day, fake data only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-mobile-e2e
+          retention-days: 1
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/flutter-e2e.json
+            ${{ runner.temp }}/api.log
+
+  # =========================================================================
+  # JOB ITSERVICE-MOBILE-UI-E2E: APP THẬT (apps/mobile) trên emulator Android API 34 + API thật (Postgres 17 + apps/api e2e-main).
+  # Test UI = integration_test ở apps/mobile/integration_test (mã TC-APPX-<NHÓM>-<số>). Mỗi test một video riêng quay bằng
+  # `adb shell screenrecord` (đoạn <=170 s) do scripts/e2e/app_ui_runner.py bám theo reporter JSON; scripts/e2e/flutter_to_allure.py
+  # đổi kết quả + video + ảnh thành allure-results, rồi allure generate. Artifact `itservice-mobile-ui-e2e` 7 ngày, KHÔNG đăng Pages.
+  # Chỉ chạy khi chọn target_project = itservice-mobile-ui-e2e. custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-mobile-ui-e2e:
+    name: 📱🎬 UI E2E VNCare Mobile (emulator Android API 34 + api e2e-main + video + Allure)
+    if: github.event.inputs.target_project == 'itservice-mobile-ui-e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vncare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vncare"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      E2E_API_PORT: '3000'
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+          path: app
+
+      - name: 1b. Checkout orchestrator (scripts/e2e)
+        uses: actions/checkout@v4
+        with:
+          path: orchestrator
+
+      - name: "2. Setup pnpm and Node 24 (apps/api needs node >=24 <25)"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 2b. Setup Java 17 (Gradle and Allure)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 2c. Run-only admin password (seed and Flutter tests share it)
+        run: |
+          pw="Aa1-$(openssl rand -hex 16)"
+          echo "::add-mask::$pw"
+          {
+            echo "SUPER_ADMIN_PASSWORD=$pw"
+            echo "E2E_ADMIN_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: 3. Api - install, build, migrate, seed the super admin
+        working-directory: app/apps/api
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/vncare
+          SUPER_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm db:migrate
+          pnpm seed:super-admin
+
+      - name: 4. Api - start e2e-main (fake Google verifier, sandbox OTP) and wait for /health
+        working-directory: app/apps/api
+        run: |
+          JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export JWT_ACCESS_SECRET
+          DATABASE_URL=postgres://postgres:postgres@localhost:5432/vncare \
+          GOOGLE_CLIENT_IDS=e2e.apps.googleusercontent.com \
+          AUTH_GOOGLE_ENABLED=true \
+          AUTH_PHONE_OTP_ENABLED=true \
+          SCHEDULER_ENABLED=false \
+          UPLOAD_DIR="$RUNNER_TEMP/uploads" \
+          PORT="$E2E_API_PORT" \
+          nohup node dist/test/e2e-main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$E2E_API_PORT/health" >/dev/null && exit 0
+            sleep 1
+          done
+          echo "api did not become healthy"; tail -n 50 "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: 5. Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.x'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:'
+
+      - name: 5b. Flutter pub get
+        working-directory: app/apps/mobile
+        run: flutter pub get
+
+      - name: 5c. Cache Gradle (setup-gradle)
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: 6. Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: 7. Write the run script
+        run: |
+          cat > "$RUNNER_TEMP/run-ui-e2e.sh" <<'SH'
+          #!/usr/bin/env bash
+          set +e
+          cd "$GITHUB_WORKSPACE/app/apps/mobile"
+          OUT="$GITHUB_WORKSPACE/ui-e2e-out"
+          mkdir -p "$OUT"
+          adb devices
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          # A busy CI emulator makes launcher/system UI miss the ANR deadline; the dialog would sit on top of the app in videos.
+          adb shell settings put global hide_error_dialogs 1
+          # Same API address for the app (API_BASE_URL) and for the seeding helpers (E2E_API_URL): the host as seen from the emulator.
+          timeout --kill-after=60 6000 python3 "$GITHUB_WORKSPACE/orchestrator/scripts/e2e/app_ui_runner.py" --out "$OUT" -- \
+            flutter test --no-pub -d emulator-5554 \
+            --dart-define=API_BASE_URL=http://10.0.2.2:3000 \
+            --dart-define=E2E_API_URL=http://10.0.2.2:3000 \
+            --dart-define=E2E_ADMIN_EMAIL="$E2E_ADMIN_EMAIL" \
+            --dart-define=E2E_ADMIN_PASSWORD="$E2E_ADMIN_PASSWORD" \
+            ${E2E_UI_FILES:-integration_test/app_ui_e2e_test.dart}
+          RC=$?
+          adb logcat -d -t 4000 > "$OUT/logcat.txt" || true
+          exit "$RC"
+          SH
+          chmod +x "$RUNNER_TEMP/run-ui-e2e.sh"
+
+      - name: 8. Run integration_test on emulator Android API 34 (x86_64) with one video per test
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_UI_FILES: ${{ github.event.inputs.specs }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash "$RUNNER_TEMP/run-ui-e2e.sh"
+
+      - name: 9. Convert to Allure results and generate the report
+        if: always()
+        run: |
+          python3 orchestrator/scripts/e2e/flutter_to_allure.py --json ui-e2e-out/flutter.json --media ui-e2e-out --results ui-e2e-out/allure-results
+          npx --yes allure-commandline@2.46.1 generate ui-e2e-out/allure-results --clean -o ui-e2e-out/allure-report || echo "Allure generate failed"
+
+      - name: 10. Summary table of every UI E2E test (job summary)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          p = "ui-e2e-out/flutter.json"
+          names, rows = {}, []
+          if os.path.exists(p):
+              for line in open(p, encoding="utf-8"):
+                  try:
+                      e = json.loads(line)
+                  except ValueError:
+                      continue
+                  t = e.get("type")
+                  if t == "testStart":
+                      names[e["test"]["id"]] = e["test"]["name"]
+                  elif t == "testDone" and not e.get("hidden"):
+                      mark = "SKIP" if e.get("skipped") else ("PASS" if e.get("result") == "success" else "FAIL")
+                      rows.append((mark, names.get(e["testID"], "?")))
+          out = ["## Flutter UI E2E (emulator, real api)", "", "| Result | Test |", "|---|---|"]
+          out += [f"| {m} | {n} |" for m, n in rows]
+          out += ["", f"{sum(1 for m, _ in rows if m == 'PASS')}/{len(rows)} passed, {sum(1 for m, _ in rows if m == 'SKIP')} skipped"]
+          open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8").write("\n".join(out) + "\n")
+          ok = sum(1 for m, _ in rows if m == "PASS"); fail = sum(1 for m, _ in rows if m == "FAIL"); skip = sum(1 for m, _ in rows if m == "SKIP")
+          print(f"Tests: {ok} passed, {fail} failed, {skip} skipped")
+          PY
+
+      - name: 11. Upload videos, screenshots, Allure and logs (7 days, fake data only; not published to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-mobile-ui-e2e
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ui-e2e-out
+            ${{ runner.temp }}/api.log
+
+  # =========================================================================
+  # JOB ITSERVICE-API: backend NestJS của HethongQuanLiITService (apps/api) + hợp đồng OpenAPI.
+  # Chạy lại đúng các bước của .github/workflows/api-ci.yml trong repo đó, vì CI riêng của repo này bị chặn billing.
+  # Chỉ chạy khi chọn target_project = itservice-api (không nằm trong 'all'). custom_branch phải là nhánh ĐÃ PUSH.
+  # =========================================================================
+  test-itservice-api:
+    name: 🛡️ ITService API (typecheck, build, unit, int, e2e, audit)
+    if: github.event.inputs.target_project == 'itservice-api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Throwaway container reachable only from this job: no password needed.
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: itservice_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      # pnpm version comes from "packageManager" in apps/api/package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      # Node 24 matches "engines" (>=24 <25).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/api/pnpm-lock.yaml
+
+      - name: 2. Test environment
+        run: |
+          jwt="$(openssl rand -hex 32)"
+          echo "::add-mask::$jwt"
+          {
+            echo "JWT_ACCESS_SECRET=$jwt"
+            echo "DATABASE_URL=postgres://postgres@localhost:5432/itservice_ci"
+            echo "GOOGLE_CLIENT_IDS=ci-test.apps.googleusercontent.com"
+            echo "SUPER_ADMIN_EMAIL=ci-admin@example.com"
+            echo "SCHEDULER_ENABLED=false"
+            echo "AUTH_GOOGLE_ENABLED=true"
+          } >> "$GITHUB_ENV"
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test:unit
+      - run: pnpm db:migrate
+      - name: 3. Integration + E2E tests
+        # The pattern also matches src/test/e2e/*.int.spec.ts, so E2E runs in this step.
+        run: pnpm test:int '\.int\.spec\.ts$'
+      - run: pnpm audit --audit-level high
+
+  test-itservice-contracts:
+    name: 📜 ITService API contract (openapi:check + contracts typecheck)
+    if: github.event.inputs.target_project == 'itservice-api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - name: 1. Checkout HethongQuanLiITService
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/HethongQuanLiITService
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.inputs.custom_branch || 'main' }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/api/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: |
+            apps/api/pnpm-lock.yaml
+            packages/contracts/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C ../../packages/contracts install --frozen-lockfile
+      # No database or secrets needed: the exporter uses fake env values and never connects.
+      - run: pnpm openapi:check
+      - run: pnpm -C ../../packages/contracts typecheck
 
   # =========================================================================
   # JOB E2E APP: integration_test CHẠY TRÊN EMULATOR ANDROID + BACKEND THẬT
