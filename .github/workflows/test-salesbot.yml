@@ -1,0 +1,73 @@
+name: Test salesbot
+
+# Typecheck, lint and every test of salesbot-admin (repo private) on GitHub's runner instead of the owner's PC: the API
+# suite starts a jest worker per core, each with an in-process Postgres. This repo is public, so private repos' Actions
+# billing does not apply. Nothing is deployed and no secret besides GH_PAT (checkout) is used.
+#   gh workflow run test-salesbot.yml -R babydanh/agent-orchestrator -f ref=<branch or SHA> [-f request_id=<id>]
+# Repo public nên log ai cũng đọc: mọi output thô (code, stack trace, tên test) đi qua scripts/deploy/quiet.sh, log chỉ
+# còn OK / mã lỗi / dòng tổng kết số test. Không upload artifact. Muốn biết test nào đỏ: chạy file đó ở máy nhà.
+run-name: "test salesbot @${{ inputs.ref }}${{ inputs.request_id && format(' #{0}', inputs.request_id) || '' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Nhánh hoặc SHA của salesbot-admin'
+        required: true
+        type: string
+      request_id:
+        description: 'Mã tuỳ ý để nhận đúng lượt khi chạy song song'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-salesbot-${{ inputs.request_id || github.run_id }}
+
+env:
+  REPO: salesbot-admin
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Ref hợp lệ
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          if [[ ! "$REF" =~ ^[A-Za-z0-9._/-]{1,100}$ || "$REF" == *..* ]]; then
+            echo "::error::ref chỉ gồm chữ, số, . _ / - (tên nhánh hoặc SHA)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/deploy
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ env.REPO }}
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.GH_PAT }}
+          path: src
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Cài, build guard-core, typecheck, lint, test
+        working-directory: src
+        run: |
+          set -uo pipefail
+          q() { bash "$GITHUB_WORKSPACE/scripts/deploy/quiet.sh" "$@"; }
+          rc=0
+          q "bun install" bun install --frozen-lockfile || exit 1
+          q "build guard-core" bun run --cwd packages/guard-core build || exit 1
+          q "typecheck" bun run typecheck || rc=1
+          q "lint" bun run lint || rc=1
+          QUIET_SUMMARY='^ *[0-9]+ (pass|fail)$|^Ran [0-9]+ tests' q "bun test (dashboard, packages, plugins, docs)" bun test apps/dashboard packages plugins docs || rc=1
+          QUIET_SUMMARY='^(Tests|Test Suites):' q "jest (api)" bash -c 'cd apps/api && node --experimental-vm-modules node_modules/jest/bin/jest.js --ci' || rc=1
+          exit "$rc"
