@@ -889,7 +889,29 @@ jobs:
           flutter analyze --no-fatal-infos
           # SPECS is passed as separate words on purpose (file paths without spaces).
           # shellcheck disable=SC2086
-          flutter test --no-pub $SPECS
+          # The JSON file reporter keeps the normal console output and feeds Allure below.
+          flutter test --no-pub --file-reporter json:flutter.json $SPECS
+
+      - name: 4. Convert to Allure results and generate the report
+        if: always()
+        run: |
+          if [ -s flutter.json ]; then
+            python3 tool/allure_from_json.py flutter.json -o allure-results
+            npx --yes allure-commandline@2.46.1 generate allure-results --clean -o allure-report || echo "Allure generate failed"
+          else
+            echo "flutter.json missing or empty: no Allure report"
+          fi
+
+      - name: 5. Upload Allure report (7 days, fake data only; not published to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-mobile-allure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/mobile/allure-report
+            apps/mobile/allure-results
 
   # =========================================================================
   # JOB ITSERVICE-WEB: Next.js của HethongQuanLiITService (apps/web): typecheck, lint, unit (vitest), build.
@@ -928,6 +950,21 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+
+      - name: Allure report (vitest results written by allure-vitest)
+        if: always()
+        run: npx --yes allure-commandline@2.46.1 generate allure-results --clean -o allure-report || echo "Allure generate failed"
+
+      - name: Upload Allure report (7 days, fake data only; not published to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-web-allure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/web/allure-report
+            apps/web/allure-results
 
   # =========================================================================
   # JOB ITSERVICE-WEB-E2E: web quản trị VNCare (apps/web) + api thật (apps/api, chạy bằng e2e-main) + Postgres 17
@@ -1492,6 +1529,21 @@ jobs:
         # The pattern also matches src/test/e2e/*.int.spec.ts, so E2E runs in this step.
         run: pnpm test:int '\.int\.spec\.ts$'
       - run: pnpm audit --audit-level high
+
+      - name: 4. Allure report (jest results written by allure-jest)
+        if: always()
+        run: npx --yes allure-commandline@2.46.1 generate allure-results --clean -o allure-report || echo "Allure generate failed"
+
+      - name: 5. Upload Allure report (7 days, fake data only; not published to Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itservice-api-allure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            apps/api/allure-report
+            apps/api/allure-results
 
   test-itservice-contracts:
     name: 📜 ITService API contract (openapi:check + contracts typecheck)
