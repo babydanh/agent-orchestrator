@@ -28,6 +28,8 @@ concurrency:
 
 env:
   REPO: salesbot-admin
+  # Same commit as `archify.commit` in salesbot-admin system-map/subsystems.yaml (a mismatch only warns: W102).
+  ARCHIFY_PIN: 25cf37080fc8b1dbe758a4efc3935b55f3327083
 
 jobs:
   test:
@@ -68,6 +70,17 @@ jobs:
           q "build guard-core" bun run --cwd packages/guard-core build || exit 1
           q "typecheck" bun run typecheck || rc=1
           q "lint" bun run lint || rc=1
-          QUIET_SUMMARY='^ *[0-9]+ (pass|fail)$|^Ran [0-9]+ tests' q "bun test (dashboard, packages, plugins, docs)" bun test apps/dashboard packages plugins docs || rc=1
+          # System map (refs that have tools/system-map): Archify at the pin in system-map/subsystems.yaml, required.
+          paths="apps/dashboard packages plugins docs"
+          if [[ -f tools/system-map/cli.ts ]]; then
+            a="$RUNNER_TEMP/archify"
+            q "archify @${ARCHIFY_PIN:0:7}" bash -c "git init -q '$a' && git -C '$a' fetch -q --depth 1 https://github.com/tt-a1i/archify '$ARCHIFY_PIN' && git -C '$a' checkout -q FETCH_HEAD" || exit 1
+            export ARCHIFY_BIN="$a/bin/archify.mjs" SYSTEM_MAP_REQUIRE_ARCHIFY=1
+            paths="$paths tools/system-map"
+          fi
+          QUIET_SUMMARY='^ *[0-9]+ (pass|fail)$|^Ran [0-9]+ tests' q "bun test (${paths// /, })" bun test $paths || rc=1
+          if [[ -f tools/system-map/cli.ts ]]; then
+            q "system-map check" bash -c 'bun run --cwd apps/api build && bun run --cwd apps/api openapi:export && bun tools/system-map/cli.ts check --openapi apps/api/openapi.json' || rc=1
+          fi
           QUIET_SUMMARY='^(Tests|Test Suites):' q "jest (api)" bash -c 'cd apps/api && node --experimental-vm-modules node_modules/jest/bin/jest.js --ci' || rc=1
           exit "$rc"
