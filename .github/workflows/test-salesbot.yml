@@ -75,7 +75,7 @@ jobs:
           if [[ -f tools/system-map/cli.ts ]]; then
             a="$RUNNER_TEMP/archify"
             q "archify @${ARCHIFY_PIN:0:7}" bash -c "git init -q '$a' && git -C '$a' fetch -q --depth 1 https://github.com/tt-a1i/archify '$ARCHIFY_PIN' && git -C '$a' checkout -q FETCH_HEAD" || exit 1
-            export ARCHIFY_BIN="$a/bin/archify.mjs" SYSTEM_MAP_REQUIRE_ARCHIFY=1
+            export ARCHIFY_BIN="$a/archify/bin/archify.mjs" SYSTEM_MAP_REQUIRE_ARCHIFY=1
             paths="$paths tools/system-map"
           fi
           QUIET_SUMMARY='^ *[0-9]+ (pass|fail)$|^Ran [0-9]+ tests' q "bun test (${paths// /, })" bun test $paths || rc=1
