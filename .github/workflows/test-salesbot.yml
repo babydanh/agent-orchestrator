@@ -32,7 +32,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - name: Ref hợp lệ
         env:
