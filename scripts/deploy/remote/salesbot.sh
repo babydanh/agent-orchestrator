@@ -53,9 +53,9 @@ pull_all() {
 }
 logged "docker compose pull" pull_all
 
-# api /health trả {"ok":true} khi DB + Redis sống; web /login qua cổng loopback của host; 9router (20128) và gateway
-# (18789) phải nhận kết nối: "running" không đủ, container đang restart liên tục vẫn có lúc là running. Chưa đăng
-# nhập Zalo vẫn là trạng thái hợp lệ của bản mới.
+# api /health trả {"ok":true} khi DB + Redis sống; web /login qua cổng loopback của host; 9router (20128) phải nhận
+# kết nối: "running" không đủ, container đang restart liên tục vẫn có lúc là running. Chưa đăng nhập Zalo vẫn là
+# trạng thái hợp lệ của bản mới.
 healthy() {
   local port
   port="$(sed -n 's/^WEB_PORT=//p' .env | tail -n 1)"
@@ -63,12 +63,11 @@ healthy() {
     const net = require('net');
     const open = (p) => new Promise((ok, no) => net.connect(p, '127.0.0.1').on('connect', function () { this.end(); ok(); }).on('error', no));
     fetch('http://127.0.0.1:3400/health').then((r) => r.json())
-      .then((b) => (b.ok ? Promise.all([open(20128), open(18789)]) : Promise.reject()))
+      .then((b) => (b.ok ? open(20128) : Promise.reject()))
       .then(() => process.exit(0), () => process.exit(1));" || return 1
   curl -fsS -o /dev/null --max-time 10 "http://127.0.0.1:${port:-3300}/login" || return 1
-  docker compose ps --status running --services | grep -qx watchdog
 }
-# Lần đầu gateway còn tải plugin zalouser/matrix từ npm, nên chờ tới 5 phút.
+# Lần đầu api còn chạy migration và engine còn nối lại Zalo, nên chờ tới 5 phút.
 wait_healthy() {
   local _
   for _ in $(seq 1 60); do
@@ -78,54 +77,10 @@ wait_healthy() {
   return 1
 }
 
-# The bot's config lives in the gateway's state volume, not in the image, so a new tool or prompt in deploy/vps used to
-# reach production only by hand. Every deploy re-applies it from the new image once the manager agent exists (the first
-# install stays manual, README step 7) and a Zalo number is connected (setup-manager.sh writes the account ids into the
-# prompt). --keep-sessions keeps the staff-group sessions. The gateway restarts only when openclaw.json changed.
-gw() { docker compose exec -T gateway "$@"; }
-# Captured first: piping into grep -q under pipefail can fail on SIGPIPE even when the line matched.
-zalo_connected() {
-  local out
-  out="$(gw /data/openclaw/oc gateway call channels.status --json --params '{"channel":"zalouser"}' 2>/dev/null)" || return 1
-  grep -Eq '"connected": *true' <<<"$out"
-}
-wait_zalo() {
-  local _
-  for _ in $(seq 1 24); do
-    zalo_connected && return 0
-    sleep 5
-  done
-  return 1
-}
-config_sum() { gw md5sum /data/openclaw/state/openclaw.json | cut -d' ' -f1; }
-apply_bot_config() {
-  local before
-  before="$(config_sum)"
-  gw sh /data/workspace/salesbot-admin/deploy/vps/setup-manager.sh --keep-sessions || return 1
-  if gw /data/openclaw/oc config get agents.entries.coordinator >/dev/null 2>&1; then
-    gw sh /data/workspace/salesbot-admin/deploy/vps/setup-reactions.sh || return 1
-  fi
-  [[ "$(config_sum)" != "$before" ]] || return 0
-  docker compose restart gateway && wait_healthy
-}
-bot_config() {
-  if ! gw /data/openclaw/oc config get agents.entries.manager >/dev/null 2>&1; then
-    echo "BỎ QUA cấu hình bot: chưa có agent manager (lần cài đầu làm tay, README bước 7)"
-    return 0
-  fi
-  if ! wait_zalo; then
-    echo "CẢNH BÁO: chưa có số Zalo nào kết nối sau 120 giây; giữ cấu hình bot cũ"
-    return 0
-  fi
-  logged "áp cấu hình bot (setup-manager, setup-reactions; restart gateway nếu đổi)" apply_bot_config
-}
-
-if logged "docker compose up -d" docker compose up -d && logged "chờ api/web/bot khoẻ (tối đa 300 giây)" wait_healthy; then
+# --remove-orphans: services dropped from compose.yaml (the retired OpenClaw gateway and watchdog) stop and go;
+# their volumes stay until the owner backs them up and removes them by hand.
+if logged "docker compose up -d" docker compose up -d --remove-orphans && logged "chờ api/web/bot khoẻ (tối đa 300 giây)" wait_healthy; then
   logged "docker image prune" docker image prune -f || echo "CẢNH BÁO: prune lỗi; bỏ qua."
-  bot_config || {
-    echo "LỖI  bản ${SHA:0:8} đã chạy nhưng áp cấu hình bot lỗi; chi tiết trong log trên VPS"
-    exit 1
-  }
   echo "OK    salesbot chạy bản ${SHA:0:8}"
   exit 0
 fi
@@ -135,6 +90,6 @@ if [[ -z "$PREV" || "$PREV" == "$SHA" ]]; then
   exit 1
 fi
 set_env SALESBOT_TAG "$PREV"
-logged "quay về ${PREV:0:8}" docker compose up -d && logged "chờ bản cũ khoẻ" wait_healthy || true
+logged "quay về ${PREV:0:8}" docker compose up -d --remove-orphans && logged "chờ bản cũ khoẻ" wait_healthy || true
 echo "LỖI  bản ${SHA:0:8} không khoẻ, đã quay về ${PREV:0:8}; chi tiết trong log trên VPS"
 exit 1

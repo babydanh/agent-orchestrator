@@ -111,7 +111,7 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTOR: ${{ github.actor }}
         run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin >/dev/null && echo "OK    docker login ghcr.io"
-      # Một job, build lần lượt: ba target chung stage build/openclaw, builder giữ lại nên chỉ dựng một lần.
+      # Một job, build lần lượt: ba target chung stage build, builder giữ lại nên chỉ dựng một lần.
       - name: Build api, web, bot
         env:
           OWNER: ${{ github.repository_owner }}
